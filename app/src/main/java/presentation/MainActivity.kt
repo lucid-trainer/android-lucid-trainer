@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 import network.Status
 import viewmodel.DocumentViewModel
 import viewmodel.DocumentViewModelFactory
+import kotlin.reflect.KMutableProperty0
 
 class MainActivity : AppCompatActivity() {
 
@@ -48,9 +49,13 @@ class MainActivity : AppCompatActivity() {
         // Observe the LiveData, passing in this activity as the LifecycleOwner and the observer.
         viewModel.lastReading.observe(this, lastReadingObserver)
 
-        // Listen for the button click event to search
-        binding.button.setOnClickListener {
-            viewModel.getNewReadings(lastTimestamp)
+        binding.switchcompat.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                viewModel.setFlowEnabled(true)
+                viewModel.getNewReadings()
+            } else {
+                viewModel.setFlowEnabled(false)
+            }
         }
 
         // Since flow runs asynchronously,
@@ -62,6 +67,11 @@ class MainActivity : AppCompatActivity() {
                 // When state to check the
                 // state of received data
                 when (it.status) {
+                    // If its init state then
+                    // hide the progress bar
+                    Status.INIT -> {
+                        binding.progressBar.isVisible = false
+                    }
 
                     // If its loading state then
                     // show the progress bar

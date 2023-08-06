@@ -21,12 +21,19 @@ data class DocumentApiState<out T>(val status: Status, val data: T?, val message
         fun <T> loading(): DocumentApiState<T> {
             return DocumentApiState(Status.LOADING, null, null)
         }
+
+        // When the call is disabled set the state
+        // as initialized and rest as null
+        fun <T> init(): DocumentApiState<T> {
+            return DocumentApiState(Status.INIT, null, null)
+        }
     }
 }
 
 // An enum to store the
 // current state of api call
 enum class Status {
+    INIT,
     SUCCESS,
     ERROR,
     LOADING
