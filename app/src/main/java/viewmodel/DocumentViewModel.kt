@@ -1,11 +1,10 @@
 package viewmodel
 
 import android.util.Log
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
+import database.ReadingDao
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
@@ -13,10 +12,12 @@ import network.DocumentApiState
 import network.Status
 import network.request.APIRequest
 import network.response.APIResponse
+import network.response.transform
 import repository.DocumentsRepository
 import utils.AppConfig
 
-class DocumentsViewModel : ViewModel() {
+
+class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
 
     // Create a Repository and pass the api
     // service we created in AppConfig file
@@ -31,18 +32,17 @@ class DocumentsViewModel : ViewModel() {
         )
     )
 
-    private val _lastTimestamp = MutableLiveData<String>("2023-05-25T22:48:27.354")
-    val lastTimestamp : LiveData<String>
-        get() = _lastTimestamp
+    //the last document stored in the database
+    val lastReading = dao.getLatest()
 
     init {
-        // Initiate a starting
-        // search with comment Id 1
-        getNewDocuments()
+        // Initiate a starting search with an initial timestamp
+        getNewReadings("2023-05-25T22:48:20.354")
     }
-
     // Function to get new Comments
-    fun getNewDocuments() {
+    fun getNewReadings(lastTimestamp : String) {
+
+        Log.d("DocumentViewModel", "lastTimestamp=$lastTimestamp")
 
         val request = APIRequest(
             "fitdata",
@@ -50,12 +50,12 @@ class DocumentsViewModel : ViewModel() {
             "lucid-trainer",
             1,
             1,
-            _lastTimestamp.value!!
+            lastTimestamp
         )
 
         val gson = Gson()
-        val json: String? = gson.toJson(request, APIRequest::class.java)
-        Log.d("DocumentsViewModel", "json=$json")
+        val requestJson: String? = gson.toJson(request, APIRequest::class.java)
+        Log.d("DocumentViewModel", "requestJson=$requestJson")
 
 
         // Since Network Calls takes time,Set the
@@ -81,12 +81,20 @@ class DocumentsViewModel : ViewModel() {
                 // If Api call is succeeded, set the State to Success
                 // and set the response data to data received from api
                 .collect {
-                    documentState.value = DocumentApiState.success(it.data)
-
+                    //first convert any documents returned  into a reading and store in the db
                     var size = it.data?.documents?.size;
                     if (size != null) {
-                        _lastTimestamp.value = it.data?.documents?.get(size-1)?.timestamp
+                        it.data?.documents?.transform()?.forEach { reading ->
+                            val readingTimestamp = reading.timestamp
+                            Log.d("DocumentViewModel", "readingTimestamp=$readingTimestamp")
+
+                            val lastInsertId= dao.insert(reading)
+                            Log.d("DocumentViewModel", "insertId=$lastInsertId")
+                        }
                     }
+
+                    //set the documents in  the response data
+                    documentState.value = DocumentApiState.success(it.data)
                 }
         }
     }

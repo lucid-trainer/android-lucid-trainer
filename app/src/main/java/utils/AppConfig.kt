@@ -7,7 +7,6 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object AppConfig {
     // Base url of the api
-    //private val BASE_URL = "https://jsonplaceholder.typicode.com/"
     private const val BASE_URL = "https://us-east-1.aws.data.mongodb-api.com/app/data-zxclb/endpoint/data/v1/"
 
     // create retrofit service

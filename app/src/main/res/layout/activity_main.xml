@@ -37,7 +37,7 @@
         android:layout_width="match_parent"
         android:id="@+id/progress_bar"
         android:layout_height="wrap_content"
-        app:layout_constraintBottom_toTopOf="@+id/textView4"
+        app:layout_constraintBottom_toTopOf="@+id/timestamp_textview"
         app:layout_constraintEnd_toEndOf="parent"
         android:visibility="gone"
         app:layout_constraintStart_toStartOf="parent"
@@ -71,3 +71,5 @@
         app:layout_constraintVertical_bias="1.0" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
+
+
