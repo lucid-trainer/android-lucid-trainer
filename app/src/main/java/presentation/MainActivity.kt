@@ -1,5 +1,6 @@
 package presentation
 
+import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -11,11 +12,14 @@ import androidx.lifecycle.lifecycleScope
 import com.lucidtrainer.databinding.ActivityMainBinding
 import database.Reading
 import database.ReadingDatabase
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import network.Status
 import viewmodel.DocumentViewModel
 import viewmodel.DocumentViewModelFactory
-import kotlin.reflect.KMutableProperty0
+import java.time.LocalDate
+import java.time.LocalDateTime
 
 class MainActivity : AppCompatActivity() {
 
@@ -24,8 +28,6 @@ class MainActivity : AppCompatActivity() {
 
     // create a view binding variable
     private lateinit var binding: ActivityMainBinding
-
-    var lastTimestamp = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,14 +42,18 @@ class MainActivity : AppCompatActivity() {
         viewModel = ViewModelProvider(
             this, viewModelFactory)[DocumentViewModel::class.java]
 
+        // clear any old data
+        purgeOldRecords(viewModel.startingDateTime)
+
         // Create the observer which updates the latest reading from the database
-        val lastReadingObserver = Observer<Reading> { reading ->
-            // Update the UI, in this case, a TextView.
-            lastTimestamp = reading?.timestamp ?: ""
-        }
+        val lastTimestampObserver = Observer<String> { _ -> }
+        val lastReadingStringObserver = Observer<String> { _ -> }
+        val sleepStageObserver = Observer<String> { _ -> }
 
         // Observe the LiveData, passing in this activity as the LifecycleOwner and the observer.
-        viewModel.lastReading.observe(this, lastReadingObserver)
+        viewModel.lastTimestamp.observe(this, lastTimestampObserver)
+        viewModel.lastReadingString.observe(this, lastReadingStringObserver)
+        viewModel.sleepStage.observe(this, sleepStageObserver)
 
         binding.switchcompat.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
@@ -83,11 +89,16 @@ class MainActivity : AppCompatActivity() {
                     Status.SUCCESS -> {
                         binding.progressBar.isVisible = false
 
-                        // Received data can be null, put a check to prevent
-                        // null pointer exception
-                        it.data?.let { response ->
-                            Log.d("MainActivity", "response=$response")
-                            binding.timestampTextview.text = response.documents[0].timestamp
+                        val sleepStage = viewModel.sleepStage.value ?: ""
+
+                        binding.timestampTextview.text = viewModel.lastTimestamp.value
+                        binding.readingTextview.text = viewModel.lastReadingString.value
+                        binding.sleepStageTexview.text = sleepStage
+
+                        if(sleepStage.contains("AWAKE")) {
+                            binding.sleepStageTexview.setTextColor(Color.RED)
+                        } else {
+                            binding.sleepStageTexview.setTextColor(Color.GREEN)
                         }
                     }
                     // In case of error, show some data to user
@@ -98,6 +109,18 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
+        }
+    }
+
+    private fun purgeOldRecords(dateTime : LocalDateTime) {
+        // create a scope to access the database from a thread other than the main thread
+        val scope = CoroutineScope(Dispatchers.Default)
+        scope.launch {
+            Log.d("MainActivity", "dateTimeOfQuery=$dateTime")
+
+            val dao = ReadingDatabase.getInstance(application).readingDao
+            val cnt = dao.deleteOlder(dateTime)
+            Log.d("MainActivity", "recordsDeleted=$cnt")
         }
     }
 }

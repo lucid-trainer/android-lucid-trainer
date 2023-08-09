@@ -1,9 +1,13 @@
 package viewmodel
 
 import android.util.Log
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Transformations
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
+import database.Reading
 import database.ReadingDao
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,6 +20,10 @@ import network.response.APIResponse
 import network.response.transform
 import repository.DocumentsRepository
 import utils.AppConfig
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Collections.list
 
 
 class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
@@ -33,13 +41,31 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
         )
     )
 
-    //the last document stored in the database
-    val lastReading = dao.getLatest()
+    //get the starting timestamp
+    val startingDateTime = getStartDateTime()
 
-    private var lastTimestamp = "2023-05-25T22:48:20.354"
+    //the last document stored in the database
+    private val lastReading = dao.getLatest()
+
+    var lastTimestamp = Transformations.map(lastReading) { lastReading ->
+        lastReading?.timestamp ?: getStartingTimestamp()
+    }
+
+    val lastReadingString = Transformations.map(lastReading) { lastReading ->
+        if (lastReading == null) "" else  formatReading(lastReading)
+    }
+
+    val sleepStage :  MutableLiveData<String> by lazy {
+        MutableLiveData<String>("")
+    }
+    
+    private val workingReadingList = ArrayList<Reading>()
+
     private var isFlowEnabled = false
 
-    fun setFlowEnabled(value : Boolean) { isFlowEnabled = value}
+    fun setFlowEnabled(value: Boolean) {
+        isFlowEnabled = value
+    }
 
     // Function to get new Comments
     fun getNewReadings() {
@@ -51,13 +77,15 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
 
             // Collecting the data emitted
             // by the function in repository
-            while(isFlowEnabled) {
+            while (isFlowEnabled) {
 
                 // Since Network Calls takes time,Set the
                 // initial value to loading state
                 documentState.value = DocumentApiState.loading()
 
-                val request = getAPIRequest(lastTimestamp)
+                val timestampFilter = lastTimestamp.value ?: "N/A"
+
+                val request = getAPIRequest(timestampFilter)
 
                 repository.getDocuments(request)
                     // If any errors occurs like 404 not found
@@ -75,11 +103,13 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
                         var size = it.data?.documents?.size;
                         if (size != null) {
                             it.data?.documents?.transform()?.forEach { reading ->
-                                lastTimestamp = reading.timestamp
-                                Log.d("DocumentViewModel", "readingTimestamp=$lastTimestamp")
+                                //lastTimestamp = reading.timestamp
+                                Log.d("DocumentViewModel", "lastReadingTimestamp=$lastTimestamp")
 
                                 val lastInsertId = dao.insert(reading)
                                 Log.d("DocumentViewModel", "insertId=$lastInsertId")
+
+                                setSleepStage(reading)
                             }
                         }
 
@@ -94,7 +124,7 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
         }
     }
 
-    private fun getAPIRequest(lastTimestamp : String) : APIRequest {
+    private fun getAPIRequest(lastTimestamp: String): APIRequest {
         Log.d("DocumentViewModel", "lastTimestamp=$lastTimestamp")
 
         val request = APIRequest(
@@ -109,7 +139,53 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
         val gson = Gson()
         val requestJson: String? = gson.toJson(request, APIRequest::class.java)
         Log.d("DocumentViewModel", "requestJson=$requestJson")
-
         return request
+    }
+
+
+    // 3 "period" moving average
+
+
+    private fun getStartDateTime() : LocalDateTime {
+        val currDateTime = LocalDateTime.now()
+
+        //start with today at 10pm as starting point
+        //var dateTime = LocalDate.now().atTime(22, 52);
+        var dateTime = LocalDate.parse("2023-05-20").atTime(4, 48)
+
+        if (currDateTime.hour in 0..10) {
+            //but if we're in the morning hours set it to yesterday
+            dateTime = LocalDate.now().minusDays(1).atTime(22, 0)
+        }
+
+        return dateTime
+    }
+
+    private fun getStartingTimestamp() : String {
+        return startingDateTime.format(DateTimeFormatter.ofPattern("yyy-MM-dd'T'HH:mm:ss.SSS"))
+    }
+
+    private fun formatReading(reading: Reading): String {
+
+        var str = "Date/Time: ${reading.dateTimeFormatted}"
+        str += '\n' + "Heart Rate: ${reading.heartRate}"
+        str += '\n' + "Heart Rate Var: ${reading.heartRateVar}"
+        str += '\n' + "Movement: ${reading.movement}"
+        str += '\n' + "Sleep Status: ${reading.isSleep}" + '\n'
+        return str
+    }
+
+    private fun setSleepStage(reading: Reading) {
+        workingReadingList.add(reading)
+
+        if (workingReadingList.size > 4) {
+            val moveCnt =
+                workingReadingList.map { it -> it.movement }.takeLast(6).filter { it > .5 }.size
+            if (reading.isSleep == "awake" || moveCnt >= 2) {
+                sleepStage.value = "AWAKE [$moveCnt]"
+            } else {
+                sleepStage.value = "ASLEEP [$moveCnt]"
+            }
+        }
     }
 }

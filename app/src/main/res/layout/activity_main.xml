@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="16dp">
@@ -27,12 +27,12 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <ProgressBar
-        android:layout_width="match_parent"
         android:id="@+id/progress_bar"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:layout_constraintBottom_toTopOf="@+id/timestamp_textview"
-        app:layout_constraintEnd_toEndOf="parent"
         android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@+id/reading_textview"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/switchcompat" />
 
@@ -48,12 +48,35 @@
 
     <TextView
         android:id="@+id/timestamp_textview"
+        android:layout_width="130dp"
+        android:layout_height="19dp"
+        android:layout_marginStart="40dp"
+        android:layout_marginTop="60dp"
+        android:layout_marginEnd="70dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/timestamp_lbl_textview"
+        app:layout_constraintTop_toBottomOf="@+id/switchcompat" />
+
+
+    <TextView
+        android:id="@+id/reading_textview"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
         android:textStyle="bold"
-        app:layout_constraintBottom_toBottomOf="@+id/timestamp_lbl_textview"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/timestamp_lbl_textview" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/timestamp_lbl_textview" />
+
+    <TextView
+        android:id="@+id/sleep_stage_texview"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:textStyle="bold"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/reading_textview" />
+
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>
 
