@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">Android Lucid Trainer</string>
+    <string-array name="bg_music_array">
+        <item>No White Noise</item>
+        <item>Fan</item>
+        <item>Waves</item>
+    </string-array>
 </resources>
