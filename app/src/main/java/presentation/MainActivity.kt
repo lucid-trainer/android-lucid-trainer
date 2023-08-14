@@ -3,14 +3,17 @@ package presentation
 import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
+import android.view.View
+import android.widget.AdapterView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import com.lucidtrainer.R
 import com.lucidtrainer.databinding.ActivityMainBinding
-import database.Reading
+import com.olekdia.soundpool.SoundPoolCompat
 import database.ReadingDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -18,10 +21,10 @@ import kotlinx.coroutines.launch
 import network.Status
 import viewmodel.DocumentViewModel
 import viewmodel.DocumentViewModelFactory
-import java.time.LocalDate
 import java.time.LocalDateTime
 
-class MainActivity : AppCompatActivity() {
+
+class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
     // variable to initialize it later
     private lateinit var viewModel: DocumentViewModel
@@ -29,12 +32,31 @@ class MainActivity : AppCompatActivity() {
     // create a view binding variable
     private lateinit var binding: ActivityMainBinding
 
+    private var mBgId = -1
+    private var mFg1Id = -1
+    var mSoundPoolCompat: SoundPoolCompat? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        mSoundPoolCompat = SoundPoolCompat(application, 5, 100000)
+        mSoundPoolCompat!!.setOnLoadCompleteListener(object :
+            SoundPoolCompat.OnLoadCompleteListener {
+            override fun onLoadComplete(
+                soundPool: SoundPoolCompat,
+                sampleId: Int,
+                isSuccess: Boolean,
+                errorMsg: String?
+            ) {
+                Log.d("load completed soundID", "$sampleId, isSuccess: $isSuccess")
+            }
+        })
 
         // instantiate view binding
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        setupSound()
 
         // initialize viewModel
         val dao = ReadingDatabase.getInstance(application).readingDao
@@ -108,7 +130,39 @@ class MainActivity : AppCompatActivity() {
                         Toast.makeText(this@MainActivity, "${it.message}", Toast.LENGTH_SHORT).show()
                     }
                 }
+
             }
+        }
+    }
+
+    private fun setupSound() {
+        val bgSelector = binding.bgMusicSpin
+        val bgChoice = bgSelector.selectedItem
+
+        bgSelector.onItemSelectedListener = this
+
+        binding.btnPlay.setOnClickListener {
+
+            Log.d("MainActivity","mBgId = $mBgId")
+
+            if (mBgId != -1) {
+                mSoundPoolCompat!!.play(
+                    mBgId,
+                    1F,
+                    1F,
+                    -1,
+                    1f
+                )
+            }
+        }
+
+        binding.btnStop.setOnClickListener {
+            mSoundPoolCompat!!.stop(mBgId)
+            mSoundPoolCompat!!.stop(mFg1Id)
+        }
+
+        binding.btnTestPrompt.setOnClickListener {
+            mSoundPoolCompat!!.play(mFg1Id)
         }
     }
 
@@ -122,5 +176,29 @@ class MainActivity : AppCompatActivity() {
             val cnt = dao.deleteOlder(dateTime)
             Log.d("MainActivity", "recordsDeleted=$cnt")
         }
+    }
+
+    override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+        val bgChoice = parent?.getItemAtPosition(position)
+
+        Log.d("MainActivity", "bgChoice = $bgChoice")
+
+        if(mBgId != -1) {
+            mSoundPoolCompat!!.unload(mBgId)
+        }
+
+        mBgId = if (bgChoice.toString() == "Fan") {
+            mSoundPoolCompat!!.load(R.raw.boxfanclip)
+        } else if (bgChoice.toString() == "Waves") {
+            mSoundPoolCompat!!.load(R.raw.bg_sea_retain)
+        } else {
+            -1
+        }
+
+        Log.d("MainActivity", "bgChoice = $mBgId")
+    }
+
+    override fun onNothingSelected(parent: AdapterView<*>?) {
+        TODO("Not yet implemented")
     }
 }

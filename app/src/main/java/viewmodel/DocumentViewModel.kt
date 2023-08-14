@@ -131,7 +131,7 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
             "fitdata",
             "Cluster0",
             "lucid-trainer",
-            1,
+            5,
             1,
             lastTimestamp
         )
@@ -150,8 +150,8 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
         val currDateTime = LocalDateTime.now()
 
         //start with today at 10pm as starting point
-        //var dateTime = LocalDate.now().atTime(22, 52);
-        var dateTime = LocalDate.parse("2023-05-20").atTime(4, 48)
+        //var dateTime = LocalDate.now().atTime(20, 0);
+        var dateTime = LocalDate.parse("2023-08-12").atTime(20, 25)
 
         if (currDateTime.hour in 0..10) {
             //but if we're in the morning hours set it to yesterday
