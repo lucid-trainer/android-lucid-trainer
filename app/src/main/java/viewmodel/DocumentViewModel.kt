@@ -42,7 +42,7 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
     )
 
     //get the starting timestamp
-    val startingDateTime = getStartDateTime()
+    var startingDateTime = getStartDateTime()
 
     //the last document stored in the database
     private val lastReading = dao.getLatest()
@@ -55,11 +55,15 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
         if (lastReading == null) "" else  formatReading(lastReading)
     }
 
+    val eventMap = Transformations.map(lastReading) { lastReading ->
+        lastReading?.eventMap ?: emptyMap()
+    }
+
     val sleepStage :  MutableLiveData<String> by lazy {
         MutableLiveData<String>("")
     }
-    
-    private val workingReadingList = ArrayList<Reading>()
+
+    val workingReadingList = ArrayList<Reading>()
 
     private var isFlowEnabled = false
 
@@ -116,7 +120,7 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
                         //set the documents in  the response data
                         documentState.value = DocumentApiState.success(it.data)
                     }
-                delay(5000L)
+                delay(15000L)
             }
 
             //the flow is disabled
@@ -128,10 +132,10 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
         Log.d("DocumentViewModel", "lastTimestamp=$lastTimestamp")
 
         val request = APIRequest(
-            "fitdata",
-            "Cluster0",
-            "lucid-trainer",
-            5,
+            "[Mongodb Atlas collection]",
+            "[Mongodb Atlas data source]",
+            "[Mongodb Atlas database]",
+            1,
             1,
             lastTimestamp
         )
@@ -151,17 +155,21 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
 
         //start with today at 10pm as starting point
         //var dateTime = LocalDate.now().atTime(20, 0);
-        var dateTime = LocalDate.parse("2023-08-12").atTime(20, 25)
+        var dateTime = LocalDateTime.now();
 
-        if (currDateTime.hour in 0..10) {
-            //but if we're in the morning hours set it to yesterday
-            dateTime = LocalDate.now().minusDays(1).atTime(22, 0)
-        }
+        //for debugging, set a specific starting time
+        //var dateTime = LocalDate.parse("2023-09-04").atTime(12, 0)
+
+//        if (currDateTime.hour in 0..10) {
+//            //but if we're in the morning hours set it to yesterday
+//            dateTime = LocalDate.now().minusDays(1).atTime(22, 0)
+//        }
 
         return dateTime
     }
 
     private fun getStartingTimestamp() : String {
+        startingDateTime = getStartDateTime()
         return startingDateTime.format(DateTimeFormatter.ofPattern("yyy-MM-dd'T'HH:mm:ss.SSS"))
     }
 
@@ -170,7 +178,10 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
         var str = "Date/Time: ${reading.dateTimeFormatted}"
         str += '\n' + "Heart Rate: ${reading.heartRate}"
         str += '\n' + "Heart Rate Var: ${reading.heartRateVar}"
-        str += '\n' + "Movement: ${reading.movement}"
+        str += '\n' + "Accel Movement: ${reading.accelMovement}"
+        str += '\n' + "Position: ${reading.position}"
+        str += '\n' + "Gyro Movement: ${reading.gyroMovement}"
+        str += '\n' + "Event: ${reading.event}"
         str += '\n' + "Sleep Status: ${reading.isSleep}" + '\n'
         return str
     }
@@ -178,13 +189,13 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
     private fun setSleepStage(reading: Reading) {
         workingReadingList.add(reading)
 
-        if (workingReadingList.size > 4) {
+        if (workingReadingList.size > 6) {
             val moveCnt =
-                workingReadingList.map { it -> it.movement }.takeLast(6).filter { it > .5 }.size
-            if (reading.isSleep == "awake" || moveCnt >= 2) {
-                sleepStage.value = "AWAKE [$moveCnt]"
+                workingReadingList.map { it -> it.accelMovement }.takeLast(6).filter { it > 1.25 }.size
+            if (reading.isSleep == "awake" || reading.isSleep == "unknown" || moveCnt >= 2) {
+                sleepStage.value = "AWAKE"
             } else {
-                sleepStage.value = "ASLEEP [$moveCnt]"
+                sleepStage.value = "ASLEEP"
             }
         }
     }
