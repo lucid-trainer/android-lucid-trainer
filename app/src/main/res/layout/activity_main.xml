@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -10,49 +11,68 @@
         android:id="@+id/top_lbl_textview"
         android:layout_width="155dp"
         android:layout_height="28dp"
+        android:layout_marginStart="32dp"
+        android:layout_marginTop="16dp"
         android:text="Lucid Trainer"
         android:textSize="24dp"
         android:textStyle="bold"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+
     <androidx.appcompat.widget.SwitchCompat
         android:id="@+id/switchcompat"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="4dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginRight="44dp"
         android:text="Session"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toBottomOf="@id/top_lbl_textview"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <RadioGroup
-        android:layout_width="120dp"
-        android:layout_height="65dp"
-        android:layout_marginTop="45dp"
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/chipGroup"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="48dp"
         app:layout_constraintEnd_toStartOf="@+id/bg_music_spin"
+        app:layout_constraintHorizontal_bias="0.226"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/top_lbl_textview" >
+        app:layout_constraintTop_toBottomOf="@+id/top_lbl_textview">
 
-        <RadioButton
-            android:id="@+id/radioButton1"
-            android:layout_width="match_parent"
-            android:layout_height="33dp"
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chip_ssild"
+            style="@style/Widget.MaterialComponents.Chip.Choice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="10sp"
             android:text="SSILD" />
 
-        <RadioButton
-            android:id="@+id/radioButton2"
-            android:layout_width="match_parent"
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chip_mild"
+            style="@style/Widget.MaterialComponents.Chip.Choice"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:textSize="10sp"
             android:text="MILD" />
-    </RadioGroup>
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chip_auto"
+            style="@style/Widget.MaterialComponents.Chip.Choice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="10sp"
+            android:text="AUTO" />
+    </com.google.android.material.chip.ChipGroup>
 
     <Spinner
         android:id="@+id/bg_music_spin"
-        android:layout_width="140dp"
-        android:layout_height="48dp"
-        android:layout_marginTop="45dp"
-        android:layout_marginEnd="4dp"
+        android:layout_width="175dp"
+        android:layout_height="47dp"
+        android:layout_marginTop="50dp"
+        android:layout_marginEnd="10dp"
         android:entries="@array/bg_music_array"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/top_lbl_textview" />
@@ -67,32 +87,47 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/switchcompat" />
 
+
+    <TextView
+        android:id="@+id/play_status"
+        android:layout_width="320dp"
+        android:layout_height="26dp"
+        android:layout_marginStart="32dp"
+        android:textColor="#14c45d"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toTopOf="@+id/timestamp_lbl_textview"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/chipGroup"
+        app:layout_constraintVertical_bias="0.801" />
+
     <TextView
         android:id="@+id/timestamp_lbl_textview"
         android:layout_width="155dp"
         android:layout_height="19dp"
-        android:layout_marginTop="120dp"
+        android:layout_marginStart="32dp"
+        android:layout_marginTop="132dp"
         android:text="Last Timestamp"
         android:textStyle="bold"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/switchcompat" />
+        app:layout_constraintTop_toBottomOf="@+id/chipGroup" />
 
     <TextView
         android:id="@+id/timestamp_textview"
         android:layout_width="175dp"
         android:layout_height="19dp"
         android:layout_marginStart="40dp"
-        android:layout_marginTop="120dp"
+        android:layout_marginTop="20dp"
         android:layout_marginEnd="70dp"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.329"
         app:layout_constraintStart_toEndOf="@+id/timestamp_lbl_textview"
-        app:layout_constraintTop_toBottomOf="@+id/switchcompat" />
-
+        app:layout_constraintTop_toBottomOf="@+id/play_status" />
 
     <TextView
         android:id="@+id/reading_textview"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginStart="32dp"
         android:layout_marginTop="32dp"
         android:textStyle="bold"
         app:layout_constraintStart_toStartOf="parent"
@@ -102,45 +137,97 @@
         android:id="@+id/sleep_stage_texview"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="120dp"
+        android:layout_marginStart="32dp"
+        android:layout_marginTop="180dp"
         android:textStyle="bold"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/timestamp_lbl_textview" />
 
-    <Button
-        android:id="@+id/btn_play"
-        android:layout_width="75dp"
-        android:layout_height="40dp"
-        android:layout_marginStart="22dp"
-        android:layout_marginTop="80dp"
-        android:text="Play"
+
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="49dp"
+        android:layout_height="22dp"
+        android:layout_marginStart="92dp"
+        android:layout_marginBottom="60dp"
+        android:text="Volume"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/sleep_stage_texview" />
+        app:layout_constraintTop_toBottomOf="@+id/sleep_stage_texview"
+        app:layout_constraintVertical_bias="1.0" />
 
-
-    <Button
-        android:id="@+id/btn_stop"
-        android:layout_width="75dp"
-        android:layout_height="40dp"
-        android:layout_marginStart="45dp"
-        android:layout_marginTop="80dp"
-        android:text="Stop"
-        app:layout_constraintStart_toEndOf="@+id/btn_play"
-        app:layout_constraintTop_toBottomOf="@+id/sleep_stage_texview" />
-
-    <Button
-        android:id="@+id/btn_test_prompt"
-        android:layout_width="100dp"
-        android:layout_height="40dp"
-        android:layout_marginStart="40dp"
-        android:layout_marginTop="80dp"
-        android:layout_marginEnd="22dp"
-        android:text="Test Prompt"
+    <SeekBar
+        android:id="@+id/seekBar"
+        android:layout_width="190dp"
+        android:layout_height="24dp"
+        android:layout_marginBottom="60dp"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="1.0"
-        app:layout_constraintStart_toEndOf="@+id/btn_stop"
-        app:layout_constraintTop_toBottomOf="@+id/sleep_stage_texview" />
+        app:layout_constraintHorizontal_bias="0.3"
+        app:layout_constraintStart_toEndOf="@+id/textView"
+        app:layout_constraintTop_toBottomOf="@+id/sleep_stage_texview"
+        app:layout_constraintVertical_bias="1.0" />
 
+    <LinearLayout
+        android:layout_width="380dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="80dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        app:layout_constraintBottom_toTopOf="@+id/seekBar"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/sleep_stage_texview">
+
+        <Button
+            android:id="@+id/btn_noise"
+            android:layout_width="80dp"
+            android:layout_height="wrap_content"
+            android:soundEffectsEnabled="false"
+            android:text="Noise"
+            android:textSize="11sp" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <Button
+            android:id="@+id/btn_prompt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:soundEffectsEnabled="false"
+            android:text="Prompt"
+            android:textSize="11sp" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <Button
+            android:id="@+id/btn_stop"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:soundEffectsEnabled="false"
+            android:text="Stop All"
+            android:textSize="11sp" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <Button
+            android:id="@+id/btn_reset"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:soundEffectsEnabled="false"
+            android:text="Reset"
+            android:textSize="11sp" />
+
+
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
 

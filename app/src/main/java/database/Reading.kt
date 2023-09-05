@@ -4,11 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import android.os.Parcelable
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import kotlinx.parcelize.Parcelize
-import network.response.Position
-import java.lang.reflect.Type
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -32,32 +28,33 @@ data class Reading (
     @ColumnInfo(name = "heart_rate_var")
     var heartRateVar: Double = 0.00,
 
-    @ColumnInfo(name = "movement")
-    var movement: Double = 0.00,
+    @ColumnInfo(name = "accel_movement")
+    var accelMovement: Double = 0.00,
 
-    @ColumnInfo(name = "position_array")
-    var positionArray: String = "",
+    @ColumnInfo(name = "position")
+    var position: String = "",
+
+    @ColumnInfo(name = "gyro_movement")
+    var gyroMovement: Double = 0.00,
 
     @ColumnInfo(name = "dateTime")
     var dateTime: LocalDateTime? = null,
 
     @ColumnInfo(name = "is_sleep")
-    var isSleep: String = ""
+    var isSleep: String = "",
 
+    @ColumnInfo(name = "event")
+    var event: String = ""
 
 ) : Parcelable {
     val dateTimeFormatted : String
         get() = dateTime?.format(DateTimeFormatter.ofPattern("yyy-MM-dd'T'HH:mm:ss.SSS")) ?: "N/A"
 
-    val hrArrayFormatted : List<Int>
-        get() = hrArray.split(",").map{ it.trim().toInt() }
-
-    val positionFormatted : List<Position>
-        get() = positionConverter(positionArray)
+    val eventMap : Map<String, String>
+        get() = eventConverter(event)
 }
 
-fun positionConverter(positionArray: String) : List<Position>  {
-    val gson = Gson()
-    val positionListType: Type? = object : TypeToken<List<Position>>() {}.type
-    return gson.fromJson(positionArray, positionListType)
+fun eventConverter(event: String) : Map<String, String>  {
+    return if(event.isNullOrEmpty()) emptyMap()
+    else event.split(";").associate { it.substringBefore(".") to it.substringAfter(".") }
 }

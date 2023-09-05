@@ -3,6 +3,7 @@
     <string-array name="bg_music_array">
         <item>No White Noise</item>
         <item>Fan</item>
+        <item>AC</item>
         <item>Waves</item>
     </string-array>
 </resources>
