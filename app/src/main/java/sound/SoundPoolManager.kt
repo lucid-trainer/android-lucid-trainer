@@ -16,13 +16,13 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.io.PrintWriter
 import java.time.LocalDateTime
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 
 class SoundPoolManager() {
 
     private lateinit var mSoundPoolCompat: SoundPoolCompat
-    private var fgPlayCnt = 4;
     private var mBgId = -1;
     private var mFgId = -1;
     private var fgJob: Job? = null
@@ -132,14 +132,16 @@ class SoundPoolManager() {
     fun playSoundList(soundList : List<String>, bgRawRes : Int, endBgRawRes : Int, bgLabel : String,
                       endBgLabel : String, eventLabel: String, textView : TextView) {
 
+            val playCnt = getPlayCount()
+
             val soundRoutines = mutableListOf<SoundRoutine>()
             if (soundList.contains("s")) {
                 soundRoutines.add(
-                    SSILDSoundRoutine(fgPlayCnt, bgRawRes, endBgRawRes, eventLabel, bgLabel, endBgLabel))
+                    SSILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, eventLabel, bgLabel, endBgLabel))
             }
             if (soundList.contains("m")) {
                 soundRoutines.add(
-                    MILDSoundRoutine(fgPlayCnt, bgRawRes, endBgRawRes, eventLabel, bgLabel, endBgLabel))
+                    MILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, eventLabel, bgLabel, endBgLabel))
             }
             playForegroundSounds(soundRoutines, textView)
     }
@@ -174,7 +176,8 @@ class SoundPoolManager() {
                         //check if stop button pushed mid play or the sound file id is already initialized
                         if (!isFGSoundStopped) {
 
-                            textView.text = "Playing ${soundRoutine.bgLabel} and ${soundRoutine.fgLabel} routine for $fgPlayCnt cycles"
+                            textView.text = "Playing ${soundRoutine.bgLabel} and ${soundRoutine.fgLabel} " +
+                                    "routine for ${soundRoutine.repetition} cycles"
 
                             //play the sound file - playOnce handles loading and unloading the file
                             Log.d("MainActivity", "playing ${sound.rawResId}")
@@ -216,8 +219,6 @@ class SoundPoolManager() {
                     playBackgroundSound(lastBgRawId, 1F, textView)
                     textView.text = "Playing $lastBgLabel"
                 }
-
-                if (fgPlayCnt > 1) fgPlayCnt--
             }
         }
     }
@@ -228,11 +229,21 @@ class SoundPoolManager() {
         }
     }
 
-    fun resetPlayCount() {
-        fgPlayCnt = 4
+    private fun getPlayCount() : Int {
+        val hour = ZonedDateTime.now(java.time.ZoneId.systemDefault()).hour
+
+        if (hour < 4) {
+            return 3
+        } else if (hour < 6) {
+            return 2
+        } else if (hour < 9) {
+            return 1
+        }
+
+        return 4
     }
 
-    fun resetLogFile() {
+    private fun resetLogFile() {
         val file = File(Environment.getExternalStoragePublicDirectory(
             Environment.DIRECTORY_DOCUMENTS), LOG_FILE_NAME
         )
@@ -252,8 +263,8 @@ class SoundPoolManager() {
             DateTimeFormatter.ofPattern("yyy-MM-dd'T'HH:mm:ss.SSS"))
         val line = "$dateTime,$eventLabel,$bgLabel,$fgLabel\n"
         try {
-            Log.d("MainActivity", "storage directory = ${Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_DOCUMENTS)}")
+            //Log.d("MainActivity", "storage directory = ${Environment.getExternalStoragePublicDirectory(
+            //    Environment.DIRECTORY_DOCUMENTS)}")
             val file = File(Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_DOCUMENTS), LOG_FILE_NAME
             )

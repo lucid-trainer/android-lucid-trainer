@@ -92,7 +92,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         viewModel.eventMap.observe(this, eventMapObserver)
 
         binding.switchcompat.setOnCheckedChangeListener { _, isChecked ->
-            soundPoolManager.resetPlayCount()
             if (isChecked) {
                 viewModel.setFlowEnabled(true)
                 viewModel.getNewReadings()

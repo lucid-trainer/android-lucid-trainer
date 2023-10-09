@@ -11,24 +11,24 @@ class SSILDSoundRoutine(override var repetition: Int, override var bgRawId: Int,
 
         //short routine
         routine.add(Sound(R.raw.ssild_intro, 1))
-        routine.add(Sound(R.raw.ssild_round_1, 2))
-        routine.add(Sound(R.raw.ssild_hear, 2))
-        routine.add(Sound(R.raw.ssild_feel, 2))
-        routine.add(Sound(R.raw.ssild_round_2, 2))
-        routine.add(Sound(R.raw.ssild_hear, 2))
-        routine.add(Sound(R.raw.ssild_feel, 2))
+        routine.add(Sound(R.raw.ssild_round_1, 3))
+        routine.add(Sound(R.raw.ssild_hear, 3))
+        routine.add(Sound(R.raw.ssild_feel, 3))
+        routine.add(Sound(R.raw.ssild_round_2, 3))
+        routine.add(Sound(R.raw.ssild_hear, 3))
+        routine.add(Sound(R.raw.ssild_feel, 3))
 
         if(repetition > 2) {
-            routine.add(Sound(R.raw.ssild_round_3, 2))
+            routine.add(Sound(R.raw.ssild_round_3, 3))
 
-            routine.add(Sound(R.raw.ssild_hear, 2))
-            routine.add(Sound(R.raw.ssild_feel, 2))
+            routine.add(Sound(R.raw.ssild_hear, 3))
+            routine.add(Sound(R.raw.ssild_feel, 3))
         }
 
         if(repetition > 3) {
-            routine.add(Sound(R.raw.ssild_round_4, 2))
-            routine.add(Sound(R.raw.ssild_hear, 2))
-            routine.add(Sound(R.raw.ssild_feel, 2))
+            routine.add(Sound(R.raw.ssild_round_4, 3))
+            routine.add(Sound(R.raw.ssild_hear, 3))
+            routine.add(Sound(R.raw.ssild_feel, 3))
         }
 
         //long routine
