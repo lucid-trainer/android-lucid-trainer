@@ -24,4 +24,4 @@ There are several additional online features available if integrating with the F
 
 If an integration session is enabled, the application will listen for several events from the watch interface. One updates the audio volume level, which is visible in the volume slider. Another will start one or more meditations if selected on the watch. Finally, if the auto option is selected and the Dream button is clicked on the Fitbit, the application will play whichever meditations are selected. The audio events triggered by the watch are also impacted by the time of night, with shorter repetition/length as the night goes on and limits on the auto feature after a certain time (6 am by default)
 
-![Screenshot](screenshot.png)
+https://github.com/lucid-trainer/android-lucid-trainer/assets/125609750/b1d4c872-3be5-4900-ad9d-1fdb506b221e
