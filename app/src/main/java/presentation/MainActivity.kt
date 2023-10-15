@@ -1,5 +1,7 @@
 package presentation
 
+import android.annotation.SuppressLint
+import android.content.pm.ActivityInfo
 import android.graphics.Color
 import android.media.AudioManager
 import android.os.Bundle
@@ -59,6 +61,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private var mBgRawId = -1
     private var mBgLabel = ""
 
+    @SuppressLint("SourceLockedOrientationActivity")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -75,6 +78,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         val viewModelFactory = DocumentViewModelFactory(dao)
         viewModel = ViewModelProvider(
             this, viewModelFactory)[DocumentViewModel::class.java]
+
+        this.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
 
         // clear any old data
         purgeOldRecords(viewModel.startingDateTime)

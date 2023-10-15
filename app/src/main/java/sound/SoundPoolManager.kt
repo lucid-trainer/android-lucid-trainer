@@ -181,7 +181,7 @@ class SoundPoolManager() {
 
                             //play the sound file - playOnce handles loading and unloading the file
                             Log.d("MainActivity", "playing ${sound.rawResId}")
-                            mFgId = mSoundPoolCompat.playOnce(sound.rawResId, 1F, 1F, 1F)
+                            mFgId = mSoundPoolCompat.playOnce(sound.rawResId, .7F, .7F, 1F)
 
                             //give it a little time to load
                             isLoaded = false
