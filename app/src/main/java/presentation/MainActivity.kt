@@ -1,7 +1,12 @@
 package presentation
 
 import android.annotation.SuppressLint
+import android.bluetooth.BluetoothDevice
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
 import android.content.pm.ActivityInfo
+import android.content.IntentFilter
 import android.graphics.Color
 import android.media.AudioManager
 import android.os.Bundle
@@ -56,6 +61,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private lateinit var soundPoolManager: SoundPoolManager
     private var  lastEventTimestamp = ""
     private var apJob: Job? = null
+    private var isBTDisconnected: Boolean = false
 
     var maxVolume = 0;
     private var mBgRawId = -1
@@ -80,6 +86,36 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             this, viewModelFactory)[DocumentViewModel::class.java]
 
         this.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+
+        // stop any playback when bluetooth is disconnected
+        val broadcastReceiver : BroadcastReceiver = (object :BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                val scope = CoroutineScope(Dispatchers.Default)
+                when (intent?.action) {
+                    BluetoothDevice.ACTION_ACL_CONNECTED -> {
+                        isBTDisconnected = false
+                        Log.d("MainActivity","bluetooth connected")
+                    }
+
+                    BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
+                        scope.launch {
+                            Log.d("MainActivity","bluetooth disconnected")
+                            isBTDisconnected = true
+                            delay(6000)
+                            if(isBTDisconnected) {
+                                soundPoolManager.stopPlayingAll(binding.playStatus)
+                            }
+                       }
+                    }
+                }
+            }
+        })
+
+        val filter = IntentFilter().apply {
+            addAction(BluetoothDevice.ACTION_ACL_CONNECTED)
+            addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED)
+        }
+        this.registerReceiver(broadcastReceiver, filter)
 
         // clear any old data
         purgeOldRecords(viewModel.startingDateTime)

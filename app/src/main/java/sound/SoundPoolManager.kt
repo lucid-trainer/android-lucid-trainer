@@ -19,7 +19,9 @@ import java.time.LocalDateTime
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
-
+/*
+   Uses library https://gitlab.com/olekdia/common/libraries/sound-pool
+ */
 class SoundPoolManager() {
 
     private lateinit var mSoundPoolCompat: SoundPoolCompat
