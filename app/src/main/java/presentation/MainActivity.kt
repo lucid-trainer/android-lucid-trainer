@@ -5,11 +5,12 @@ import android.bluetooth.BluetoothDevice
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.pm.ActivityInfo
 import android.content.IntentFilter
+import android.content.pm.ActivityInfo
 import android.graphics.Color
 import android.media.AudioManager
 import android.os.Bundle
+import android.os.Handler
 import android.util.Log
 import android.view.View
 import android.widget.AdapterView
@@ -23,6 +24,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.lucidtrainer.R
 import com.lucidtrainer.databinding.ActivityMainBinding
+import com.olekdia.androidcommon.extensions.nextInt
 import database.ReadingDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -37,6 +39,7 @@ import viewmodel.DocumentViewModelFactory
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Random
 
 
 class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
@@ -63,6 +66,12 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private var apJob: Job? = null
     private var isBTDisconnected: Boolean = false
 
+    //set up the handler for performing actions outside of a session
+    var handler: Handler? = Handler()
+    var runnable: Runnable? = null
+    var delay = 1500000
+    var randomNum: Random = Random()
+
     var maxVolume = 0;
     private var mBgRawId = -1
     private var mBgLabel = ""
@@ -70,6 +79,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     @SuppressLint("SourceLockedOrientationActivity")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        delay = 1500000 - randomNum.nextInt(1,420000)
+        Log.d("MainActivity","delay = $delay")
 
         audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
 
@@ -88,28 +100,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         this.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
 
         // stop any playback when bluetooth is disconnected
-        val broadcastReceiver : BroadcastReceiver = (object :BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                val scope = CoroutineScope(Dispatchers.Default)
-                when (intent?.action) {
-                    BluetoothDevice.ACTION_ACL_CONNECTED -> {
-                        isBTDisconnected = false
-                        Log.d("MainActivity","bluetooth connected")
-                    }
-
-                    BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
-                        scope.launch {
-                            Log.d("MainActivity","bluetooth disconnected")
-                            isBTDisconnected = true
-                            delay(6000)
-                            if(isBTDisconnected) {
-                                soundPoolManager.stopPlayingAll(binding.playStatus)
-                            }
-                       }
-                    }
-                }
-            }
-        })
+        val broadcastReceiver : BroadcastReceiver = getBroadcastReceiver()
 
         val filter = IntentFilter().apply {
             addAction(BluetoothDevice.ACTION_ACL_CONNECTED)
@@ -196,6 +187,75 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
             }
         }
+
+    }
+
+    private fun getBroadcastReceiver() = (object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val scope = CoroutineScope(Dispatchers.Default)
+            when (intent?.action) {
+                BluetoothDevice.ACTION_ACL_CONNECTED -> {
+                    val currVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+                    if (isBTDisconnected && currVolume < 4) {
+                        scope.launch {
+                            delay(3000)
+                            //turn the volume back up
+                            binding.seekBar.progress = maxVolume.times(6).div(10)
+                            Log.d("MainActivity", "bt connected turning volume back up")
+                        }
+                    }
+                    isBTDisconnected = false
+                }
+
+                BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
+                    scope.launch {
+                        Log.d("MainActivity", "bluetooth disconnected")
+                        isBTDisconnected = true
+                        delay(6000)
+                        if (isBTDisconnected) {
+                            //turn the volume down
+                            binding.seekBar.progress = maxVolume.times(2).div(10)
+                            Log.d("MainActivity", "bt disconnected turning volume down")
+                        }
+                    }
+                }
+            }
+        }
+    })
+
+    override fun onResume() {
+        handler?.postDelayed(Runnable {
+            runnable?.let { handler!!.postDelayed(it, delay.toLong()) }
+            val hour = ZonedDateTime.now(java.time.ZoneId.systemDefault()).hour
+            val enabled = binding.chipExperimental.isChecked
+
+            if(enabled && (hour in 1..2 || hour in 5..7)) {
+                val result = randomNum.nextInt(2)
+                if(result == 0 || hour in 6..7) {
+                    //turn the volume way down
+                    Log.d("MainActivity","Coin flip succeeded $hour turning volume down")
+                    binding.seekBar.progress = maxVolume.times(2).div(10)
+
+                    //turn the volume back up in around 1-3 minutes
+                    val scope = CoroutineScope(Dispatchers.Default)
+                    scope.launch {
+                        val onDelay = 180000 - randomNum.nextInt(120000)
+                        delay(timeMillis = onDelay.toLong())
+                        binding.seekBar.progress = maxVolume.times(6).div(10)
+                        Log.d("MainActivity","turning volume back up $onDelay")
+                    }
+                } else {
+                    Log.d("MainActivity","Coin flip failed $hour")
+                }
+            }
+
+        }.also { runnable = it }, delay.toLong())
+        super.onResume()
+    }
+
+    override fun onPause() {
+        handler?.removeCallbacks(runnable!!) //stop handler when activity not visible
+        super.onPause()
     }
 
     private fun setupSound() {
