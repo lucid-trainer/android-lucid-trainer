@@ -180,7 +180,6 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
         str += '\n' + "Heart Rate Var: ${reading.heartRateVar}"
         str += '\n' + "Accel Movement: ${reading.accelMovement}"
         str += '\n' + "Position: ${reading.position}"
-        str += '\n' + "Gyro Movement: ${reading.gyroMovement}"
         str += '\n' + "Event: ${reading.event}"
         str += '\n' + "Sleep Status: ${reading.isSleep}" + '\n'
         return str

@@ -10,11 +10,8 @@ data class Document(
     val hrArray: String?,
     val hrVar: String?,
     val isSleep: String?,
-    val accelmove: String?,
-    val accelx: String?,
-    val accely: String?,
-    val accelz: String?,
-    val gyromove: String?,
+    val move: String?,
+    val positionArray: List<Position>?,
     val sessionId: String?,
     val timestamp: String?,
     val event: String?
@@ -39,11 +36,9 @@ fun Document.transform(): Reading {
             reading.isSleep = isSleep
         }
 
-        reading.accelMovement = accelmove?.toDouble() ?: 0.0
+        reading.position = gson.toJson(positionArray?.get(0))
 
-        reading.gyroMovement = gyromove?.toDouble() ?: 0.0
-
-        setPosition(accelx, accely, accelz, reading)
+        reading.accelMovement = move?.toDouble() ?: 0.0
 
         if (timestamp != null) {
             reading.timestamp = timestamp
@@ -59,25 +54,6 @@ fun Document.transform(): Reading {
 
     }
     return reading
-}
-
-private fun setPosition(
-    accelx: String?,
-    accely: String?,
-    accelz: String?,
-    reading: Reading
-) {
-    if (!accelx.isNullOrEmpty() && !accely.isNullOrEmpty() && !accelz.isNullOrEmpty()) {
-        val accelXArray: List<Double> = accelx.split(",").map { it.trim().toDouble() }
-        val accelYArray: List<Double> = accely.split(",").map { it.trim().toDouble() }
-        val accelZArray: List<Double> = accelz.split(",").map { it.trim().toDouble() }
-
-        val endIdx = accelXArray.size - 1
-
-        reading.position = "{ \"x\": \"" + accelXArray[endIdx] + "\"" +
-                "\"y\": \"" + accelYArray[endIdx] + "\"" +
-                "\"z\": \"" + accelZArray[endIdx] + "\"}"
-    }
 }
 
 fun List<Document>.transform(): List<Reading> {

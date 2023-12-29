@@ -34,9 +34,6 @@ data class Reading (
     @ColumnInfo(name = "position")
     var position: String = "",
 
-    @ColumnInfo(name = "gyro_movement")
-    var gyroMovement: Double = 0.00,
-
     @ColumnInfo(name = "dateTime")
     var dateTime: LocalDateTime? = null,
 
