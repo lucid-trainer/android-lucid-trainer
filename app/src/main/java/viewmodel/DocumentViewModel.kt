@@ -132,9 +132,9 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
         Log.d("DocumentViewModel", "lastTimestamp=$lastTimestamp")
 
         val request = APIRequest(
-            "[Mongodb Atlas collection]",
-            "[Mongodb Atlas data source]",
-            "[Mongodb Atlas database]",
+            "fitdata",
+            "Cluster0",
+            "lucid-trainer",
             1,
             1,
             lastTimestamp
@@ -188,13 +188,22 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
     private fun setSleepStage(reading: Reading) {
         workingReadingList.add(reading)
 
-        if (workingReadingList.size > 6) {
+        if (workingReadingList.size >= 12) {
             val moveCnt =
-                workingReadingList.map { it -> it.accelMovement }.takeLast(6).filter { it > 1.25 }.size
+                workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .2 }.size
+            val lowMoveCnt =
+                workingReadingList.map { it -> it.accelMovement }.takeLast(12).filter { it >= .02 }.size
+            val noMoveCnt =
+                workingReadingList.map { it -> it.accelMovement }.takeLast(12).filter { it < .02}.size
+
             if (reading.isSleep == "awake" || reading.isSleep == "unknown" || moveCnt >= 2) {
-                sleepStage.value = "AWAKE"
-            } else {
+                sleepStage.value = "AWAKE ($noMoveCnt)"
+            } else if (lowMoveCnt == 0) {
                 sleepStage.value = "ASLEEP"
+            } else if (noMoveCnt == 0) {
+                sleepStage.value = "DEEP ASLEEP"
+            } else {
+                sleepStage.value = "LIGHT ($lowMoveCnt)"
             }
         }
     }

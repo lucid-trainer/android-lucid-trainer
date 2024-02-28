@@ -3,8 +3,19 @@ package sound
 import com.lucidtrainer.R
 
 class MILDSoundRoutine(override var repetition: Int, override var bgRawId: Int, override var endBgRawId: Int,
-                       override val eventLabel : String, override var bgLabel : String,
-                       override var endBgLabel : String, override val fgLabel : String = "MILD") : SoundRoutine {
+                       override var bgVolume: Float, override var altBgVolume: Float, override var fgVolume: Float,
+                       override val eventLabel : String, override var bgLabel : String, override var endBgLabel : String,
+                       override val fgLabel : String = "MILD"
+
+) : SoundRoutine {
+
+    override fun getStartSounds(): List<String> {
+        return emptyList()
+    }
+
+    override fun getAltBGSounds(): List<String> {
+        return emptyList()
+    }
 
     override fun getRoutine(): List<Sound> {
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()

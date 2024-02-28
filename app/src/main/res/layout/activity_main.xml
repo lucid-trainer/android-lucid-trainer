@@ -59,6 +59,14 @@
             android:text="MILD" />
 
         <com.google.android.material.chip.Chip
+            android:id="@+id/chip_wild"
+            style="@style/Widget.MaterialComponents.Chip.Choice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="10sp"
+            android:text="WILD" />
+
+        <com.google.android.material.chip.Chip
             android:id="@+id/chip_auto"
             style="@style/Widget.MaterialComponents.Chip.Choice"
             android:layout_width="wrap_content"
@@ -90,7 +98,7 @@
 
     <TextView
         android:id="@+id/play_status"
-        android:layout_width="320dp"
+        android:layout_width="360dp"
         android:layout_height="26dp"
         android:layout_marginStart="32dp"
         android:textColor="#14c45d"
