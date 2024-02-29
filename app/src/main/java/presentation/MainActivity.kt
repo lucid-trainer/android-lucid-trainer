@@ -65,8 +65,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
     //manage state for automatic prompts tied to awake event
     private var stopPromptWindow: LocalDateTime? = null
-    private var isActiveEventWaiting: Boolean = false
-    private var activeEventList: MutableList<LocalDateTime> = emptyList<LocalDateTime>().toMutableList()
+    private var isPromptEventWaiting: Boolean = false
+    private var awakeEventList: MutableList<LocalDateTime> = emptyList<LocalDateTime>().toMutableList()
     private var lightEventList: MutableList<LocalDateTime> = emptyList<LocalDateTime>().toMutableList()
     private var asleepEventCountSinceActive = 0
 
@@ -141,8 +141,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         binding.switchcompat.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
-                activeEventList.clear()
+                awakeEventList.clear()
                 lightEventList.clear()
+                asleepEventCountSinceActive = 0
                 stopPromptWindow = null
                 viewModel.setFlowEnabled(true)
                 viewModel.getNewReadings()
@@ -183,14 +184,14 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                         var reading =  viewModel.lastReadingString.value
 
                         val formatter = DateTimeFormatter.ofPattern("HH:mm:ss")
-                        if(activeEventList.isNotEmpty()) {
-                            val formatActiveEvents:List<String> = activeEventList.map {dateTime -> dateTime.format(formatter)}
-                            reading += "Active Events: $formatActiveEvents"
+                        if(awakeEventList.isNotEmpty()) {
+                            val formatActiveEvents:List<String> = awakeEventList.map { dateTime -> dateTime.format(formatter)}
+                            reading += "Active Events: $formatActiveEvents \n"
                         }
 
                         if(lightEventList.isNotEmpty()) {
                             val formatLightEvents:List<String> = lightEventList.map {dateTime -> dateTime.format(formatter)}
-                            reading += "Light Events: $formatLightEvents"
+                            reading += "Light Events: $formatLightEvents \n"
                         }
 
                         binding.timestampTextview.text = displayDate
@@ -220,13 +221,12 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         if (sleepStage.contains("AWAKE")) {
             binding.sleepStageTexview.setTextColor(Color.RED)
 
-
-            //ensure that haven't run any active events for at least 50 minutes
-            val isActiveEventAllowed = activeEventList.isEmpty() ||
-                    LocalDateTime.now() >= activeEventList.last().plusMinutes(50)
+            //ensure that we've been asleep prior to this and haven't run any active events for at least 50 minutes
+            val isActiveEventAllowed = asleepEventCountSinceActive > 0 && (awakeEventList.isEmpty() ||
+                    LocalDateTime.now() >= awakeEventList.last().plusMinutes(50))
 
             if (binding.chipAuto.isChecked && isActiveEventAllowed) {
-                startCountDownAwakeTimer(EVENT_LABEL_AWAKE)
+                startCountDownPromptTimer(EVENT_LABEL_AWAKE)
                 stopPromptWindow = LocalDateTime.now().plusMinutes(15)
             }
 
@@ -236,10 +236,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             if (stopPromptWindow != null && stopPromptWindow!! > LocalDateTime.now()) {
                 //assume an auto prompt is running and stop it
                 Log.d("MainActivity", "stopping auto prompt")
-                soundPoolManager.stopPlayingForeground()
-                soundPoolManager.stopPlayingAltBackground()
-                binding.playStatus.text = "Playing ${mBgLabel}"
-
+                stopPrompts()
             }
 
             stopPromptWindow = LocalDateTime.now()
@@ -247,28 +244,21 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             binding.sleepStageTexview.setTextColor(Color.GREEN)
 
         } else if (sleepStage.contains("LIGHT")) {
-            //ensure that we don't have an active event running and we haven't had a light event prompt for at least 50 minutes
+            //ensure that we've had an active event in the last 90 minutes and that we haven't done a prompt in at least 50 minutes
             val isLightPromptEventAllowed =
-                lightEventList.isEmpty() || LocalDateTime.now() >= lightEventList.last()
-                    .plusMinutes(50)
+                (awakeEventList.isNotEmpty() && awakeEventList.last() >= LocalDateTime.now().plusMinutes(-90)) &&
+                (lightEventList.isEmpty() || LocalDateTime.now() >= lightEventList.last().plusMinutes(50))
 
             //if it's been at least 10 minutes since the last active event and we've entered light sleep, run the prompt routine
             if (binding.chipAuto.isChecked && asleepEventCountSinceActive >= 20 && isLightPromptEventAllowed) {
-                //start the prompt routine
-                val soundList = mutableListOf<String>()
-                if (binding.chipWild.isChecked) {
-                    soundList.add("wp")
-                }
+                //just make sure no active prompt is running
+                stopPrompts()
 
                 //we don't want it to stop the light/rem sleep prompt if stage switches back to ASLEEP
                 stopPromptWindow = LocalDateTime.now()
 
                 Log.d("MainActivity", "playing light sleep prompt")
-                lightEventList.add(LocalDateTime.now())
-                soundPoolManager.playSoundList(
-                    soundList, mBgRawId, mBgLabel, EVENT_LABEL_LIGHT, binding.playStatus
-                )
-
+                startCountDownPromptTimer(EVENT_LABEL_LIGHT)
             }
 
             //we're treating this as asleep still
@@ -346,17 +336,28 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         })
     }
 
+    private fun stopPrompts() {
+        soundPoolManager.stopPlayingForeground()
+        soundPoolManager.stopPlayingAltBackground()
+        binding.playStatus.text = "Playing ${mBgLabel}"
+    }
+
     private fun playPrompts(eventLabel : String) {
         val soundList = mutableListOf<String>()
+        var pMod = ""
+
+        if(eventLabel.equals(EVENT_LABEL_LIGHT)) {
+            pMod = "p"
+        }
 
         if (binding.chipSsild.isChecked) {
-            soundList.add("s")
+            soundList.add("s$pMod")
         }
         if (binding.chipMild.isChecked) {
-            soundList.add("m")
+            soundList.add("m$pMod")
         }
         if (binding.chipWild.isChecked) {
-            soundList.add("w")
+            soundList.add("w$pMod")
         }
 
         //assume we'll only play for 15 minutes max unless an asleep event occurs sooner
@@ -388,21 +389,21 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     }
 
     //on auto event set 1 minute window to run prompt in with some randomness
-    private fun startCountDownAwakeTimer(eventLabel : String) {
+    private fun startCountDownPromptTimer(eventLabel : String) {
         val dateTime = ZonedDateTime.now(java.time.ZoneId.systemDefault())
         val hour = dateTime.hour
 
         //avoid stepping on a waiting or running job
-        val isRunning = isActiveEventWaiting || (binding.playStatus.text.startsWith("Playing Event"))
-        Log.d("MainActivity", "isActiveEventWaiting=$isActiveEventWaiting and ${binding.playStatus.text}")
+        val isRunning = isPromptEventWaiting || (binding.playStatus.text.startsWith("Playing Event"))
+        Log.d("MainActivity", "isPromptEventWaiting=$isPromptEventWaiting and ${binding.playStatus.text}")
 
-        //only kick off prompt if a job isn't already running and it's in hours 1 or 4-6
-        if(isRunning || !(hour == 1 || hour in 4..7)) {
+        //only kick off prompt if a job isn't already running and it's in hours 1 or 3-7
+        if(isRunning || hour !in 1..7) {
             Log.d("MainActivity", "returning")
             return
         } else {
             Log.d("MainActivity", "autoPlay on, hour=$hour")
-            activeEventList.add(LocalDateTime.now())
+            updateEventList(eventLabel)
         }
 
         val scope = CoroutineScope(Dispatchers.Default)
@@ -410,18 +411,26 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         if (apJob == null || apJob!!.isCompleted) {
             apJob = scope.launch {
-                isActiveEventWaiting = true
+                isPromptEventWaiting = true
                 for (i in 1..limit) {
                     yield()
-                    delay(timeMillis = 15000)
-                    Log.d("MainActivity", "in loop for active prompt play")
+                    delay(timeMillis = 20000)
+                    Log.d("MainActivity", "in loop for prompt play")
                 }
-                Log.d("MainActivity", "playing active prompt")
+                Log.d("MainActivity", "playing prompt")
                 playPrompts(eventLabel)
 
                 delay(timeMillis = 10000)
-                isActiveEventWaiting = false
+                isPromptEventWaiting = false
             }
+        }
+    }
+
+    private fun updateEventList(eventLabel: String) {
+        if(eventLabel.equals(EVENT_LABEL_AWAKE)) {
+            awakeEventList.add(LocalDateTime.now())
+        } else {
+            lightEventList.add(LocalDateTime.now())
         }
     }
 

@@ -33,7 +33,7 @@ class WILDSoundRoutine(override var repetition: Int, override var bgRawId: Int, 
 
         val finalBGSounds : MutableList<String> = emptyList<String>().toMutableList()
 
-        var cntList = (1..4).shuffled()
+        var cntList = (1..3).shuffled()
         var cntIdx = 0;
         for (i in 0 until altBGSounds.size step 2) {
             finalBGSounds.add(altBGSounds[i])
@@ -42,7 +42,7 @@ class WILDSoundRoutine(override var repetition: Int, override var bgRawId: Int, 
             finalBGSounds.add(altBGSounds[i+1])
             Log.d("WILDSoundRoutine ", "$i adding ${altBGSounds[i+1]}")
 
-            cntIdx = if(cntIdx == 4) 0 else cntIdx
+            cntIdx = if(cntIdx == 3) 0 else cntIdx
             finalBGSounds.add("hypnag/bg/bg_prompt_${cntList[cntIdx]}.ogg");
             Log.d("WILDSoundRoutine ", "$i adding hypnag/bg/bg_prompt_${cntList[cntIdx]}.ogg")
             cntIdx++
@@ -55,7 +55,7 @@ class WILDSoundRoutine(override var repetition: Int, override var bgRawId: Int, 
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()
         var finalRoutine : MutableList<Sound> = emptyList<Sound>().toMutableList()
 
-        val cntrs = (1..47).shuffled().slice(0..14)
+        val cntrs = (1..50).shuffled().slice(0..14)
         val cntrs2 = (1..10).shuffled().slice(0..4)
 
         for (cntr in cntrs) {

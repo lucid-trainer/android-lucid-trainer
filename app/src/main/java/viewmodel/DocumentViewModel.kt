@@ -160,11 +160,6 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
         //for debugging, set a specific starting time
         //var dateTime = LocalDate.parse("2023-09-04").atTime(12, 0)
 
-//        if (currDateTime.hour in 0..10) {
-//            //but if we're in the morning hours set it to yesterday
-//            dateTime = LocalDate.now().minusDays(1).atTime(22, 0)
-//        }
-
         return dateTime
     }
 
@@ -191,17 +186,20 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
         if (workingReadingList.size >= 12) {
             val moveCnt =
                 workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .2 }.size
-            val lowMoveCnt =
-                workingReadingList.map { it -> it.accelMovement }.takeLast(12).filter { it >= .02 }.size
             val noMoveCnt =
-                workingReadingList.map { it -> it.accelMovement }.takeLast(12).filter { it < .02}.size
+                workingReadingList.map { it -> it.accelMovement }.takeLast(12).filter { it > .01}.size
+            val lowMoveCnt =
+                workingReadingList.map { it -> it.accelMovement }.takeLast(12).filter { it > .05 && it <= .2}.size
 
-            if (reading.isSleep == "awake" || reading.isSleep == "unknown" || moveCnt >= 2) {
-                sleepStage.value = "AWAKE ($noMoveCnt)"
+            //if (reading.isSleep == "awake" || reading.isSleep == "unknown" || moveCnt >= 2) {
+            if(moveCnt >= 2) {
+                sleepStage.value = "AWAKE ($moveCnt)"
+            } else if(moveCnt == 1) {
+                sleepStage.value = "UNKNOWN ($moveCnt)"
+            } else if (lowMoveCnt == 0 && noMoveCnt == 0) {
+                sleepStage.value = "DEEP ASLEEP"
             } else if (lowMoveCnt == 0) {
                 sleepStage.value = "ASLEEP"
-            } else if (noMoveCnt == 0) {
-                sleepStage.value = "DEEP ASLEEP"
             } else {
                 sleepStage.value = "LIGHT ($lowMoveCnt)"
             }

@@ -20,11 +20,12 @@ class WILDPromptSoundRoutine(override var repetition: Int, override var bgRawId:
     override fun getRoutine(): List<Sound> {
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()
 
-        val cntrs = (1..5).shuffled().slice(0..3)
-
+        val cntrs = (1..3).shuffled()
         for (cntr in cntrs) {
-            routine.add(Sound(0, 60, "hypnag/bg/bg_prompt_" + cntr + ".ogg"))
+            routine.add(Sound(0, 30, "hypnag/bg/bg_prompt_" + cntr + ".ogg"))
         }
+
+        routine.add(Sound(0, 10, "hypnag/bg/bg_prompt_1.ogg"))
 
         return routine
     }
