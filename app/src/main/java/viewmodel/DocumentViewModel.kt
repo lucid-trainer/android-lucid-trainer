@@ -1,7 +1,6 @@
 package viewmodel
 
 import android.util.Log
-import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Transformations
 import androidx.lifecycle.ViewModel
@@ -23,7 +22,6 @@ import utils.AppConfig
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util.Collections.list
 
 
 class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
@@ -120,7 +118,7 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
                         //set the documents in  the response data
                         documentState.value = DocumentApiState.success(it.data)
                     }
-                delay(15000L)
+                delay(15000L) //DEBUG value change to 3000L
             }
 
             //the flow is disabled
@@ -151,16 +149,10 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
 
 
     private fun getStartDateTime() : LocalDateTime {
-        val currDateTime = LocalDateTime.now()
+        return LocalDateTime.now();
 
-        //start with today at 10pm as starting point
-        //var dateTime = LocalDate.now().atTime(20, 0);
-        var dateTime = LocalDateTime.now();
-
-        //for debugging, set a specific starting time
-        //var dateTime = LocalDate.parse("2023-09-04").atTime(12, 0)
-
-        return dateTime
+        //for DEBUG, set a specific starting time
+        //return LocalDate.parse("2024-03-14").atTime(22,45)
     }
 
     private fun getStartingTimestamp() : String {
@@ -183,25 +175,27 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
     private fun setSleepStage(reading: Reading) {
         workingReadingList.add(reading)
 
-        if (workingReadingList.size >= 12) {
-            val moveCnt =
+        if (workingReadingList.size >= 4) {
+            val activeCnt =
                 workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .2 }.size
-            val noMoveCnt =
-                workingReadingList.map { it -> it.accelMovement }.takeLast(12).filter { it > .01}.size
-            val lowMoveCnt =
-                workingReadingList.map { it -> it.accelMovement }.takeLast(12).filter { it > .05 && it <= .2}.size
+            val unknownCnt =
+                workingReadingList.map { it -> it.accelMovement }.takeLast(3).filter { it > .4 }.size
+            val deepCnt =
+                workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .01}.size
+            val lightCnt =
+                workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .05 && it <= .4}.size
 
             //if (reading.isSleep == "awake" || reading.isSleep == "unknown" || moveCnt >= 2) {
-            if(moveCnt >= 2) {
-                sleepStage.value = "AWAKE ($moveCnt)"
-            } else if(moveCnt == 1) {
-                sleepStage.value = "UNKNOWN ($moveCnt)"
-            } else if (lowMoveCnt == 0 && noMoveCnt == 0) {
+            if(activeCnt >= 2) {
+                sleepStage.value = "AWAKE ($activeCnt)"
+            } else if(unknownCnt == 1) {
+                sleepStage.value = "UNKNOWN ($activeCnt)"
+            } else if (lightCnt == 0 && deepCnt == 0) {
                 sleepStage.value = "DEEP ASLEEP"
-            } else if (lowMoveCnt == 0) {
+            } else if (lightCnt == 0) {
                 sleepStage.value = "ASLEEP"
             } else {
-                sleepStage.value = "LIGHT ($lowMoveCnt)"
+                sleepStage.value = "LIGHT ($lightCnt)"
             }
         }
     }

@@ -31,11 +31,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 import network.Status
+import network.request.DeviceDocument
+import repository.DeviceDocumentsRepository
 import sound.SoundPoolManager
+import utils.AppConfig
 import viewmodel.DocumentViewModel
 import viewmodel.DocumentViewModelFactory
 import java.time.LocalDateTime
-import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 
@@ -53,7 +55,10 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         const val EVENT_LABEL_BUTTON = "button_press"
         const val EVENT_LABEL_WATCH = "watch_event"
         const val EVENT_LABEL_AWAKE = "awake_event"
+        const val EVENT_LABEL_ASLEEP = "asleep_event"
         const val EVENT_LABEL_LIGHT = "light_event"
+        const val EVENT_LABEL_UNKNOWN = "unknown_event"
+        const val SLEEP_EVENT_PROMPT_DELAY = 30000L //3000L DEBUG VALUE
     }
 
     //set up the AudioManager and SoundPool
@@ -65,14 +70,20 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
     //manage state for automatic prompts tied to awake event
     private var stopPromptWindow: LocalDateTime? = null
-    private var isPromptEventWaiting: Boolean = false
+    private var promptEventWaiting: String? = null
     private var awakeEventList: MutableList<LocalDateTime> = emptyList<LocalDateTime>().toMutableList()
     private var lightEventList: MutableList<LocalDateTime> = emptyList<LocalDateTime>().toMutableList()
-    private var asleepEventCountSinceActive = 0
+    private var asleepEventCountSinceAwake = 0
+    private var deepAsleepEventCountSinceActive = 0
+    private var lastTimestampSinceDeepAsleep: LocalDateTime? = null
 
     var maxVolume = 0;
     private var mBgRawId = -1
     private var mBgLabel = ""
+
+    private val deviceDocumentRepository = DeviceDocumentsRepository(
+        AppConfig.ApiService()
+    )
 
     @SuppressLint("SourceLockedOrientationActivity")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -143,7 +154,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             if (isChecked) {
                 awakeEventList.clear()
                 lightEventList.clear()
-                asleepEventCountSinceActive = 0
+                asleepEventCountSinceAwake = 0
                 stopPromptWindow = null
                 viewModel.setFlowEnabled(true)
                 viewModel.getNewReadings()
@@ -218,51 +229,107 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     }
 
     private fun processSleepStageEvents(sleepStage: String) {
+        val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
+        val hour = triggerDateTime.hour
+
         if (sleepStage.contains("AWAKE")) {
             binding.sleepStageTexview.setTextColor(Color.RED)
 
-            //ensure that we've been asleep prior to this and haven't run any active events for at least 50 minutes
-            val isActiveEventAllowed = asleepEventCountSinceActive > 0 && (awakeEventList.isEmpty() ||
-                    LocalDateTime.now() >= awakeEventList.last().plusMinutes(50))
+            checkAndSubmitActivePromptEvent(hour)
 
-            if (binding.chipAuto.isChecked && isActiveEventAllowed) {
-                startCountDownPromptTimer(EVENT_LABEL_AWAKE)
-                stopPromptWindow = LocalDateTime.now().plusMinutes(15)
+            asleepEventCountSinceAwake = 0
+
+        } else if (sleepStage.contains("UNKNOWN")) {
+            //Unknown is activity level that looks closer to waking then sleep, so set the counter back here to allow prompts more time
+            if(asleepEventCountSinceAwake <= 20) {
+                asleepEventCountSinceAwake = 10
             }
 
-            asleepEventCountSinceActive = 0
-
+            if(promptEventWaiting != null && promptEventWaiting == EVENT_LABEL_LIGHT) {
+                //if we have a light event waiting it's likely part of this general activity so cancel
+                cancelStartCountDownPrompt(EVENT_LABEL_UNKNOWN)
+            }
         } else if (sleepStage.contains("ASLEEP")) {
-            if (stopPromptWindow != null && stopPromptWindow!! > LocalDateTime.now()) {
+            //stop the auto prompt if more than 12 minutes asleep since active
+            if (stopPromptWindow != null && stopPromptWindow!! > LocalDateTime.now() && asleepEventCountSinceAwake >= 20) {
                 //assume an auto prompt is running and stop it
-                Log.d("MainActivity", "stopping auto prompt")
-                stopPrompts()
+                cancelStartCountDownPrompt(EVENT_LABEL_ASLEEP)
+                stopPromptWindow = LocalDateTime.now()
             }
-
-            stopPromptWindow = LocalDateTime.now()
-            asleepEventCountSinceActive++;
+            asleepEventCountSinceAwake++
             binding.sleepStageTexview.setTextColor(Color.GREEN)
 
         } else if (sleepStage.contains("LIGHT")) {
-            //ensure that we've had an active event in the last 90 minutes and that we haven't done a prompt in at least 50 minutes
-            val isLightPromptEventAllowed =
-                (awakeEventList.isNotEmpty() && awakeEventList.last() >= LocalDateTime.now().plusMinutes(-90)) &&
-                (lightEventList.isEmpty() || LocalDateTime.now() >= lightEventList.last().plusMinutes(50))
-
-            //if it's been at least 10 minutes since the last active event and we've entered light sleep, run the prompt routine
-            if (binding.chipAuto.isChecked && asleepEventCountSinceActive >= 20 && isLightPromptEventAllowed) {
-                //just make sure no active prompt is running
-                stopPrompts()
-
-                //we don't want it to stop the light/rem sleep prompt if stage switches back to ASLEEP
-                stopPromptWindow = LocalDateTime.now()
-
-                Log.d("MainActivity", "playing light sleep prompt")
-                startCountDownPromptTimer(EVENT_LABEL_LIGHT)
-            }
+            //ensure that we've had at least one active event, appeared asleep for at least 25 minutes and that we haven't done a prompt in at least 50 minutes
+            checkAndSubmitLightPromptEvent(hour)
 
             //we're treating this as asleep still
-            asleepEventCountSinceActive++
+            asleepEventCountSinceAwake++
+        }
+
+        //check for continuous deep asleep state. If deep state for at least fifteen minutes, we don't want to do a
+        //prompt too close to it
+        if(sleepStage.contains("DEEP ASLEEP")) {
+            if (++deepAsleepEventCountSinceActive >= 30) {
+                lastTimestampSinceDeepAsleep = LocalDateTime.parse(viewModel.lastTimestamp.value)
+            }
+        } else {
+            deepAsleepEventCountSinceActive = 0
+        }
+    }
+
+    private fun checkAndSubmitActivePromptEvent(hour: Int) {
+        val hoursAllowed = hour in 2..5
+        //randomize the time allowed between prompts a bit to keep from being predictable
+        val minutesSinceLast = (10..20).shuffled().last().toLong()
+
+        val isActiveEventAllowed =
+            hoursAllowed && asleepEventCountSinceAwake > 0 &&
+                    (awakeEventList.isEmpty() || LocalDateTime.parse(viewModel.lastTimestamp.value) >= awakeEventList.last()
+                        .plusMinutes(60)) &&
+                    (lightEventList.isEmpty() || LocalDateTime.parse(viewModel.lastTimestamp.value) >= lightEventList.last()
+                        .plusMinutes(minutesSinceLast)) &&
+                    (lastTimestampSinceDeepAsleep == null || LocalDateTime.parse(viewModel.lastTimestamp.value) >=
+                            lastTimestampSinceDeepAsleep!!.plusMinutes(10))
+
+
+
+        //Log.d("MainActivity", "asleepCnt=$asleepEventCountSinceActive and isAllowed=$isActiveEventAllowed")
+
+        if (binding.chipAuto.isChecked && isActiveEventAllowed) {
+            Log.d("MainActivity", "starting awake prompt")
+
+            //cancel any events that might be running
+            cancelStartCountDownPrompt(EVENT_LABEL_AWAKE)
+
+            startCountDownPromptTimer(EVENT_LABEL_AWAKE)
+            stopPromptWindow = LocalDateTime.now().plusMinutes(15)
+        }
+    }
+
+    private fun checkAndSubmitLightPromptEvent(hour: Int) {
+        val hoursAllowed = hour in 2..7
+
+        //randomize the time allowed between prompts a bit to keep from being predictable
+        val minutesSinceLast = (20..50).shuffled().last().toLong()
+
+        val isLightPromptEventAllowed = hoursAllowed && asleepEventCountSinceAwake >= 50 &&
+                (awakeEventList.isNotEmpty() && LocalDateTime.parse(viewModel.lastTimestamp.value) >= awakeEventList.last()
+                    .plusMinutes(40)) &&
+                (lightEventList.isEmpty() || LocalDateTime.parse(viewModel.lastTimestamp.value) >= lightEventList.last()
+                    .plusMinutes(minutesSinceLast)) &&
+                (lastTimestampSinceDeepAsleep == null || LocalDateTime.parse(viewModel.lastTimestamp.value) >=
+                        lastTimestampSinceDeepAsleep!!.plusMinutes(10))
+
+        if (binding.chipAuto.isChecked && isLightPromptEventAllowed) {
+            //cancel any events that might be running
+            cancelStartCountDownPrompt(EVENT_LABEL_LIGHT)
+
+            //we don't want it to stop the light/rem sleep prompt if stage switches back to ASLEEP
+            stopPromptWindow = LocalDateTime.now()
+
+            Log.d("MainActivity", "playing light sleep prompt")
+            startCountDownPromptTimer(EVENT_LABEL_LIGHT)
         }
     }
 
@@ -305,8 +372,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
 
         // Set the maximum volume of the SeekBar to the maximum volume of the MediaPlayer:
-
-        // Set the maximum volume of the SeekBar to the maximum volume of the MediaPlayer:
         maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
         binding.seekBar.max = maxVolume
         Log.d("MainActivity", "max volume=$maxVolume")
@@ -336,18 +401,16 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         })
     }
 
-    private fun stopPrompts() {
-        soundPoolManager.stopPlayingForeground()
-        soundPoolManager.stopPlayingAltBackground()
-        binding.playStatus.text = "Playing ${mBgLabel}"
-    }
-
     private fun playPrompts(eventLabel : String) {
         val soundList = mutableListOf<String>()
         var pMod = ""
 
         if(eventLabel.equals(EVENT_LABEL_LIGHT)) {
             pMod = "p"
+            stopPromptWindow = LocalDateTime.now();
+        } else {
+            //assume we'll only play for 15 minutes max unless an asleep event occurs sooner
+            stopPromptWindow = LocalDateTime.now().plusMinutes(15)
         }
 
         if (binding.chipSsild.isChecked) {
@@ -359,9 +422,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         if (binding.chipWild.isChecked) {
             soundList.add("w$pMod")
         }
-
-        //assume we'll only play for 15 minutes max unless an asleep event occurs sooner
-        stopPromptWindow = LocalDateTime.now().plusMinutes(15)
 
         soundPoolManager.playSoundList(
             soundList, mBgRawId, mBgLabel, eventLabel, binding.playStatus)
@@ -390,47 +450,89 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
     //on auto event set 1 minute window to run prompt in with some randomness
     private fun startCountDownPromptTimer(eventLabel : String) {
-        val dateTime = ZonedDateTime.now(java.time.ZoneId.systemDefault())
-        val hour = dateTime.hour
-
         //avoid stepping on a waiting or running job
-        val isRunning = isPromptEventWaiting || (binding.playStatus.text.startsWith("Playing Event"))
-        Log.d("MainActivity", "isPromptEventWaiting=$isPromptEventWaiting and ${binding.playStatus.text}")
+        val isRunning = promptEventWaiting != null || (binding.playStatus.text.startsWith("Playing Event"))
+        Log.d("MainActivity", "promptEventWaiting=$promptEventWaiting and ${binding.playStatus.text}")
 
-        //only kick off prompt if a job isn't already running and it's in hours 1 or 3-7
-        if(isRunning || hour !in 1..7) {
+        if(isRunning) {
             Log.d("MainActivity", "returning")
             return
         } else {
-            Log.d("MainActivity", "autoPlay on, hour=$hour")
-            updateEventList(eventLabel)
+            Log.d("MainActivity", "autoPlay on")
         }
 
         val scope = CoroutineScope(Dispatchers.Default)
-        val limit = (1..4).shuffled().last()
 
         if (apJob == null || apJob!!.isCompleted) {
             apJob = scope.launch {
-                isPromptEventWaiting = true
+                val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
+
+                //randomize the active prompt a bit
+                val limit = (1..4).shuffled().last()
+
+                promptEventWaiting = eventLabel
                 for (i in 1..limit) {
                     yield()
-                    delay(timeMillis = 20000)
+                    delay(timeMillis = SLEEP_EVENT_PROMPT_DELAY)
                     Log.d("MainActivity", "in loop for prompt play")
                 }
+
                 Log.d("MainActivity", "playing prompt")
+
+                //send a vibration event to the watch
+                if(eventLabel == EVENT_LABEL_LIGHT) {
+                    deviceDocumentRepository.postDevicePrompt(
+                        getDeviceDocument(EVENT_LABEL_LIGHT, triggerDateTime.toString(), 1, 4, 30))
+                } else {
+                    deviceDocumentRepository.postDevicePrompt(
+                        getDeviceDocument(EVENT_LABEL_AWAKE, triggerDateTime.toString(), 1, 1, 30))
+                }
+
+                updateEventList(eventLabel, triggerDateTime.toString())
                 playPrompts(eventLabel)
 
                 delay(timeMillis = 10000)
-                isPromptEventWaiting = false
+                promptEventWaiting = null
             }
         }
     }
 
-    private fun updateEventList(eventLabel: String) {
-        if(eventLabel.equals(EVENT_LABEL_AWAKE)) {
-            awakeEventList.add(LocalDateTime.now())
+    private fun cancelStartCountDownPrompt(eventLabel: String) {
+        Log.d("MainActivity", "stopping auto prompt from $eventLabel")
+        if(apJob != null && apJob!!.isActive) {
+            apJob!!.cancel()
+            promptEventWaiting = null
+        }
+
+        if(mBgLabel.isNotEmpty()) {
+            binding.playStatus.text = "Playing $mBgLabel"
         } else {
-            lightEventList.add(LocalDateTime.now())
+            binding.playStatus.text = ""
+        }
+
+        soundPoolManager.stopPlayingForeground()
+        soundPoolManager.stopPlayingAltBackground()
+    }
+
+    private fun getDeviceDocument(type: String, triggerTimestamp: String,
+                                  duration: Int, reps: Int, delayAfterRep: Int) : DeviceDocument {
+        return  DeviceDocument(
+            LocalDateTime.now().toString(),
+            triggerTimestamp,
+            type,
+            duration,
+            reps,
+            delayAfterRep,
+            asleepEventCountSinceAwake
+        )
+    }
+
+    private fun updateEventList(eventLabel: String, triggerTimestamp: String) {
+        val now = LocalDateTime.parse(triggerTimestamp)
+        if(eventLabel == EVENT_LABEL_AWAKE) {
+            awakeEventList.add(now)
+        } else {
+            lightEventList.add(now)
         }
     }
 

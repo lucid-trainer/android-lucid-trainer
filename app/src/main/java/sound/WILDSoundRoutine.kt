@@ -12,7 +12,7 @@ class WILDSoundRoutine(override var repetition: Int, override var bgRawId: Int, 
     override fun getStartSounds(): List<String> {
         val startSounds : MutableList<String> = emptyList<String>().toMutableList()
 
-        //startSounds.add("hypnag/start/hypnag_start.ogg")
+        startSounds.add("hypnag/start/hypnag_start.ogg")
 
         return startSounds
     }
@@ -20,8 +20,8 @@ class WILDSoundRoutine(override var repetition: Int, override var bgRawId: Int, 
     override fun getAltBGSounds(): List<String> {
         var altBGSounds : MutableList<String> = emptyList<String>().toMutableList()
 
-        val cntrs1 = (1..4).shuffled().slice(0..3)
-        val cntrs2 = (1..5).shuffled().slice(0..3)
+        val cntrs1 = (1..6).shuffled().slice(0..3)
+        val cntrs2 = (1..8).shuffled().slice(0..3)
 
         Log.d("WILDSoundRoutine ", "calling getAltBGSounds")
 
@@ -55,8 +55,8 @@ class WILDSoundRoutine(override var repetition: Int, override var bgRawId: Int, 
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()
         var finalRoutine : MutableList<Sound> = emptyList<Sound>().toMutableList()
 
-        val cntrs = (1..50).shuffled().slice(0..14)
-        val cntrs2 = (1..10).shuffled().slice(0..4)
+        val cntrs = (1..61).shuffled().slice(0..16)
+        val cntrs2 = (1..5).shuffled().slice(0..2)
 
         for (cntr in cntrs) {
             routine.add(Sound(0, 20, "hypnag/fg/fg_" + cntr + ".ogg"))
@@ -69,7 +69,6 @@ class WILDSoundRoutine(override var repetition: Int, override var bgRawId: Int, 
         }
 
         finalRoutine = routine.shuffled().toMutableList()
-        finalRoutine.add(0, Sound(0, 5, "hypnag/start/hypnag_start.ogg"))
 
         return finalRoutine
     }

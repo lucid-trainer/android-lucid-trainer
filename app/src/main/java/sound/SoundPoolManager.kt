@@ -96,8 +96,8 @@ class SoundPoolManager() {
         }
         if (soundList.contains("w") || soundList.contains("wp")) {
 
-            var fgVolume = .37F
-            var altBgVolume = .47F
+            var fgVolume = .35F
+            var altBgVolume = .45F
 
             if(endBgRawRes > 0) {
                 //just keep playing the current background
@@ -118,6 +118,8 @@ class SoundPoolManager() {
                     WILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel))
             } else {
                 //must be prompt routine
+                fgVolume = .35F
+                altBgVolume = .45F
                 soundRoutines.add(
                     WILDPromptSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel))
             }
@@ -209,6 +211,11 @@ class SoundPoolManager() {
             altBgJob = scope.launch {
                 delay(timeMillis = 1000)
 
+                val startSounds = soundRoutine.getStartSounds()
+                if(startSounds.isNotEmpty()) {
+                    playAltSounds(startSounds, soundRoutine.altBgVolume)
+                }
+
                 val altBGSounds = soundRoutine.getAltBGSounds()
                 if(altBGSounds.isNotEmpty()) {
                     do {
@@ -272,7 +279,7 @@ class SoundPoolManager() {
                     }
 
                     //start any alternate background sounds and keep cycling through them until all are stopped
-                    if(soundRoutine is WILDSoundRoutine) {
+                    if(soundRoutine is WILDSoundRoutine || soundRoutine is WILDPromptSoundRoutine) {
                         playAltBackgroundSound(soundRoutine, textView)
                     } else {
                         playBackgroundSound(soundRoutine.bgRawId, soundRoutine.bgVolume, textView)
@@ -281,7 +288,7 @@ class SoundPoolManager() {
                     //pause for a bit more
                     for (i in 1..5) {
                         yield()
-                        delay(timeMillis = 1000)
+                        delay(timeMillis = 5000)
                     }
 
                     for (sound in soundRoutine.getRoutine()) {

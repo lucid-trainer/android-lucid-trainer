@@ -10,7 +10,13 @@ class WILDPromptSoundRoutine(override var repetition: Int, override var bgRawId:
 ) : SoundRoutine {
 
     override fun getStartSounds(): List<String> {
-        return emptyList()
+        val startSounds : MutableList<String> = emptyList<String>().toMutableList()
+
+        val cntr = (1..8).shuffled().last()
+        startSounds.add("hypnag/bg/bg_sfx_$cntr.ogg")
+        Log.d("WILDSoundRoutine ", "prompt adding hypnag/bg/bg_sfx_$cntr.ogg")
+
+        return startSounds
     }
 
     override fun getAltBGSounds(): List<String> {
@@ -22,10 +28,9 @@ class WILDPromptSoundRoutine(override var repetition: Int, override var bgRawId:
 
         val cntrs = (1..3).shuffled()
         for (cntr in cntrs) {
-            routine.add(Sound(0, 30, "hypnag/bg/bg_prompt_" + cntr + ".ogg"))
+            routine.add(Sound(0, 40, "hypnag/bg/bg_prompt_" + cntr + ".ogg"))
+            Log.d("WILDSoundRoutine ", "adding hypnag/bg/bg_prompt_$cntr.ogg")
         }
-
-        routine.add(Sound(0, 10, "hypnag/bg/bg_prompt_1.ogg"))
 
         return routine
     }
