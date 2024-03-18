@@ -250,8 +250,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 cancelStartCountDownPrompt(EVENT_LABEL_UNKNOWN)
             }
         } else if (sleepStage.contains("ASLEEP")) {
-            //stop the auto prompt if more than 12 minutes asleep since active
-            if (stopPromptWindow != null && stopPromptWindow!! > LocalDateTime.now() && asleepEventCountSinceAwake >= 20) {
+            //stop the auto prompt if more than 15 minutes asleep since active
+            if (stopPromptWindow != null && stopPromptWindow!! > LocalDateTime.now() && asleepEventCountSinceAwake > 30) {
                 //assume an auto prompt is running and stop it
                 cancelStartCountDownPrompt(EVENT_LABEL_ASLEEP)
                 stopPromptWindow = LocalDateTime.now()
@@ -267,10 +267,10 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             asleepEventCountSinceAwake++
         }
 
-        //check for continuous deep asleep state. If deep state for at least fifteen minutes, we don't want to do a
+        //check for continuous deep asleep state. If deep state for 20 minutes or so, we don't want to do a
         //prompt too close to it
         if(sleepStage.contains("DEEP ASLEEP")) {
-            if (++deepAsleepEventCountSinceActive >= 30) {
+            if (++deepAsleepEventCountSinceActive > 40) {
                 lastTimestampSinceDeepAsleep = LocalDateTime.parse(viewModel.lastTimestamp.value)
             }
         } else {
@@ -279,8 +279,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     }
 
     private fun checkAndSubmitActivePromptEvent(hour: Int) {
-        val hoursAllowed = hour in 2..5
-        //randomize the time allowed between prompts a bit to keep from being predictable
+        val hoursAllowed = hour in 3..5
+        //randomize the time allowed between prompts a bit
         val minutesSinceLast = (10..20).shuffled().last().toLong()
 
         val isActiveEventAllowed =
@@ -290,9 +290,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                     (lightEventList.isEmpty() || LocalDateTime.parse(viewModel.lastTimestamp.value) >= lightEventList.last()
                         .plusMinutes(minutesSinceLast)) &&
                     (lastTimestampSinceDeepAsleep == null || LocalDateTime.parse(viewModel.lastTimestamp.value) >=
-                            lastTimestampSinceDeepAsleep!!.plusMinutes(10))
-
-
+                            lastTimestampSinceDeepAsleep!!.plusMinutes(2))
 
         //Log.d("MainActivity", "asleepCnt=$asleepEventCountSinceActive and isAllowed=$isActiveEventAllowed")
 
@@ -310,16 +308,16 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private fun checkAndSubmitLightPromptEvent(hour: Int) {
         val hoursAllowed = hour in 2..7
 
-        //randomize the time allowed between prompts a bit to keep from being predictable
+        //randomize the time allowed between prompts a bit
         val minutesSinceLast = (20..50).shuffled().last().toLong()
 
         val isLightPromptEventAllowed = hoursAllowed && asleepEventCountSinceAwake >= 50 &&
-                (awakeEventList.isNotEmpty() && LocalDateTime.parse(viewModel.lastTimestamp.value) >= awakeEventList.last()
-                    .plusMinutes(40)) &&
+                (awakeEventList.isEmpty() || LocalDateTime.parse(viewModel.lastTimestamp.value) >= awakeEventList.last()
+                    .plusMinutes(30)) &&
                 (lightEventList.isEmpty() || LocalDateTime.parse(viewModel.lastTimestamp.value) >= lightEventList.last()
                     .plusMinutes(minutesSinceLast)) &&
                 (lastTimestampSinceDeepAsleep == null || LocalDateTime.parse(viewModel.lastTimestamp.value) >=
-                        lastTimestampSinceDeepAsleep!!.plusMinutes(10))
+                        lastTimestampSinceDeepAsleep!!.plusMinutes(5))
 
         if (binding.chipAuto.isChecked && isLightPromptEventAllowed) {
             //cancel any events that might be running
@@ -401,7 +399,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         })
     }
 
-    private fun playPrompts(eventLabel : String) {
+    private fun playPrompts(eventLabel : String, hour: Int = -1) {
         val soundList = mutableListOf<String>()
         var pMod = ""
 
@@ -424,10 +422,12 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
 
         soundPoolManager.playSoundList(
-            soundList, mBgRawId, mBgLabel, eventLabel, binding.playStatus)
+            soundList, mBgRawId, mBgLabel, eventLabel, binding.playStatus, hour)
     }
 
     private fun processEvents(eventMap: Map<String, String>) {
+        val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
+        val hour = triggerDateTime.hour
 
         if(eventMap.containsKey(VOLUME_EVENT) && (eventMap[VOLUME_EVENT] != null)) {
             val eventVolume = eventMap[VOLUME_EVENT]!!.toInt()
@@ -437,11 +437,13 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
 
         if(eventMap.containsKey(PLAY_EVENT) && (eventMap[PLAY_EVENT] != null)) {
+            updateEventList(EVENT_LABEL_AWAKE, triggerDateTime.toString())
+
             val soundList = eventMap[PLAY_EVENT]!!.split(",")
             soundPoolManager.stopPlayingForeground()
             soundPoolManager.stopPlayingBackground()
             soundPoolManager.playSoundList(
-                soundList, mBgRawId, mBgLabel, EVENT_LABEL_WATCH, binding.playStatus)
+                soundList, mBgRawId, mBgLabel, EVENT_LABEL_WATCH, binding.playStatus, hour)
 
             //assume we'll only play for 15 minutes max unless an asleep event occurs sooner
             stopPromptWindow = LocalDateTime.now().plusMinutes(15)
@@ -466,9 +468,13 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         if (apJob == null || apJob!!.isCompleted) {
             apJob = scope.launch {
                 val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
+                val hour = triggerDateTime.hour
 
                 //randomize the active prompt a bit
                 val limit = (1..4).shuffled().last()
+
+                //we always want to capture the event when it happens in the event list
+                updateEventList(eventLabel, triggerDateTime.toString())
 
                 promptEventWaiting = eventLabel
                 for (i in 1..limit) {
@@ -488,8 +494,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                         getDeviceDocument(EVENT_LABEL_AWAKE, triggerDateTime.toString(), 1, 1, 30))
                 }
 
-                updateEventList(eventLabel, triggerDateTime.toString())
-                playPrompts(eventLabel)
+                playPrompts(eventLabel, hour)
 
                 delay(timeMillis = 10000)
                 promptEventWaiting = null
@@ -562,7 +567,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
         val bgChoice = parent?.getItemAtPosition(position)
 
-        Log.d("MainActivity", "bgChoice = $bgChoice")
+        //Log.d("MainActivity", "bgChoice = $bgChoice")
 
         mBgRawId = if (bgChoice.toString() == "Fan") {
             mBgLabel = "Fan"
@@ -577,7 +582,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             -1
         }
 
-        Log.d("MainActivity", "bgChoice = $mBgRawId")
+        //Log.d("MainActivity", "bgChoice = $mBgRawId")
     }
 
     override fun onNothingSelected(parent: AdapterView<*>?) {

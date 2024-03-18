@@ -18,4 +18,10 @@ interface SoundRoutine {
     fun overrideBG() : Boolean {
       return bgRawId != endBgRawId
     }
+
+    //represents the number of minutes to wait
+    //before diminishing volume, default is no limit
+    fun dimMinLimit() : Long {
+        return -1L;
+    }
 }

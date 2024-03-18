@@ -12,14 +12,15 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
+import utils.DimVolUpdateStatus
 import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
-import java.io.PrintWriter
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
-import kotlin.reflect.typeOf
+
+private const val dimBGVolBy = .07F
+private const val dimFGVolBy = .04F
+private const val volMin = .15F
+
 
 /*
    Uses library https://gitlab.com/olekdia/common/libraries/sound-pool
@@ -77,7 +78,7 @@ class SoundPoolManager() {
     }
 
     fun playSoundList(soundList : List<String>, endBgRawRes : Int,
-                      endBgLabel : String, eventLabel: String, textView : TextView) {
+                      endBgLabel : String, eventLabel: String, textView : TextView, hour: Int) {
 
         val playCnt = getPlayCount()
 
@@ -95,9 +96,13 @@ class SoundPoolManager() {
                 MILDSoundRoutine(playCnt, bgRawRes, endBgRawRes,.3F, 0F, .7F,  eventLabel, bgLabel, endBgLabel))
         }
         if (soundList.contains("w") || soundList.contains("wp")) {
+            var volOffset = 0.0F
+            if(hour > 0 && hour in 4..7) {
+                volOffset = (.03 * (hour - 3)).toFloat()
+            }
 
-            var fgVolume = .35F
-            var altBgVolume = .45F
+            var fgVolume = .35F - volOffset
+            var altBgVolume = .45F - volOffset
 
             if(endBgRawRes > 0) {
                 //just keep playing the current background
@@ -105,21 +110,25 @@ class SoundPoolManager() {
 
                 //play the sound files a little quieter if not fan background
                 if(bgRawRes != R.raw.boxfan) {
-                    fgVolume = .3F
-                    altBgVolume = .4F
+                    fgVolume = .3F - volOffset
+                    altBgVolume = .4F - volOffset
                 }
             } else {
                 bgRawRes = R.raw.boxfan
             }
 
             if(soundList.contains("w")) {
+                Log.d("DimVolume", "WILD prompt volumes at $altBgVolume and $fgVolume offset $volOffset")
                 bgLabel = "Event Fan"
                 soundRoutines.add(
                     WILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel))
             } else {
                 //must be prompt routine
-                fgVolume = .35F
-                altBgVolume = .45F
+                fgVolume = .4F - volOffset
+                altBgVolume = .4F - volOffset
+
+                Log.d("DimVolume", "WILD LIGHT prompt volumes at $altBgVolume and $fgVolume offset $volOffset")
+
                 soundRoutines.add(
                     WILDPromptSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel))
             }
@@ -127,7 +136,7 @@ class SoundPoolManager() {
 
         stopPlayingForeground()
 
-        playForegroundSounds(soundRoutines, textView)
+        playSoundRoutines(soundRoutines, textView)
     }
 
     fun stopPlayingBackground() {
@@ -181,12 +190,12 @@ class SoundPoolManager() {
                 }
 
                 mBgId = mSoundPoolCompat.load(bgRawId)
-                Log.d("MainActivity", "starting load for resource=$bgRawId")
+                //Log.d("MainActivity", "starting load for resource=$bgRawId")
 
                 isLoadedMap[mBgId] = false
                 var loopCnt = 0
                 while (!isLoadedMap[mBgId]!! && loopCnt < 3) {
-                    Log.d("MainActivity", "waiting on loading spId=$mBgId")
+                    //Log.d("MainActivity", "waiting on loading spId=$mBgId")
                     loopCnt++
                     delay(timeMillis = 500)
                 }
@@ -218,8 +227,17 @@ class SoundPoolManager() {
 
                 val altBGSounds = soundRoutine.getAltBGSounds()
                 if(altBGSounds.isNotEmpty()) {
+                    //setup the volume diminish feature
+                    var currVolume = soundRoutine.altBgVolume
+                    var dimVolStatus : DimVolUpdateStatus? = null
+                    var dimMinLimit = soundRoutine.dimMinLimit()
+                    if(dimMinLimit > 0) {
+                        var lastLimitTime = LocalDateTime.now()
+                        dimVolStatus = DimVolUpdateStatus(dimMinLimit, lastLimitTime, currVolume)
+                    }
+
                     do {
-                        playAltSounds(altBGSounds, soundRoutine.altBgVolume)
+                        playAltSounds(altBGSounds, currVolume, true, dimVolStatus)
                     } while (!isBGSoundStopped)
                 }
 
@@ -231,17 +249,30 @@ class SoundPoolManager() {
     private suspend fun playAltSounds(
         altFiles: List<String>,
         volume: Float,
-        pause: Boolean = true
+        pause: Boolean = true,
+        dimVolStatus: DimVolUpdateStatus? = null
     ) {
+
+        var currVolume = volume
+
         for (altFile in altFiles) {
+            //if we've been looping longer than the dim minutes limit, drop the volume
+            if( dimVolStatus != null && currVolume.compareTo(volMin) >= 0 && LocalDateTime.now() >
+                    dimVolStatus.lastUpdateTime.plusMinutes(dimVolStatus.updateMinuteLimit)) {
+                dimVolStatus.lastUpdateVol -= dimBGVolBy
+                dimVolStatus.lastUpdateTime = LocalDateTime.now()
+                currVolume = dimVolStatus.lastUpdateVol
+                Log.d("DimVolume", "dropped ALT BG volume to $currVolume")
+            }
+
             val filePath = getFilePath(altFile)
             Log.d("MainActivity", "playing alt bg filePath $filePath")
 
             if (filePath != null) {
-                Log.d("MainActivity", "starting load for file=$filePath")
+                //Log.d("MainActivity", "starting load for file=$filePath")
 
-                altBgId = mSoundPoolCompat.playOnce(filePath, volume, volume, 1F)
-                Log.d("MainActivity", "file loading as id=$altBgId")
+                altBgId = mSoundPoolCompat.playOnce(filePath, currVolume, currVolume, 1F)
+                //Log.d("MainActivity", "file loading as id=$altBgId")
 
                 waitForSoundPlayToComplete(altBgId)
 
@@ -254,7 +285,7 @@ class SoundPoolManager() {
         }
     }
 
-    private fun playForegroundSounds(soundRoutines : List<SoundRoutine>,  textView : TextView) {
+    private fun playSoundRoutines(soundRoutines : List<SoundRoutine>, textView : TextView) {
         val scope = CoroutineScope(Dispatchers.Default)
         isFGSoundStopped = false
 
@@ -291,7 +322,19 @@ class SoundPoolManager() {
                         delay(timeMillis = 5000)
                     }
 
+                    //we're about to play the foreground sounds, set up the volume diminish feature
+                    var lastLimitTime = LocalDateTime.now()
+                    var currVolume = soundRoutine.fgVolume
+                    var dimMinLimit = soundRoutine.dimMinLimit()
+
                     for (sound in soundRoutine.getRoutine()) {
+                        //if we've been looping longer than the dim minutes limit, drop the volume
+                        if( dimMinLimit > 0 && (currVolume.compareTo(volMin) >= 0) && LocalDateTime.now() > lastLimitTime.plusMinutes(dimMinLimit)) {
+                            currVolume -= dimFGVolBy
+                            lastLimitTime = LocalDateTime.now()
+                            Log.d("DimVolume", "dropped FG bg volume to $currVolume")
+                        }
+
                         //check if stop button pushed mid play or the sound file id is already initialized
                         if (!isFGSoundStopped) {
 
@@ -299,14 +342,14 @@ class SoundPoolManager() {
                                     "routine for ${soundRoutine.repetition} cycles"
 
                             //play the sound file - playOnce handles loading and unloading the file
-                            Log.d("MainActivity", "playing ${sound.rawResId}")
+                            //Log.d("MainActivity", "playing ${sound.rawResId}")
                             if(sound.filePathId != null) {
                                 val filePath = getFilePath(sound.filePathId)
                                 Log.d("MainActivity", "playing $filePath")
-                                mFgId = mSoundPoolCompat.playOnce(filePath, soundRoutine.fgVolume, soundRoutine.fgVolume, 1F)
-                                Log.d("MainActivity", "playing mFgId $mFgId")
+                                mFgId = mSoundPoolCompat.playOnce(filePath, currVolume, currVolume, 1F)
+                                //Log.d("MainActivity", "playing mFgId $mFgId")
                             } else {
-                                mFgId = mSoundPoolCompat.playOnce(sound.rawResId, soundRoutine.fgVolume, soundRoutine.fgVolume, 1F)
+                                mFgId = mSoundPoolCompat.playOnce(sound.rawResId, currVolume, currVolume, 1F)
                                 Log.d("MainActivity", "playing mFgId $mFgId")
                             }
 
@@ -375,8 +418,8 @@ class SoundPoolManager() {
             File(ex.path + "/" + fileLocation[0] + "/" + fileLocation[1] + "/"),
                fileLocation[2])
 
-        Log.d("MainActivity", "getting $file")
-        Log.d("MainActivity", "file exists " + file.exists())
+        //Log.d("MainActivity", "getting $file")
+        //Log.d("MainActivity", "file exists " + file.exists())
 
         var filePath = ""
         return if (file.exists()) {

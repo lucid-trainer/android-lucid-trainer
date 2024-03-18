@@ -55,7 +55,7 @@ class WILDSoundRoutine(override var repetition: Int, override var bgRawId: Int, 
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()
         var finalRoutine : MutableList<Sound> = emptyList<Sound>().toMutableList()
 
-        val cntrs = (1..61).shuffled().slice(0..16)
+        val cntrs = (1..61).shuffled().slice(0..22)
         val cntrs2 = (1..5).shuffled().slice(0..2)
 
         for (cntr in cntrs) {
@@ -71,5 +71,9 @@ class WILDSoundRoutine(override var repetition: Int, override var bgRawId: Int, 
         finalRoutine = routine.shuffled().toMutableList()
 
         return finalRoutine
+    }
+
+    override fun dimMinLimit() : Long {
+        return 2L
     }
 }
