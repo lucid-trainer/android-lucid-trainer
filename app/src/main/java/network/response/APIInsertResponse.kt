@@ -1,5 +1,5 @@
 package network.response
 
-data class APIDeviceResponse (
+data class APIInsertResponse (
     val insertedId: String
 )

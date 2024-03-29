@@ -80,7 +80,7 @@ class SoundPoolManager() {
     fun playSoundList(soundList : List<String>, endBgRawRes : Int,
                       endBgLabel : String, eventLabel: String, textView : TextView, hour: Int) {
 
-        val playCnt = getPlayCount()
+        val playCnt = getPlayCount(hour)
 
         //default
         var bgRawRes = R.raw.waves
@@ -438,9 +438,7 @@ class SoundPoolManager() {
         }
     }
 
-    private fun getPlayCount() : Int {
-        val hour = ZonedDateTime.now(java.time.ZoneId.systemDefault()).hour
-
+    private fun getPlayCount(hour : Int) : Int {
         if (hour < 4) {
             return 3
         } else if (hour < 6) {

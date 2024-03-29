@@ -9,10 +9,10 @@ import utils.AppConfig
 import java.time.LocalDateTime
 
 class DeviceDocumentsRepository(private val apiService: ApiService) {
-    suspend fun postDevicePrompt(deviceDocument: DeviceDocument) {
+    suspend fun postDevicePrompt(collection: String, deviceDocument: DeviceDocument) {
 
         val request = APIDeviceRequest(
-            "appdata",
+            collection,
             "Cluster0",
             "lucid-trainer",
             deviceDocument
