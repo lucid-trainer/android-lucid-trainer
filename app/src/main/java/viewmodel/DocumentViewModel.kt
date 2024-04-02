@@ -152,7 +152,7 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
         return LocalDateTime.now();
 
         //for DEBUG, set a specific starting time
-        //return LocalDate.parse("2024-03-28").atTime(1,0)
+        //return LocalDate.parse("2024-03-31").atTime(0,50)
     }
 
     private fun getStartingTimestamp() : String {
@@ -187,15 +187,15 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
 
             //if (reading.isSleep == "awake" || reading.isSleep == "unknown" || moveCnt >= 2) {
             if(activeCnt >= 2) {
-                sleepStage.value = "AWAKE ($activeCnt)"
+                sleepStage.value = "AWAKE"
             } else if(unknownCnt == 1) {
-                sleepStage.value = "UNKNOWN ($activeCnt)"
+                sleepStage.value = "UNKNOWN"
             } else if (lightCnt == 0 && deepCnt == 0) {
                 sleepStage.value = "DEEP ASLEEP"
             } else if (lightCnt == 0) {
                 sleepStage.value = "ASLEEP"
             } else {
-                sleepStage.value = "LIGHT ($lightCnt)"
+                sleepStage.value = "LIGHT"
             }
         }
     }

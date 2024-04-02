@@ -2,7 +2,7 @@ package network
 
 import network.request.APIDeviceRequest
 import network.request.APIRequest
-import network.response.APIDeviceResponse
+import network.response.APIInsertResponse
 import network.response.APIResponse
 import retrofit2.http.Body
 import retrofit2.http.Headers
@@ -21,7 +21,7 @@ interface ApiService {
         "Content-Type: application/json"
     )
     @POST("action/insertOne")
-    suspend fun postDeviceRequest(@Body params: APIDeviceRequest): APIDeviceResponse
+    suspend fun postDeviceRequest(@Body params: APIDeviceRequest): APIInsertResponse
 
 }
 

@@ -19,7 +19,7 @@ import java.time.ZonedDateTime
 
 private const val dimBGVolBy = .07F
 private const val dimFGVolBy = .04F
-private const val volMin = .15F
+private const val volMin = .175F
 
 
 /*
@@ -98,7 +98,7 @@ class SoundPoolManager() {
         if (soundList.contains("w") || soundList.contains("wp")) {
             var volOffset = 0.0F
             if(hour > 0 && hour in 4..7) {
-                volOffset = (.03 * (hour - 3)).toFloat()
+                volOffset = (.04 * (hour - 3)).toFloat()
             }
 
             var fgVolume = .35F - volOffset
@@ -124,8 +124,8 @@ class SoundPoolManager() {
                     WILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel))
             } else {
                 //must be prompt routine
-                fgVolume = .4F - volOffset
-                altBgVolume = .4F - volOffset
+                fgVolume = .35F - volOffset
+                altBgVolume = .35F - volOffset
 
                 Log.d("DimVolume", "WILD LIGHT prompt volumes at $altBgVolume and $fgVolume offset $volOffset")
 
