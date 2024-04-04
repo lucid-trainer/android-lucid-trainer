@@ -98,34 +98,28 @@ class SoundPoolManager() {
         if (soundList.contains("w") || soundList.contains("wp")) {
             var volOffset = 0.0F
             if(hour > 0 && hour in 4..7) {
-                volOffset = (.04 * (hour - 3)).toFloat()
+                volOffset = (.025 * (hour - 3)).toFloat()
             }
 
             var fgVolume = .35F - volOffset
-            var altBgVolume = .45F - volOffset
+            var altBgVolume = .4F - volOffset
 
             if(endBgRawRes > 0) {
                 //just keep playing the current background
                 bgRawRes = endBgRawRes
-
-                //play the sound files a little quieter if not fan background
-                if(bgRawRes != R.raw.boxfan) {
-                    fgVolume = .3F - volOffset
-                    altBgVolume = .4F - volOffset
-                }
             } else {
-                bgRawRes = R.raw.boxfan
+                bgRawRes = R.raw.green
             }
 
             if(soundList.contains("w")) {
                 Log.d("DimVolume", "WILD prompt volumes at $altBgVolume and $fgVolume offset $volOffset")
-                bgLabel = "Event Fan"
+                bgLabel = "Event Green"
                 soundRoutines.add(
                     WILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel))
             } else {
                 //must be prompt routine
-                fgVolume = .35F - volOffset
-                altBgVolume = .35F - volOffset
+//                fgVolume = .35F - volOffset
+//                altBgVolume = .4F - volOffset
 
                 Log.d("DimVolume", "WILD LIGHT prompt volumes at $altBgVolume and $fgVolume offset $volOffset")
 

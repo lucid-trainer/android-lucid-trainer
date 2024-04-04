@@ -261,9 +261,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 cancelStartCountDownPrompt(EVENT_LABEL_UNKNOWN)
             }
         } else if (sleepStage =="ASLEEP") {
-            //stop the auto prompt if more than 18 minutes asleep since active
+            //stop the auto prompt if more than 12 minutes asleep since active
             if (stopPromptWindow != null && stopPromptWindow!! > LocalDateTime.parse(viewModel.lastTimestamp.value)
-                && asleepEventCountSinceAwake > 36) {
+                && asleepEventCountSinceAwake > 24) {
                 //assume an auto prompt is running and stop it
                 cancelStartCountDownPrompt(EVENT_LABEL_ASLEEP)
                 stopPromptWindow = LocalDateTime.parse(viewModel.lastTimestamp.value)
@@ -285,7 +285,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private fun checkAndSubmitAwakePromptEvent(hour: Int) {
 
         if (binding.chipAuto.isChecked) {
-            val hoursAllowed = hour in 4..5
+            val hoursAllowed = hour == 5
             //randomize the time allowed between prompts a bit
             val minutesSinceLast = (10..20).shuffled().last().toLong()
 
@@ -318,7 +318,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private fun checkAndSubmitLightPromptEvent(hour: Int) {
 
         if (binding.chipAuto.isChecked) {
-            val hoursAllowed = hour in 1..7
+            val hoursAllowed = hour in 2..7
 
             //randomize the time allowed between prompts a bit
             val minutesSinceLast = (20..50).shuffled().last().toLong()
@@ -623,6 +623,12 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         } else if (bgChoice.toString() == "Waves") {
             mBgLabel = "Waves"
             R.raw.waves
+        } else if (bgChoice.toString() == "Green") {
+            mBgLabel = "Green"
+            R.raw.green
+        } else if (bgChoice.toString() == "Metal Fan") {
+            mBgLabel = "MetalFan"
+            R.raw.metal_fan
         } else {
             -1
         }

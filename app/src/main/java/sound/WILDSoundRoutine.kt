@@ -21,7 +21,7 @@ class WILDSoundRoutine(override var repetition: Int, override var bgRawId: Int, 
         var altBGSounds : MutableList<String> = emptyList<String>().toMutableList()
 
         val cntrs1 = (1..6).shuffled().slice(0..3)
-        val cntrs2 = (1..8).shuffled().slice(0..3)
+        val cntrs2 = (1..6).shuffled().slice(0..3)
 
         Log.d("WILDSoundRoutine ", "calling getAltBGSounds")
 
