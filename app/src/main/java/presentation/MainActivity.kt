@@ -112,12 +112,12 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 when (intent?.action) {
                     BluetoothDevice.ACTION_ACL_CONNECTED -> {
                         isBTDisconnected = false
-                        Log.d("MainActivity","bluetooth connected")
+                        //Log.d("MainActivity","bluetooth connected")
                     }
 
                     BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
                         scope.launch {
-                            Log.d("MainActivity","bluetooth disconnected")
+                            //Log.d("MainActivity","bluetooth disconnected")
                             isBTDisconnected = true
                             delay(6000)
                             if(isBTDisconnected) {
@@ -189,29 +189,32 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                     Status.SUCCESS -> {
                         binding.progressBar.isVisible = false
 
-                        val dateFormat = DateTimeFormatter.ofPattern("M/dd/yyyy hh:mm:ss")
-                        val displayDate = LocalDateTime.parse(viewModel.lastTimestamp.value).format(dateFormat)
-                        var reading =  viewModel.lastReadingString.value
+                        if(!lastEventTimestamp.equals(viewModel.lastTimestamp.value)) {
+                            val dateFormat = DateTimeFormatter.ofPattern("M/dd/yyyy hh:mm:ss")
+                            val displayDate = LocalDateTime.parse(viewModel.lastTimestamp.value)
+                                .format(dateFormat)
+                            var reading = viewModel.lastReadingString.value
 
-                        val sleepStage = viewModel.sleepStage.value ?: ""
-                        processSleepStageEvents(sleepStage)
+                            val sleepStage = viewModel.sleepStage.value ?: ""
+                            processSleepStageEvents(sleepStage)
 
-                        val formatter = DateTimeFormatter.ofPattern("HH:mm:ss")
-                        if(awakeEventList.isNotEmpty()) {
-                            val formatActiveEvents:List<String> = awakeEventList.map { dateTime -> dateTime.format(formatter)}
-                            reading += "Active Events: $formatActiveEvents \n"
-                        }
+                            val formatter = DateTimeFormatter.ofPattern("HH:mm:ss")
+                            if (awakeEventList.isNotEmpty()) {
+                                val formatActiveEvents: List<String> =
+                                    awakeEventList.map { dateTime -> dateTime.format(formatter) }
+                                reading += "Active Events: $formatActiveEvents \n"
+                            }
 
-                        if(lightEventList.isNotEmpty()) {
-                            val formatLightEvents:List<String> = lightEventList.map {dateTime -> dateTime.format(formatter)}
-                            reading += "Light Events: $formatLightEvents \n"
-                        }
+                            if (lightEventList.isNotEmpty()) {
+                                val formatLightEvents: List<String> =
+                                    lightEventList.map { dateTime -> dateTime.format(formatter) }
+                                reading += "Light Events: $formatLightEvents \n"
+                            }
 
-                        binding.timestampTextview.text = displayDate
-                        binding.readingTextview.text = reading
-                        binding.sleepStageTexview.text = sleepStage
+                            binding.timestampTextview.text = displayDate
+                            binding.readingTextview.text = reading
+                            binding.sleepStageTexview.text = sleepStage
 
-                       if(!lastEventTimestamp.equals(viewModel.lastTimestamp.value)) {
                             viewModel.eventMap.value?.let { events -> processEvents(events) }
                             lastEventTimestamp = viewModel.lastTimestamp.value.toString()
                         }
@@ -235,7 +238,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         //check for continuous deep asleep state before checking. If deep state for 20 minutes or so, we don't want to do a
         //prompt too close to it.
         if(sleepStage == "DEEP ASLEEP") {
-            Log.d("DeepAsleep", "${viewModel.lastTimestamp.value} count = $deepAsleepEventCountSinceActive")
+            //Log.d("DeepAsleep", "${viewModel.lastTimestamp.value} count = $deepAsleepEventCountSinceActive")
 
             asleepEventCountSinceAwake++
             deepAsleepEventCountSinceActive++
@@ -289,7 +292,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             //randomize the time allowed between prompts a bit
             val minutesSinceLast = (10..20).shuffled().last().toLong()
 
-            val isActiveEventAllowed =
+            val isAwakeEventAllowed =
                 hoursAllowed && asleepEventCountSinceAwake > 0 &&
                         (awakeEventList.isEmpty() || LocalDateTime.parse(viewModel.lastTimestamp.value) >= awakeEventList.last()
                             .plusMinutes(60)) &&
@@ -299,11 +302,14 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                                 lastTimestampSinceDeepAsleep!!.plusMinutes(2))
 
             if(hoursAllowed) {
-                logEvent(EVENT_LABEL_AWAKE, isActiveEventAllowed, minutesSinceLast)
+                val document = getDeviceDocument(
+                    EVENT_LABEL_AWAKE, 0, minutesSinceLast, isAwakeEventAllowed
+                )
+                logEvent(document)
             }
 
-            if (isActiveEventAllowed) {
-                Log.d("MainActivity", "starting awake prompt")
+            if (isAwakeEventAllowed) {
+                //Log.d("MainActivity", "starting awake prompt")
 
                 //cancel any events that might be running
                 cancelStartCountDownPrompt(EVENT_LABEL_AWAKE)
@@ -318,7 +324,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private fun checkAndSubmitLightPromptEvent(hour: Int) {
 
         if (binding.chipAuto.isChecked) {
-            val hoursAllowed = hour in 2..7
+            val hoursAllowed = hour in 1..7
 
             //randomize the time allowed between prompts a bit
             val minutesSinceLast = (20..50).shuffled().last().toLong()
@@ -332,7 +338,10 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                             lastTimestampSinceDeepAsleep!!.plusMinutes(5))
 
             if (hoursAllowed) {
-                logEvent(EVENT_LABEL_LIGHT, isLightPromptEventAllowed, minutesSinceLast)
+                val document = getDeviceDocument(
+                    EVENT_LABEL_LIGHT, 0, minutesSinceLast, isLightPromptEventAllowed
+                )
+                logEvent(document)
             }
 
             if (isLightPromptEventAllowed) {
@@ -342,23 +351,18 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 //we don't want it to stop the light/rem sleep prompt if stage switches back to ASLEEP
                 stopPromptWindow = LocalDateTime.parse(viewModel.lastTimestamp.value)
 
-                Log.d("MainActivity", "playing light sleep prompt")
+                //Log.d("MainActivity", "playing light sleep prompt")
                 startCountDownPromptTimer(EVENT_LABEL_LIGHT)
             }
         }
     }
 
-    private fun logEvent(event: String, isPromptEventAllowed: Boolean, minutesSinceLast : Long) {
-        val triggerTimestamp =
-            if (viewModel.lastTimestamp.value != null) viewModel.lastTimestamp.value!! else ""
+    private fun logEvent(document: DeviceDocument) {
 
         CoroutineScope(Dispatchers.Default).launch {
             deviceDocumentRepository.postDevicePrompt(
                 "logdata",
-                getDeviceDocument(
-                    event, 0, triggerTimestamp, asleepEventCountSinceAwake, minutesSinceLast,
-                    lastTimestampSinceDeepAsleep.toString(), isPromptEventAllowed
-                )
+                document
             )
         }
     }
@@ -398,26 +402,26 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             purgeAllRecords()
             viewModel.workingReadingList.clear()
             viewModel.sleepStage.value = ""
-            Log.d("MainActivity", "list size=" + viewModel.workingReadingList.size)
+            //Log.d("MainActivity", "list size=" + viewModel.workingReadingList.size)
         }
 
         // Set the maximum volume of the SeekBar to the maximum volume of the MediaPlayer:
         maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
         binding.seekBar.max = maxVolume
-        Log.d("MainActivity", "max volume=$maxVolume")
+        //Log.d("MainActivity", "max volume=$maxVolume")
 
         // Set the current volume of the SeekBar to the current volume of the MediaPlayer:
 
         // Set the current volume of the SeekBar to the current volume of the MediaPlayer:
         val currVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
         binding.seekBar.progress = currVolume
-        Log.d("MainActivity", "curr volume=$currVolume")
+        //Log.d("MainActivity", "curr volume=$currVolume")
 
         binding.seekBar.setOnSeekBarChangeListener(object :
             OnSeekBarChangeListener {
                 override fun onProgressChanged(seekBar: SeekBar,
                                                progress: Int, fromUser: Boolean) {
-                    Log.d("MainActivity", "volume=" + progress)
+                    //Log.d("MainActivity", "volume=" + progress)
                     audioManager.setStreamVolume(AudioManager.STREAM_MUSIC,progress,0);
             }
 
@@ -464,7 +468,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         if(eventMap.containsKey(VOLUME_EVENT) && (eventMap[VOLUME_EVENT] != null)) {
             val eventVolume = eventMap[VOLUME_EVENT]!!.toInt()
             val newVolume = maxVolume.times(eventVolume).div(10)
-            Log.d("MainActivity", "setting volume from event=$newVolume")
+            //Log.d("MainActivity", "setting volume from event=$newVolume")
             binding.seekBar.progress = newVolume
         }
 
@@ -473,8 +477,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
             CoroutineScope(Dispatchers.Default).launch {
                 deviceDocumentRepository.postDevicePrompt("appdata",
-                    getDeviceDocument(EVENT_LABEL_AWAKE, hour, triggerDateTime.toString(), asleepEventCountSinceAwake,0,
-                        lastTimestampSinceDeepAsleep.toString(), true)
+                    getDeviceDocument(EVENT_LABEL_AWAKE, hour, 0,true)
                 )
             }
 
@@ -493,13 +496,13 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private fun startCountDownPromptTimer(eventLabel : String) {
         //avoid stepping on a waiting or running job
         val isRunning = promptEventWaiting != null || (binding.playStatus.text.startsWith("Playing Event"))
-        Log.d("MainActivity", "promptEventWaiting=$promptEventWaiting and ${binding.playStatus.text}")
+        //Log.d("MainActivity", "promptEventWaiting=$promptEventWaiting and ${binding.playStatus.text}")
 
         if(isRunning) {
-            Log.d("MainActivity", "returning")
+            //Log.d("MainActivity", "returning")
             return
         } else {
-            Log.d("MainActivity", "autoPlay on")
+            //Log.d("MainActivity", "autoPlay on")
         }
 
         val scope = CoroutineScope(Dispatchers.Default)
@@ -521,12 +524,11 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                     delay(timeMillis = SLEEP_EVENT_PROMPT_DELAY)
                 }
 
-                Log.d("MainActivity", "playing prompt")
+                //Log.d("MainActivity", "playing prompt")
 
                 //send a vibration event to the watch
                 deviceDocumentRepository.postDevicePrompt("appdata",
-                    getDeviceDocument(eventLabel, hour, triggerDateTime.toString(), asleepEventCountSinceAwake,0,
-                        lastTimestampSinceDeepAsleep.toString(), true ))
+                    getDeviceDocument(eventLabel, hour, 0,true ))
 
                 playPrompts(eventLabel, hour)
 
@@ -537,9 +539,10 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     }
 
     private fun cancelStartCountDownPrompt(eventLabel: String) {
-        Log.d("MainActivity", "stopping auto prompt from $eventLabel")
+        //Log.d("MainActivity", "stopping auto prompt from $eventLabel")
 
-        logEvent("cancel from: $eventLabel", false, 0)
+        val document = getDeviceDocument("cancel from: $eventLabel", 0,0,false )
+        logEvent(document)
 
         if(apJob != null && apJob!!.isActive) {
             apJob!!.cancel()
@@ -556,14 +559,17 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         soundPoolManager.stopPlayingAltBackground()
     }
 
-    private fun getDeviceDocument(type: String, hour: Int, triggerTimestamp: String, asleepEventCount: Int,
-                                  minutesSinceLastCount: Long, lastTimestampDeepAsleep: String, allowed: Boolean) : DeviceDocument {
-        var intensity = 3
-        if(hour > 6) {
-            intensity = 1
-        } else if(hour > 4) {
-            intensity = 2
+    private fun getDeviceDocument(type: String, hour: Int, minutesSinceLastCount: Long,
+                                  allowed: Boolean) : DeviceDocument {
+
+        val intensity = when(hour) {
+            1,6,7 -> 1
+            2,3 -> 2
+            else -> 3
         }
+
+        val triggerTimestamp =
+            if (viewModel.lastTimestamp.value != null) viewModel.lastTimestamp.value!! else ""
 
         return  DeviceDocument(
             LocalDateTime.now().toString(),
@@ -571,8 +577,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             type,
             intensity,
             asleepEventCountSinceAwake,
+            deepAsleepEventCountSinceActive,
             minutesSinceLastCount,
-            lastTimestampDeepAsleep,
+            lastTimestampSinceDeepAsleep.toString(),
             allowed
         )
     }
@@ -590,10 +597,10 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         // create a scope to access the database from a thread other than the main thread
         val scope = CoroutineScope(Dispatchers.Default)
         scope.launch {
-            Log.d("MainActivity", "dateTimeOfQuery=$dateTime")
+            //Log.d("MainActivity", "dateTimeOfQuery=$dateTime")
             val dao = ReadingDatabase.getInstance(application).readingDao
             val cnt = dao.deleteOlder(dateTime)
-            Log.d("MainActivity", "recordsDeleted=$cnt")
+            //Log.d("MainActivity", "recordsDeleted=$cnt")
         }
     }
 
@@ -602,10 +609,10 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         val scope = CoroutineScope(Dispatchers.Default)
         scope.launch {
             lastEventTimestamp = ""
-            Log.d("MainActivity", "delete all records")
+            //Log.d("MainActivity", "delete all records")
             val dao = ReadingDatabase.getInstance(application).readingDao
             val cnt = dao.deleteAll()
-            Log.d("MainActivity", "recordsDeleted=$cnt")
+            //Log.d("MainActivity", "recordsDeleted=$cnt")
         }
     }
 

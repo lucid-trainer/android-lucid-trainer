@@ -106,10 +106,10 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
                         if (size != null) {
                             it.data?.documents?.transform()?.forEach { reading ->
                                 //lastTimestamp = reading.timestamp
-                                Log.d("DocumentViewModel", "lastReadingTimestamp=$lastTimestamp")
+                                //Log.d("DocumentViewModel", "lastReadingTimestamp=$lastTimestamp")
 
                                 val lastInsertId = dao.insert(reading)
-                                Log.d("DocumentViewModel", "insertId=$lastInsertId")
+                                //Log.d("DocumentViewModel", "insertId=$lastInsertId")
 
                                 setSleepStage(reading)
                             }
@@ -127,7 +127,7 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
     }
 
     private fun getAPIRequest(lastTimestamp: String): APIRequest {
-        Log.d("DocumentViewModel", "lastTimestamp=$lastTimestamp")
+        //Log.d("DocumentViewModel", "lastTimestamp=$lastTimestamp")
 
         val request = APIRequest(
             "fitdata",
@@ -140,7 +140,7 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
 
         val gson = Gson()
         val requestJson: String? = gson.toJson(request, APIRequest::class.java)
-        Log.d("DocumentViewModel", "requestJson=$requestJson")
+        //Log.d("DocumentViewModel", "requestJson=$requestJson")
         return request
     }
 

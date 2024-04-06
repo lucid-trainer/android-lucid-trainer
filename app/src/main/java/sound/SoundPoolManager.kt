@@ -68,7 +68,7 @@ class SoundPoolManager() {
                 isSuccess: Boolean,
                 errorMsg: String?
             ) {
-                Log.d("load completed soundID", "$sampleId, isSuccess: $isSuccess")
+                //Log.d("load completed soundID", "$sampleId, isSuccess: $isSuccess")
                 isLoadedMap[sampleId] = isSuccess
                 if (errorMsg != null) {
                     loadingErrorMessage = errorMsg
@@ -96,13 +96,16 @@ class SoundPoolManager() {
                 MILDSoundRoutine(playCnt, bgRawRes, endBgRawRes,.3F, 0F, .7F,  eventLabel, bgLabel, endBgLabel))
         }
         if (soundList.contains("w") || soundList.contains("wp")) {
-            var volOffset = 0.0F
-            if(hour > 0 && hour in 4..7) {
-                volOffset = (.025 * (hour - 3)).toFloat()
+
+            val volOffset = when(hour) {
+                1 -> .1F
+                2,6,7 -> .075F
+                3 -> .05F
+                else -> .0F
             }
 
-            var fgVolume = .35F - volOffset
-            var altBgVolume = .4F - volOffset
+            val fgVolume = .35F - volOffset
+            val altBgVolume = .4F - volOffset
 
             if(endBgRawRes > 0) {
                 //just keep playing the current background
@@ -112,16 +115,12 @@ class SoundPoolManager() {
             }
 
             if(soundList.contains("w")) {
-                Log.d("DimVolume", "WILD prompt volumes at $altBgVolume and $fgVolume offset $volOffset")
+                //Log.d("DimVolume", "WILD prompt volumes at $altBgVolume and $fgVolume offset $volOffset")
                 bgLabel = "Event Green"
                 soundRoutines.add(
                     WILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel))
             } else {
-                //must be prompt routine
-//                fgVolume = .35F - volOffset
-//                altBgVolume = .4F - volOffset
-
-                Log.d("DimVolume", "WILD LIGHT prompt volumes at $altBgVolume and $fgVolume offset $volOffset")
+                //Log.d("DimVolume", "WILD LIGHT prompt volumes at $altBgVolume and $fgVolume offset $volOffset")
 
                 soundRoutines.add(
                     WILDPromptSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel))
@@ -137,7 +136,7 @@ class SoundPoolManager() {
 
         stopPlayingAltBackground()
 
-        Log.d("MainActivity","Stopping mBgId $mBgId")
+        //Log.d("MainActivity","Stopping mBgId $mBgId")
         isBGSoundStopped = true
         mSoundPoolCompat.stop(mBgId)
         mSoundPoolCompat.unload(mBgId)
@@ -148,7 +147,7 @@ class SoundPoolManager() {
     }
 
     fun stopPlayingAltBackground() {
-        Log.d("MainActivity","Stopping altBgId $altBgId")
+        //Log.d("MainActivity","Stopping altBgId $altBgId")
         mSoundPoolCompat.stop(altBgId)
         mSoundPoolCompat.unload(altBgId)
         altBgId = -1
@@ -174,7 +173,7 @@ class SoundPoolManager() {
         val scope = CoroutineScope(Dispatchers.Default)
         isBGSoundStopped = false
 
-        Log.d("MainActivity", "checking bgJob=$bgJob")
+        //Log.d("MainActivity", "checking bgJob=$bgJob")
 
         if (bgJob == null || !mSoundPoolCompat.isPlaying(mBgId)) {
             bgJob = scope.launch {
@@ -235,7 +234,7 @@ class SoundPoolManager() {
                     } while (!isBGSoundStopped)
                 }
 
-                Log.d("MainActivity", "finishing altBgJob with altBgId ${altBgId}")
+                //Log.d("MainActivity", "finishing altBgJob with altBgId ${altBgId}")
             }
         }
     }
@@ -256,11 +255,11 @@ class SoundPoolManager() {
                 dimVolStatus.lastUpdateVol -= dimBGVolBy
                 dimVolStatus.lastUpdateTime = LocalDateTime.now()
                 currVolume = dimVolStatus.lastUpdateVol
-                Log.d("DimVolume", "dropped ALT BG volume to $currVolume")
+                //Log.d("DimVolume", "dropped ALT BG volume to $currVolume")
             }
 
             val filePath = getFilePath(altFile)
-            Log.d("MainActivity", "playing alt bg filePath $filePath")
+            //Log.d("MainActivity", "playing alt bg filePath $filePath")
 
             if (filePath != null) {
                 //Log.d("MainActivity", "starting load for file=$filePath")
@@ -274,7 +273,7 @@ class SoundPoolManager() {
                     delay(timeMillis = 30000)
                 }
 
-                Log.d("MainActivity", "sound completed for id=$altBgId")
+                //Log.d("MainActivity", "sound completed for id=$altBgId")
             }
         }
     }
@@ -296,10 +295,10 @@ class SoundPoolManager() {
                     //val testVal = !soundRoutine.overrideBG() && mSoundPoolCompat.isPlaying(mBgId)
                     //Log.d("MainActivity", "testVal=$testVal ${soundRoutine.overrideBG()}");
                     if(soundRoutine.overrideBG() && mSoundPoolCompat.isPlaying(mBgId)) {
-                        Log.d("MainActivity", "override bg and original playing background")
+                        //Log.d("MainActivity", "override bg and original playing background")
                         stopPlayingBackground()
                     } else {
-                        Log.d("MainActivity", "stopping any alt background loop")
+                        //Log.d("MainActivity", "stopping any alt background loop")
                         stopPlayingAltBackground()
                     }
 
@@ -326,7 +325,7 @@ class SoundPoolManager() {
                         if( dimMinLimit > 0 && (currVolume.compareTo(volMin) >= 0) && LocalDateTime.now() > lastLimitTime.plusMinutes(dimMinLimit)) {
                             currVolume -= dimFGVolBy
                             lastLimitTime = LocalDateTime.now()
-                            Log.d("DimVolume", "dropped FG bg volume to $currVolume")
+                            //Log.d("DimVolume", "dropped FG bg volume to $currVolume")
                         }
 
                         //check if stop button pushed mid play or the sound file id is already initialized
@@ -361,10 +360,10 @@ class SoundPoolManager() {
                     }
 
                     if(soundRoutine.overrideBG()) {
-                        Log.d("MainActivity", "routine overrides bg so stop and restore original bg")
+                        //Log.d("MainActivity", "routine overrides bg so stop and restore original bg")
                         stopPlayingBackground()
                     } else {
-                        Log.d("MainActivity", "just stop any alt backgrounds on the routine")
+                        //Log.d("MainActivity", "just stop any alt backgrounds on the routine")
                         stopPlayingAltBackground()
                         lastBgRawId = -9999
                     }

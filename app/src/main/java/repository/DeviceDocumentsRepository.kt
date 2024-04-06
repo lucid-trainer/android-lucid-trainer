@@ -18,13 +18,13 @@ class DeviceDocumentsRepository(private val apiService: ApiService) {
             deviceDocument
         )
 
-        Log.d("MainActivity", "before call")
+        //Log.d("MainActivity", "before call")
         val gson = Gson()
         val requestJson: String? = gson.toJson(request, APIDeviceRequest::class.java)
-        Log.d("MainActivity", "requestJson=$requestJson")
+        //Log.d("MainActivity", "requestJson=$requestJson")
 
         val response = AppConfig.ApiService().postDeviceRequest(request)
-        Log.d("MainActivity", "response=" + response.insertedId)
+        //Log.d("MainActivity", "response=" + response.insertedId)
 
     }
 
