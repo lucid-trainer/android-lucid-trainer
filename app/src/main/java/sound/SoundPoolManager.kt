@@ -98,14 +98,13 @@ class SoundPoolManager() {
         if (soundList.contains("w") || soundList.contains("wp")) {
 
             val volOffset = when(hour) {
-                1 -> .1F
-                2,6,7 -> .075F
+                1,2,6,7 -> .075F
                 3 -> .05F
                 else -> .0F
             }
 
-            val fgVolume = .35F - volOffset
-            val altBgVolume = .4F - volOffset
+            var fgVolume = .43F - volOffset
+            var altBgVolume = .48F - volOffset
 
             if(endBgRawRes > 0) {
                 //just keep playing the current background
@@ -121,6 +120,9 @@ class SoundPoolManager() {
                     WILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel))
             } else {
                 //Log.d("DimVolume", "WILD LIGHT prompt volumes at $altBgVolume and $fgVolume offset $volOffset")
+
+                //fgVolume = .43F - volOffset
+                //var altBgVolume = .48F - volOffset
 
                 soundRoutines.add(
                     WILDPromptSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel))

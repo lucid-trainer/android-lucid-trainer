@@ -152,7 +152,7 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
         return LocalDateTime.now();
 
         //for DEBUG, set a specific starting time
-        //return LocalDate.parse("2024-03-31").atTime(0,50)
+        //return LocalDate.parse("2024-04-12").atTime(0,0)
     }
 
     private fun getStartingTimestamp() : String {
@@ -175,28 +175,45 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
     private fun setSleepStage(reading: Reading) {
         workingReadingList.add(reading)
 
-        if (workingReadingList.size >= 4) {
+        val listSize = workingReadingList.size;
+
+        if (workingReadingList.size >= 32) {
             val activeCnt =
                 workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .2 }.size
             val unknownCnt =
-                workingReadingList.map { it -> it.accelMovement }.takeLast(3).filter { it > .4 }.size
+                workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .15 }.size
             val deepCnt =
-                workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .01}.size
+                workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .01 }.size
             val lightCnt =
-                workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .05 && it <= .4}.size
+                workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .02 && it <= .15}.size
+
+            val recentMove =
+                workingReadingList.map { it -> it.accelMovement }.takeLast(10).filter { it > .02 }.size
+            val prevMove =
+                workingReadingList.map { it -> it.accelMovement }.slice(listSize-32..listSize-9).filter { it >= .02 }.size
+            val prevHeartCnt =
+                workingReadingList.map { it -> it.heartRate }.slice(listSize-8..listSize-5).filter { it <= 59}.size
+            val heartCnt =
+                workingReadingList.map { it -> it.heartRate }.takeLast(4).filter { it >= 60}.size
 
             //if (reading.isSleep == "awake" || reading.isSleep == "unknown" || moveCnt >= 2) {
             if(activeCnt >= 2) {
                 sleepStage.value = "AWAKE"
             } else if(unknownCnt == 1) {
                 sleepStage.value = "UNKNOWN"
-            } else if (lightCnt == 0 && deepCnt == 0) {
-                sleepStage.value = "DEEP ASLEEP"
-            } else if (lightCnt == 0) {
+            } else if (deepCnt == 0 && lightCnt == 0) {
+                if(recentMove == 0 && prevMove > 0 && prevHeartCnt >=2 && heartCnt >= 2) {
+                    sleepStage.value = "REM ASLEEP"
+                } else {
+                    sleepStage.value = "DEEP ASLEEP"
+                }
+            } else if (deepCnt > 0 && lightCnt == 0) {
                 sleepStage.value = "ASLEEP"
             } else {
                 sleepStage.value = "LIGHT"
             }
+
+            //Log.d("DocumentViewModel", "${reading.timestamp} setting sleep stage to ${sleepStage.value}")
         }
     }
 }
