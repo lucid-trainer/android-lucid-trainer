@@ -20,35 +20,24 @@ class WILDSoundRoutine(override var repetition: Int, override var bgRawId: Int, 
     override fun getAltBGSounds(): List<String> {
         var altBGSounds : MutableList<String> = emptyList<String>().toMutableList()
 
-        val cntrs1 = (1..6).shuffled().slice(0..3)
-        val cntrs2 = (1..6).shuffled().slice(0..3)
+        val cntrs = (1..12).shuffled().slice(0..8)
 
         Log.d("WILDSoundRoutine ", "calling getAltBGSounds")
 
-        //we have the same number of sounds of each type so just alternate them
-        for (i in 0..3) {
-            altBGSounds.add("hypnag/bg/bg_music_" +  + cntrs1[i]+ ".ogg")
-            altBGSounds.add("hypnag/bg/bg_sfx_" + cntrs2[i] + ".ogg")
-        }
-
-        val finalBGSounds : MutableList<String> = emptyList<String>().toMutableList()
-
         var cntList = (1..3).shuffled()
         var cntIdx = 0;
-        for (i in 0 until altBGSounds.size step 2) {
-            finalBGSounds.add(altBGSounds[i])
-            Log.d("WILDSoundRoutine ", "$i adding ${altBGSounds[i]}")
 
-            finalBGSounds.add(altBGSounds[i+1])
-            Log.d("WILDSoundRoutine ", "$i adding ${altBGSounds[i+1]}")
+        for (i in 0..8) {
+            altBGSounds.add("hypnag/bg/bg_" +  + cntrs[i]+ ".ogg")
 
-            cntIdx = if(cntIdx == 3) 0 else cntIdx
-            finalBGSounds.add("hypnag/bg/bg_prompt_${cntList[cntIdx]}.ogg");
-            Log.d("WILDSoundRoutine ", "$i adding hypnag/bg/bg_prompt_${cntList[cntIdx]}.ogg")
+            cntIdx = if(cntIdx == 4) 0 else cntIdx
+            if(i % 2 == 0) {
+                altBGSounds.add("hypnag/bg/bg_prompt_${cntList[cntIdx]}.ogg")
+            }
             cntIdx++
         }
 
-        return finalBGSounds
+        return altBGSounds
     }
 
     override fun getRoutine(): List<Sound> {

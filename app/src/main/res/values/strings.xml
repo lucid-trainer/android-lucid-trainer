@@ -4,8 +4,10 @@
         <item>No White Noise</item>
         <item>Fan</item>
         <item>AC</item>
-        <item>Waves</item>
-        <item>Green</item>
         <item>Metal Fan</item>
+        <item>Waves</item>
+        <item>Brown</item>
+        <item>Green</item>
+        <item>Pink</item>
     </string-array>
 </resources>

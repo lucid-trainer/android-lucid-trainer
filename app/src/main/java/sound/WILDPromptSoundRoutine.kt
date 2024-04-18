@@ -12,8 +12,6 @@ class WILDPromptSoundRoutine(override var repetition: Int, override var bgRawId:
     override fun getStartSounds(): List<String> {
         val startSounds : MutableList<String> = emptyList<String>().toMutableList()
 
-        startSounds.add("hypnag/bg/bg_prompt_0.ogg")
-
         return startSounds
     }
 
@@ -24,19 +22,12 @@ class WILDPromptSoundRoutine(override var repetition: Int, override var bgRawId:
     override fun getRoutine(): List<Sound> {
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()
         val limit = if(repetition > 2) 2 else repetition
-        val randomDelay = (40..120).shuffled().last()
+        val randomDelay = (20..40).shuffled().last()
 
         val cntrs = (1..limit).shuffled()
         for (index in cntrs.indices) {
             val cntr = cntrs[index]
-            val delayAfter = if(index == cntrs.size-1) randomDelay else 30
-            routine.add(Sound(0, delayAfter, "hypnag/bg/bg_prompt_" + cntr + ".ogg"))
-        }
-
-        //play a couple of quiet sounds
-        val cntrs2 = (1..limit+1).shuffled()
-        for (cntr in cntrs2) {
-            routine.add(Sound(0, randomDelay, "hypnag/bg/bg_qsfx_" + cntr + ".ogg"))
+            routine.add(Sound(0, randomDelay, "hypnag/bg/bg_prompt_" + cntr + ".ogg"))
         }
 
         return routine

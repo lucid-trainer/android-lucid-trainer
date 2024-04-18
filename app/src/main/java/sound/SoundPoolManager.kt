@@ -97,21 +97,28 @@ class SoundPoolManager() {
         }
         if (soundList.contains("w") || soundList.contains("wp")) {
 
-            val volOffset = when(hour) {
-                1,2,6,7 -> .075F
-                3 -> .05F
-                else -> .0F
-            }
-
-            var fgVolume = .43F - volOffset
-            var altBgVolume = .48F - volOffset
-
-            if(endBgRawRes > 0) {
+            bgRawRes = if(endBgRawRes > 0) {
                 //just keep playing the current background
-                bgRawRes = endBgRawRes
+                endBgRawRes
             } else {
-                bgRawRes = R.raw.green
+                R.raw.green
             }
+
+            val volOffset = when(hour) {
+                2,3 -> 1
+                6,7 -> 2
+                else -> 0
+            }
+
+            val (fgVolume, altBgVolume) = when(bgRawRes) {
+                R.raw.green, R.raw.pink -> .49F - (volOffset*.035F) to .53F - (volOffset*.035F)
+                R.raw.boxfan, R.raw.metal_fan  -> .38F - (volOffset*.03F) to .42F - (volOffset*.03F)
+                R.raw.ac -> .3F - (volOffset*.02F) to .36F - (volOffset*.02F)
+                R.raw.brown, R.raw.waves -> .08F - (volOffset*.005F) to .1F - (volOffset*.006F)
+                else -> .4F - (volOffset*.03F) to .43F - (volOffset*.03F)
+            }
+
+            Log.d("DimVolume", "WILD prompt volumes at $fgVolume and $altBgVolume offset $volOffset")
 
             if(soundList.contains("w")) {
                 //Log.d("DimVolume", "WILD prompt volumes at $altBgVolume and $fgVolume offset $volOffset")
@@ -120,12 +127,9 @@ class SoundPoolManager() {
                     WILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel))
             } else {
                 //Log.d("DimVolume", "WILD LIGHT prompt volumes at $altBgVolume and $fgVolume offset $volOffset")
-
-                //fgVolume = .43F - volOffset
-                //var altBgVolume = .48F - volOffset
-
+                //just use the background volume for the prompt
                 soundRoutines.add(
-                    WILDPromptSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel))
+                    WILDPromptSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, altBgVolume, eventLabel, bgLabel, endBgLabel))
             }
         }
 
@@ -345,7 +349,7 @@ class SoundPoolManager() {
                                 //Log.d("MainActivity", "playing mFgId $mFgId")
                             } else {
                                 mFgId = mSoundPoolCompat.playOnce(sound.rawResId, currVolume, currVolume, 1F)
-                                Log.d("MainActivity", "playing mFgId $mFgId")
+                                //Log.d("MainActivity", "playing mFgId $mFgId")
                             }
 
                             waitForSoundPlayToComplete(mFgId)
