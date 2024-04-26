@@ -249,8 +249,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         val hour = triggerDateTime.hour
         binding.sleepStageTexview.setTextColor(Color.GREEN)
 
-        //check for continuous deep asleep state before checking. If deep state for 20 minutes or so, we don't want to do a
-        //prompt too close to it.
         if(sleepStage == "DEEP ASLEEP") {
             //Log.d("DeepAsleep", "${viewModel.lastTimestamp.value} count = $deepAsleepEventCountSinceActive")
 
@@ -348,8 +346,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             val hoursAllowed = hour in 2..7
 
             val timeBetweenPrompts = when(hour) {
+                2 -> 25L
                 6,7 -> 35L
-                5,4 -> 40L
                 else -> 45L
             }
 
@@ -379,17 +377,19 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private fun checkAndSubmitREMPromptEvent(hour: Int) {
 
         if (binding.chipAuto.isChecked) {
-            val hoursAllowed = hour in 2..7
+            val hoursAllowed = hour in 1..7
 
             val timeBetweenPrompts = when(hour) {
-                6,7 -> 20L
+                1,2,6,7 -> 20L
                 5,4 -> 30L
-                else -> 45L
+                else -> 40L
             }
 
+            val triggerTimestamp = LocalDateTime.parse(viewModel.lastTimestamp.value)
+
             val isREMPromptEventAllowed = hoursAllowed && promptEventWaiting == null && asleepEventCountSinceAwake >= 20 &&
-                    (allPromptEvents.isEmpty() || LocalDateTime.parse(viewModel.lastTimestamp.value) >= allPromptEvents.last()
-                        .plusMinutes(timeBetweenPrompts))
+                    ((remEventList.isEmpty() || remEventList.size <= 2 && triggerTimestamp >= allPromptEvents.last().plusMinutes(10)) ||
+                    (allPromptEvents.isNotEmpty() && triggerTimestamp >= allPromptEvents.last().plusMinutes(timeBetweenPrompts)))
 
             if (hoursAllowed) {
                 val document = getDeviceDocument(
@@ -400,7 +400,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
             if (isREMPromptEventAllowed) {
                 //we don't want it to stop the light/rem sleep prompt if stage switches back to ASLEEP
-                stopPromptWindow = LocalDateTime.parse(viewModel.lastTimestamp.value)
+                stopPromptWindow = triggerTimestamp
 
                 //Log.d("MainActivity", "playing light sleep prompt")
                 startCountDownPromptTimer(EVENT_LABEL_REM)
@@ -564,9 +564,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
                 val hour = triggerDateTime.hour
 
-                delay(timeMillis = 10000)
-
-                for (i in 1..3) {
+                for (i in 1..2) {
                     yield()
                     delay(timeMillis = SLEEP_EVENT_PROMPT_DELAY)
                     //Log.d("MainActivity", "waiting to play  $eventLabel")

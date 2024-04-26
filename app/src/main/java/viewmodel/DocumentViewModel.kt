@@ -19,6 +19,7 @@ import network.response.APIResponse
 import network.response.transform
 import repository.DocumentsRepository
 import utils.AppConfig
+import utils.EventSleepStage
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -106,13 +107,10 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
                         var size = it.data?.documents?.size;
                         if (size != null) {
                             it.data?.documents?.transform()?.forEach { reading ->
-                                //lastTimestamp = reading.timestamp
-                                //Log.d("DocumentViewModel", "lastReadingTimestamp=$lastTimestamp")
+                                dao.insert(reading)
 
-                                val lastInsertId = dao.insert(reading)
-                                //Log.d("DocumentViewModel", "insertId=$lastInsertId")
-
-                                setSleepStage(reading)
+                                workingReadingList.add(reading)
+                                sleepStage.value = EventSleepStage.getSleepStage(workingReadingList)
                             }
                         }
 
@@ -150,10 +148,10 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
 
 
     private fun getStartDateTime() : LocalDateTime {
-        return LocalDateTime.now();
+       return LocalDateTime.now();
 
         //for DEBUG, set a specific starting time
-       //return LocalDate.parse("2024-04-23").atTime(0,0)
+       //return LocalDate.parse("2024-04-26").atTime(5,0)
     }
 
     private fun getStartingTimestamp() : String {
@@ -173,43 +171,4 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
         return str
     }
 
-    private fun setSleepStage(reading: Reading) {
-        workingReadingList.add(reading)
-
-        if (workingReadingList.size >= 32) {
-            val activeCnt =
-                workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .2 }.size
-            val unknownCnt =
-                workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it >= .1 }.size
-            val deepCnt =
-                workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .01 }.size
-            val lightCnt =
-                workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .02 && it < .1}.size
-
-            val avgHeartRate = workingReadingList.map { it -> it.heartRate }.takeLast(20).take(10).average().roundToInt()
-
-            val recentMove =
-                workingReadingList.map { it -> it.accelMovement }.takeLast(10).filter { it > .02 }.size
-            val prevHeartCnt =
-                workingReadingList.map { it -> it.heartRate }.takeLast(10).take(5).filter { it <= avgHeartRate}.size
-            val heartCnt =
-                workingReadingList.map { it -> it.heartRate }.takeLast(5).filter { it > avgHeartRate+1}.size
-
-            if(activeCnt >= 2) {
-                sleepStage.value = "AWAKE"
-            } else if(unknownCnt >= 1) {
-                sleepStage.value = "UNKNOWN"
-            } else if(recentMove == 0 && prevHeartCnt >=3 && heartCnt >= 3) {
-                sleepStage.value = "REM ASLEEP"
-            } else if (deepCnt == 0 && lightCnt == 0) {
-                sleepStage.value = "DEEP ASLEEP"
-            } else if (deepCnt > 0 && lightCnt == 0) {
-                sleepStage.value = "ASLEEP"
-            } else {
-                sleepStage.value = "LIGHT"
-            }
-
-            //Log.d("DocumentViewModel", "${reading.timestamp} setting sleep stage to ${sleepStage.value}")
-        }
-    }
 }
