@@ -12,6 +12,8 @@ class WILDPromptSoundRoutine(override var repetition: Int, override var bgRawId:
     override fun getStartSounds(): List<String> {
         val startSounds : MutableList<String> = emptyList<String>().toMutableList()
 
+        startSounds.add("hypnag/start/notice.ogg")
+
         return startSounds
     }
 

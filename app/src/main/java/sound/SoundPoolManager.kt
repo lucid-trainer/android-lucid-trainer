@@ -114,7 +114,7 @@ class SoundPoolManager() {
                 R.raw.green, R.raw.pink -> .49F - (volOffset*.035F) to .53F - (volOffset*.035F)
                 R.raw.boxfan, R.raw.metal_fan  -> .38F - (volOffset*.03F) to .42F - (volOffset*.03F)
                 R.raw.ac -> .3F - (volOffset*.02F) to .36F - (volOffset*.02F)
-                R.raw.brown, R.raw.waves -> .08F - (volOffset*.005F) to .1F - (volOffset*.006F)
+                R.raw.brown, R.raw.waves -> .07F - (volOffset*.005F) to .09F - (volOffset*.006F)
                 else -> .4F - (volOffset*.03F) to .43F - (volOffset*.03F)
             }
 
