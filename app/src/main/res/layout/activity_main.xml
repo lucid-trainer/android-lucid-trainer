@@ -36,7 +36,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="48dp"
-        app:layout_constraintEnd_toStartOf="@+id/bg_music_spin"
+        app:layout_constraintEnd_toStartOf="@+id/chipGroupAuto"
         app:layout_constraintHorizontal_bias="0.226"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/top_lbl_textview">
@@ -47,32 +47,69 @@
             style="@style/Widget.MaterialComponents.Chip.Choice"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="10sp"
-            android:text="SSILD" />
+            android:text="SSILD"
+            android:textSize="10sp" />
 
         <com.google.android.material.chip.Chip
             android:id="@+id/chip_mild"
             style="@style/Widget.MaterialComponents.Chip.Choice"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="10sp"
-            android:text="MILD" />
+            android:text="MILD"
+            android:textSize="10sp" />
 
         <com.google.android.material.chip.Chip
             android:id="@+id/chip_wild"
             style="@style/Widget.MaterialComponents.Chip.Choice"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="10sp"
-            android:text="WILD" />
+            android:text="WILD"
+            android:textSize="10sp" />
 
         <com.google.android.material.chip.Chip
-            android:id="@+id/chip_auto"
+            android:id="@+id/chip_pod"
             style="@style/Widget.MaterialComponents.Chip.Choice"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="10sp"
-            android:text="AUTO" />
+            android:text="POD"
+            android:textSize="10sp" />
+
+    </com.google.android.material.chip.ChipGroup>
+
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/chipGroupAuto"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="48dp"
+        app:layout_constraintEnd_toStartOf="@+id/bg_music_spin"
+        app:layout_constraintHorizontal_bias="0.650"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/top_lbl_textview">
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chip_rem"
+            style="@style/Widget.MaterialComponents.Chip.Choice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="REM"
+            android:textSize="10sp" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chip_light"
+            style="@style/Widget.MaterialComponents.Chip.Choice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="LIGHT"
+            android:textSize="10sp" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chip_awake"
+            style="@style/Widget.MaterialComponents.Chip.Choice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="AWAKE"
+            android:textSize="10sp" />
+
     </com.google.android.material.chip.ChipGroup>
 
     <Spinner

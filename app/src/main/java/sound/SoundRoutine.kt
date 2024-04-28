@@ -1,7 +1,7 @@
 package sound
 
 interface SoundRoutine {
-    var repetition : Int
+    var playCount : Int
     var bgRawId: Int
     var endBgRawId: Int
     var bgVolume: Float

@@ -71,7 +71,7 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
         isFlowEnabled = value
     }
 
-    // Function to get new Comments
+    // Function to get new Documents
     fun getNewReadings() {
 
         // ApiCalls takes some time, So it has to be

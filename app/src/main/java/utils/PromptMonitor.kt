@@ -18,6 +18,11 @@ class PromptMonitor() {
     var deepAsleepEventCountSinceActive = 0
     var lastTimestampSinceDeepAsleep: LocalDateTime? = null
 
+    var playCount = 1
+
+    companion object {
+        const val PLAY_COUNT_MAX = 4
+    }
 
     private val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
 
@@ -27,6 +32,7 @@ class PromptMonitor() {
         asleepEventCountSinceAwake = 0
         stopPromptWindow = null
         promptEventWaiting = null
+        playCount = 1
     }
 
     fun getEventsDisplay(): String {
@@ -87,12 +93,11 @@ class PromptMonitor() {
 
     fun isStopPromptWindow(lastTimestamp: String?): Boolean {
         return stopPromptWindow != null && stopPromptWindow!! > LocalDateTime.parse(lastTimestamp)
-                && asleepEventCountSinceAwake > 24
+                && (deepAsleepEventCountSinceActive > 16 || asleepEventCountSinceAwake > 40)
     }
 
     fun isAwakeEventAllowed(lastTimestamp: String?): Boolean {
-        return asleepEventCountSinceAwake > 0 &&
-                (awakeEventList.isEmpty() || LocalDateTime.parse(lastTimestamp) >= awakeEventList.last()
+        return (awakeEventList.isEmpty() || LocalDateTime.parse(lastTimestamp) >= awakeEventList.last()
                     .plusMinutes(60)) &&
                 (lastTimestampSinceDeepAsleep == null || LocalDateTime.parse(lastTimestamp) >=
                         lastTimestampSinceDeepAsleep!!.plusMinutes(2))
@@ -107,6 +112,19 @@ class PromptMonitor() {
     fun isRemEventAllowed(lastTimestamp: String?, timeBetweenPrompts: Long): Boolean {
         return promptEventWaiting == null && asleepEventCountSinceAwake >= 20 &&
                 (remEventList.isEmpty() || LocalDateTime.parse(lastTimestamp)  >= remEventList.last().plusMinutes(timeBetweenPrompts))
+    }
+
+    fun isTogglePromptWindow(lastTimestamp: String?): Boolean {
+        return stopPromptWindow != null && stopPromptWindow!! > LocalDateTime.parse(lastTimestamp)
+    }
+
+    fun getNextPlayCount() : Int{
+        if (playCount == PLAY_COUNT_MAX) {
+            playCount = 1
+        } else {
+            playCount++
+        }
+        return playCount
     }
 
 }

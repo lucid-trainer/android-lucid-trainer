@@ -15,7 +15,6 @@ import kotlinx.coroutines.yield
 import utils.DimVolUpdateStatus
 import java.io.File
 import java.time.LocalDateTime
-import java.time.ZonedDateTime
 
 private const val dimBGVolBy = .07F
 private const val dimFGVolBy = .04F
@@ -78,15 +77,18 @@ class SoundPoolManager() {
     }
 
     fun playSoundList(soundList : List<String>, endBgRawRes : Int,
-                      endBgLabel : String, eventLabel: String, textView : TextView, hour: Int) {
-
-        val playCnt = getPlayCount(hour)
+                      endBgLabel : String, eventLabel: String, textView : TextView, hour: Int, playCnt: Int) {
 
         //default
-        var bgRawRes = R.raw.waves
-        var bgLabel = "Event Waves"
+        var bgRawRes = R.raw.brown
+        var bgLabel = "Event Brown"
 
         val soundRoutines = mutableListOf<SoundRoutine>()
+        if (soundList.contains("p")) {
+            Log.d("MainActivity","adding PodSoundRoutine")
+            soundRoutines.add(
+                PodSoundRoutine(playCnt, bgRawRes, endBgRawRes,.2F, 0F, .1F,  eventLabel, bgLabel, endBgLabel))
+        }
         if (soundList.contains("s")) {
             soundRoutines.add(
                 SSILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, .3F, 0F, .7F, eventLabel, bgLabel, endBgLabel))
@@ -101,7 +103,7 @@ class SoundPoolManager() {
                 //just keep playing the current background
                 endBgRawRes
             } else {
-                R.raw.green
+                R.raw.brown
             }
 
             val volOffset = when(hour) {
@@ -110,26 +112,28 @@ class SoundPoolManager() {
                 else -> 0
             }
 
-            val (fgVolume, altBgVolume) = when(bgRawRes) {
+            var (fgVolume, altBgVolume) = when(bgRawRes) {
                 R.raw.green, R.raw.pink -> .49F - (volOffset*.035F) to .53F - (volOffset*.035F)
                 R.raw.boxfan, R.raw.metal_fan  -> .38F - (volOffset*.03F) to .42F - (volOffset*.03F)
                 R.raw.ac -> .3F - (volOffset*.02F) to .36F - (volOffset*.02F)
-                R.raw.brown, R.raw.waves -> .07F - (volOffset*.005F) to .09F - (volOffset*.006F)
+                R.raw.brown, R.raw.waves -> .08F - (volOffset*.005F) to .095F - (volOffset*.006F)
                 else -> .4F - (volOffset*.03F) to .43F - (volOffset*.03F)
             }
 
-            Log.d("DimVolume", "WILD prompt volumes at $fgVolume and $altBgVolume offset $volOffset")
 
             if(soundList.contains("w")) {
-                //Log.d("DimVolume", "WILD prompt volumes at $altBgVolume and $fgVolume offset $volOffset")
-                bgLabel = "Event Green"
+                bgLabel = "Event"
                 soundRoutines.add(
                     WILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel))
             } else {
-                //Log.d("DimVolume", "WILD LIGHT prompt volumes at $altBgVolume and $fgVolume offset $volOffset")
-                //just use the background volume for the prompt
+                //adjust the volumes up a bit for the REM/LIGHT prompts on the lower freq bg
+                if(fgVolume <=.1) {
+                    fgVolume += fgVolume*.5F
+                    altBgVolume += altBgVolume*.75F
+                }
+                //Log.d("DimVolume", "WILD prompt volumes at $fgVolume and $altBgVolume offset $volOffset")
                 soundRoutines.add(
-                    WILDPromptSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, altBgVolume, eventLabel, bgLabel, endBgLabel))
+                    WILDPromptSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel))
             }
         }
 
@@ -219,9 +223,12 @@ class SoundPoolManager() {
             altBgJob = scope.launch {
                 delay(timeMillis = 1000)
 
+
+                val pauseAfterStart = soundRoutine !is WILDPromptSoundRoutine
+
                 val startSounds = soundRoutine.getStartSounds()
                 if(startSounds.isNotEmpty()) {
-                    playAltSounds(startSounds, soundRoutine.altBgVolume)
+                    playAltSounds(startSounds, soundRoutine.altBgVolume, pauseAfterStart)
                 }
 
                 val altBGSounds = soundRoutine.getAltBGSounds()
@@ -316,7 +323,8 @@ class SoundPoolManager() {
                     }
 
                     //pause for a bit more
-                    for (i in 1..5) {
+                    val pauseLimit =  if(soundRoutine is WILDSoundRoutine) 5 else 1
+                    for (i in 1..pauseLimit) {
                         yield()
                         delay(timeMillis = 5000)
                     }
@@ -325,6 +333,8 @@ class SoundPoolManager() {
                     var lastLimitTime = LocalDateTime.now()
                     var currVolume = soundRoutine.fgVolume
                     var dimMinLimit = soundRoutine.dimMinLimit()
+
+                    Log.d("MainActivity", "playing soundRoutine $soundRoutine")
 
                     for (sound in soundRoutine.getRoutine()) {
                         //if we've been looping longer than the dim minutes limit, drop the volume
@@ -338,7 +348,7 @@ class SoundPoolManager() {
                         if (!isFGSoundStopped) {
 
                             textView.text = "Playing ${soundRoutine.bgLabel} and ${soundRoutine.fgLabel} " +
-                                    "routine for ${soundRoutine.repetition} cycles"
+                                    "routine for ${soundRoutine.playCount} cycles"
 
                             //play the sound file - playOnce handles loading and unloading the file
                             //Log.d("MainActivity", "playing ${sound.rawResId}")
@@ -346,10 +356,10 @@ class SoundPoolManager() {
                                 val filePath = getFilePath(sound.filePathId)
                                 Log.d("MainActivity", "playing $filePath")
                                 mFgId = mSoundPoolCompat.playOnce(filePath, currVolume, currVolume, 1F)
-                                //Log.d("MainActivity", "playing mFgId $mFgId")
+                                Log.d("MainActivity", "playing mFgId $mFgId")
                             } else {
                                 mFgId = mSoundPoolCompat.playOnce(sound.rawResId, currVolume, currVolume, 1F)
-                                //Log.d("MainActivity", "playing mFgId $mFgId")
+                                Log.d("MainActivity", "playing mFgId $mFgId")
                             }
 
                             waitForSoundPlayToComplete(mFgId)
@@ -435,17 +445,5 @@ class SoundPoolManager() {
         if(job.isActive) {
             job.cancel()
         }
-    }
-
-    private fun getPlayCount(hour : Int) : Int {
-        if (hour < 4) {
-            return 3
-        } else if (hour < 6) {
-            return 2
-        } else if (hour < 9) {
-            return 1
-        }
-
-        return 4
     }
 }

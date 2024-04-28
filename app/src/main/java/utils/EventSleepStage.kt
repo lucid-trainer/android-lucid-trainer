@@ -10,8 +10,10 @@ object EventSleepStage {
         var sleepStage = ""
 
         if (workingReadingList.size >= 32) {
+            val highActiveCnt =
+                workingReadingList.map { it -> it.accelMovement }.takeLast(5).filter { it > .35 }.size
             val activeCnt =
-                workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .2 }.size
+                workingReadingList.map { it -> it.accelMovement }.takeLast(5).filter { it > .2 }.size
             val restlessCnt =
                 workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it >= .1 }.size
             val deepCnt =
@@ -31,7 +33,7 @@ object EventSleepStage {
 
             sleepStage = "LIGHT ASLEEP"
 
-            if(activeCnt >= 2) {
+            if(highActiveCnt >= 1 && activeCnt >= 2 && heartCnt >=2) {
                 sleepStage = "AWAKE"
             } else if(restlessCnt >= 1) {
                 sleepStage = "RESTLESS"

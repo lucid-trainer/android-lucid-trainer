@@ -3,7 +3,7 @@ package sound
 import android.util.Log
 import com.lucidtrainer.R
 
-class WILDSoundRoutine(override var repetition: Int, override var bgRawId: Int, override var endBgRawId: Int,
+class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, override var endBgRawId: Int,
                        override var bgVolume: Float, override var altBgVolume: Float, override var fgVolume: Float,
                        override val eventLabel : String, override var bgLabel : String, override var endBgLabel : String,
                        override val fgLabel : String = "WILD",
