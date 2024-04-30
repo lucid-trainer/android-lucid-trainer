@@ -11,7 +11,6 @@
         android:id="@+id/top_lbl_textview"
         android:layout_width="155dp"
         android:layout_height="28dp"
-        android:layout_marginStart="32dp"
         android:layout_marginTop="16dp"
         android:text="Lucid Trainer"
         android:textSize="24dp"
@@ -19,6 +18,18 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+
+    <TextView
+        android:id="@+id/textTypeLbl"
+        android:layout_width="52dp"
+        android:layout_height="37dp"
+        android:layout_marginTop="92dp"
+        android:ems="10"
+        android:text="Prompt Type"
+        app:layout_constraintBottom_toTopOf="@+id/textPromptLbl"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.083" />
 
     <androidx.appcompat.widget.SwitchCompat
         android:id="@+id/switchcompat"
@@ -36,11 +47,11 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="48dp"
-        app:layout_constraintEnd_toStartOf="@+id/chipGroupAuto"
-        app:layout_constraintHorizontal_bias="0.226"
-        app:layout_constraintStart_toStartOf="parent"
+        app:singleSelection="true"
+        app:layout_constraintEnd_toStartOf="@id/bg_noise_spin"
+        app:layout_constraintHorizontal_bias="0.151"
+        app:layout_constraintStart_toEndOf="@id/textTypeLbl"
         app:layout_constraintTop_toBottomOf="@+id/top_lbl_textview">
-
 
         <com.google.android.material.chip.Chip
             android:id="@+id/chip_ssild"
@@ -76,15 +87,26 @@
 
     </com.google.android.material.chip.ChipGroup>
 
+    <TextView
+        android:id="@+id/textPromptLbl"
+        android:layout_width="51dp"
+        android:layout_height="33dp"
+        android:layout_marginStart="4dp"
+        android:layout_marginBottom="64dp"
+        android:ems="10"
+        android:text="Prompt Events"
+        app:layout_constraintBottom_toTopOf="@+id/play_status"
+        app:layout_constraintStart_toStartOf="parent" />
+
     <com.google.android.material.chip.ChipGroup
         android:id="@+id/chipGroupAuto"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="48dp"
-        app:layout_constraintEnd_toStartOf="@+id/bg_music_spin"
-        app:layout_constraintHorizontal_bias="0.650"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/top_lbl_textview">
+        android:layout_marginTop="28dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.094"
+        app:layout_constraintStart_toEndOf="@+id/textPromptLbl"
+        app:layout_constraintTop_toBottomOf="@id/chipGroup">
 
         <com.google.android.material.chip.Chip
             android:id="@+id/chip_rem"
@@ -112,10 +134,73 @@
 
     </com.google.android.material.chip.ChipGroup>
 
+    <TextView
+        android:id="@+id/textPodLbl"
+        android:layout_width="60dp"
+        android:layout_height="36dp"
+        android:layout_marginStart="32dp"
+        android:layout_marginTop="32dp"
+        android:layout_marginBottom="64dp"
+        android:ems="10"
+        android:text="Podcast"
+        app:layout_constraintBottom_toTopOf="@+id/play_status"
+        app:layout_constraintEnd_toEndOf="@id/chipGroupPod"
+        app:layout_constraintStart_toEndOf="@id/textPromptLbl"
+        app:layout_constraintTop_toBottomOf="@+id/chipGroup" />
+
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/chipGroupPod"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="28dp"
+        android:layout_marginEnd="56dp"
+        app:singleSelection="true"
+        app:selectionRequired="true"
+        app:checkedChip="@+id/chip_pod1"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/textPodLbl"
+        app:layout_constraintTop_toBottomOf="@id/chipGroup">
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chip_pod1"
+            style="@style/Widget.MaterialComponents.Chip.Choice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="1"
+            android:textSize="10sp" />
+
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chip_pod2"
+            style="@style/Widget.MaterialComponents.Chip.Choice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="2"
+            android:textSize="10sp" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chip_pod3"
+            style="@style/Widget.MaterialComponents.Chip.Choice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="3"
+            android:textSize="10sp" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chip_pod4"
+            style="@style/Widget.MaterialComponents.Chip.Choice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="4"
+            android:textSize="10sp" />
+
+
+    </com.google.android.material.chip.ChipGroup>
+
     <Spinner
-        android:id="@+id/bg_music_spin"
+        android:id="@+id/bg_noise_spin"
         android:layout_width="175dp"
-        android:layout_height="47dp"
+        android:layout_height="48dp"
         android:layout_marginTop="50dp"
         android:layout_marginEnd="10dp"
         android:entries="@array/bg_music_array"
@@ -138,6 +223,7 @@
         android:layout_width="360dp"
         android:layout_height="26dp"
         android:layout_marginStart="32dp"
+        android:layout_marginTop="80dp"
         android:textColor="#14c45d"
         android:textStyle="bold"
         app:layout_constraintBottom_toTopOf="@+id/timestamp_lbl_textview"
@@ -150,7 +236,7 @@
         android:layout_width="155dp"
         android:layout_height="19dp"
         android:layout_marginStart="32dp"
-        android:layout_marginTop="132dp"
+        android:layout_marginTop="180dp"
         android:text="Last Timestamp"
         android:textStyle="bold"
         app:layout_constraintStart_toStartOf="parent"
@@ -161,10 +247,10 @@
         android:layout_width="175dp"
         android:layout_height="19dp"
         android:layout_marginStart="40dp"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="15dp"
         android:layout_marginEnd="70dp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.329"
+        app:layout_constraintHorizontal_bias="0.298"
         app:layout_constraintStart_toEndOf="@+id/timestamp_lbl_textview"
         app:layout_constraintTop_toBottomOf="@+id/play_status" />
 

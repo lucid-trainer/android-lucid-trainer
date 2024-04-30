@@ -58,7 +58,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         const val EVENT_LABEL_WATCH = "watch_event"
         const val EVENT_LABEL_AWAKE = "awake_event"
         const val EVENT_LABEL_ASLEEP = "asleep_event"
-        const val EVENT_LABEL_TOGGLE = "toggle_event"
         const val EVENT_LABEL_LIGHT = "light_event"
         const val EVENT_LABEL_REM = "rem_event"
         const val EVENT_LABEL_RESTLESS = "restless_event"
@@ -369,7 +368,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         soundPoolManager = SoundPoolManager.getInstance(application)
 
-        val bgSelector = binding.bgMusicSpin
+        val bgSelector = binding.bgNoiseSpin
         bgSelector.onItemSelectedListener = this
 
         binding.btnNoise.setOnClickListener {
@@ -384,8 +383,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
 
         binding.btnPrompt.setOnClickListener {
-            if(!binding.chipSsild.isChecked && !binding.chipMild.isChecked &&
-                !binding.chipWild.isChecked && !binding.chipPod.isChecked) {
+            if(binding.chipGroup.checkedChipId == View.NO_ID ) {
                 val text = "You need to choose a sound routine"
                 Toast.makeText(application, text, Toast.LENGTH_LONG).show()
             } else {
@@ -460,7 +458,22 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         //only allow this option via the prompt button
         if (eventLabel == EVENT_LABEL_BUTTON && binding.chipPod.isChecked) {
-            playCount = promptMonitor.getNextPlayCount()
+
+            if(binding.chipPod1.isChecked) {
+                promptMonitor.playCount = 1
+                binding.chipPod2.isChecked = true
+            } else if(binding.chipPod2.isChecked) {
+                promptMonitor.playCount = 2
+                binding.chipPod3.isChecked = true
+            } else if(binding.chipPod3.isChecked) {
+                promptMonitor.playCount = 3
+                binding.chipPod4.isChecked = true
+            } else if(binding.chipPod4.isChecked) {
+                promptMonitor.playCount = 4
+                binding.chipPod1.isChecked = true
+            }
+
+            playCount = promptMonitor.playCount
             soundList.add("p")
         }
 
@@ -499,9 +512,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             soundList = eventMap[PLAY_EVENT]!!.split(",")
             
             promptMonitor.stopPromptWindow = endPromptWindow
-        } else if (eventMap.containsKey(DREAM_EVENT)) {
-            promptMonitor.handleAwakeEvent()
 
+        } else if (eventMap.containsKey(DREAM_EVENT)) {
             if(promptMonitor.isTogglePromptWindow(viewModel.lastTimestamp.value)) {
                 Log.d("MainActivity", "stopping pod event")
                 soundPoolManager.stopPlayingAll(binding.playStatus)
@@ -516,6 +528,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
 
         if(soundList.isNotEmpty()) {
+            promptMonitor.handleAwakeEvent()
+
             soundPoolManager.stopPlayingForeground()
             soundPoolManager.stopPlayingBackground()
             soundPoolManager.playSoundList(
@@ -597,7 +611,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         var intensity = 1;
         if(type != EVENT_LABEL_AWAKE) {
             intensity = when (hour) {
-                6, 7 -> 2
+                5, 6, 7 -> 2
                 else -> 3
             }
         }

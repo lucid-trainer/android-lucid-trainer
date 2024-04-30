@@ -9,7 +9,7 @@ class WILDPromptSoundRoutine(override var playCount: Int, override var bgRawId: 
     override fun getStartSounds(): List<String> {
         val startSounds : MutableList<String> = emptyList<String>().toMutableList()
 
-        startSounds.add("hypnag/start/notice.ogg")
+        startSounds.add("wild/start/prompt_notice.ogg")
 
         return startSounds
     }
@@ -26,7 +26,7 @@ class WILDPromptSoundRoutine(override var playCount: Int, override var bgRawId: 
         val cntrs = (1..limit).shuffled()
         for (index in cntrs.indices) {
             val cntr = cntrs[index]
-            routine.add(Sound(0, randomDelay, "hypnag/bg/bg_prompt_" + cntr + ".ogg"))
+            routine.add(Sound(0, randomDelay, "wild/prompt/prompt_" + cntr + ".ogg"))
         }
 
         return routine

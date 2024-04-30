@@ -12,7 +12,7 @@ class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
     override fun getStartSounds(): List<String> {
         val startSounds : MutableList<String> = emptyList<String>().toMutableList()
 
-        startSounds.add("hypnag/start/hypnag_start.ogg")
+        startSounds.add("wild/start/wild_start.ogg")
 
         return startSounds
     }
@@ -22,19 +22,8 @@ class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
 
         val cntrs = (1..12).shuffled().slice(0..8)
 
-        Log.d("WILDSoundRoutine ", "calling getAltBGSounds")
-
-        var cntList = (1..3).shuffled()
-        var cntIdx = 0;
-
         for (i in 0..8) {
-            altBGSounds.add("hypnag/bg/bg_" +  + cntrs[i]+ ".ogg")
-
-            cntIdx = if(cntIdx == 4) 0 else cntIdx
-            if(i % 2 == 0) {
-                altBGSounds.add("hypnag/bg/bg_prompt_${cntList[cntIdx]}.ogg")
-            }
-            cntIdx++
+            altBGSounds.add("wild/bg/bg_" +  + cntrs[i]+ ".ogg")
         }
 
         return altBGSounds
@@ -44,20 +33,20 @@ class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()
         var finalRoutine : MutableList<Sound> = emptyList<Sound>().toMutableList()
 
-        val cntrs = (1..66).shuffled().slice(0..22)
-        val cntrs2 = (1..5).shuffled().slice(0..2)
+        val cntrs = (1..70).shuffled().slice(0..25)
 
         for (cntr in cntrs) {
-            routine.add(Sound(0, 20, "hypnag/fg/fg_" + cntr + ".ogg"))
-            Log.d("WILDSoundRoutine ", "adding hypnag/fg/fg_$cntr.ogg")
-        }
-
-        for (cntr in cntrs2) {
-            routine.add(Sound(0, 20, "hypnag/fg_rec/fg_" + cntr + ".ogg"))
-            Log.d("WILDSoundRoutine ", "adding hypnag/fg_rec/fg_$cntr.ogg")
+            routine.add(Sound(0, 20, "wild/fg/fg_" + cntr + ".ogg"))
+            Log.d("WILDSoundRoutine ", "adding wild/fg/fg_$cntr.ogg")
         }
 
         finalRoutine = routine.shuffled().toMutableList()
+
+        //add a couple of prompts at the beginning
+        var cntList = (1..3).shuffled()
+        finalRoutine.add(2, Sound(0, 20, "wild/prompt/prompt_${cntList[0]}.ogg"))
+
+        finalRoutine.add(5, Sound(0, 20, "wild/prompt/prompt_${cntList[1]}.ogg"))
 
         return finalRoutine
     }

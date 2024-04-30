@@ -23,8 +23,8 @@ class PodSoundRoutine(override var playCount: Int, override var bgRawId: Int, ov
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()
 
         //we'll use playCount here to keep from replaying the last pod
-        routine.add(Sound(0, 20, "hypnag/pods/pod_" + playCount + ".mp3"))
-        Log.d("PodSoundRoutine ", "adding hypnag/pods/pod_$playCount.mp3")
+        routine.add(Sound(0, 20, "wild/pods/pod_" + playCount + ".mp3"))
+        Log.d("PodSoundRoutine ", "adding wild/pods/pod_$playCount.mp3")
 
         return routine
     }

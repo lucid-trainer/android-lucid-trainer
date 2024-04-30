@@ -113,10 +113,10 @@ class SoundPoolManager() {
             }
 
             var (fgVolume, altBgVolume) = when(bgRawRes) {
-                R.raw.green, R.raw.pink -> .49F - (volOffset*.035F) to .53F - (volOffset*.035F)
+                R.raw.green, R.raw.pink -> .45F - (volOffset*.035F) to .5F - (volOffset*.035F)
                 R.raw.boxfan, R.raw.metal_fan  -> .38F - (volOffset*.03F) to .42F - (volOffset*.03F)
                 R.raw.ac -> .3F - (volOffset*.02F) to .36F - (volOffset*.02F)
-                R.raw.brown, R.raw.waves -> .08F - (volOffset*.005F) to .095F - (volOffset*.006F)
+                R.raw.brown, R.raw.waves -> .09F - (volOffset*.005F) to .1F - (volOffset*.006F)
                 else -> .4F - (volOffset*.03F) to .43F - (volOffset*.03F)
             }
 
@@ -128,8 +128,8 @@ class SoundPoolManager() {
             } else {
                 //adjust the volumes up a bit for the REM/LIGHT prompts on the lower freq bg
                 if(fgVolume <=.1) {
-                    fgVolume += fgVolume*.5F
-                    altBgVolume += altBgVolume*.75F
+                    fgVolume += fgVolume*.2F
+                    altBgVolume += altBgVolume*.2F
                 }
                 //Log.d("DimVolume", "WILD prompt volumes at $fgVolume and $altBgVolume offset $volOffset")
                 soundRoutines.add(
@@ -272,7 +272,7 @@ class SoundPoolManager() {
             }
 
             val filePath = getFilePath(altFile)
-            //Log.d("MainActivity", "playing alt bg filePath $filePath")
+            Log.d("MainActivity", "playing alt bg filePath $filePath")
 
             if (filePath != null) {
                 //Log.d("MainActivity", "starting load for file=$filePath")
@@ -334,8 +334,6 @@ class SoundPoolManager() {
                     var currVolume = soundRoutine.fgVolume
                     var dimMinLimit = soundRoutine.dimMinLimit()
 
-                    Log.d("MainActivity", "playing soundRoutine $soundRoutine")
-
                     for (sound in soundRoutine.getRoutine()) {
                         //if we've been looping longer than the dim minutes limit, drop the volume
                         if( dimMinLimit > 0 && (currVolume.compareTo(volMin) >= 0) && LocalDateTime.now() > lastLimitTime.plusMinutes(dimMinLimit)) {
@@ -352,14 +350,13 @@ class SoundPoolManager() {
 
                             //play the sound file - playOnce handles loading and unloading the file
                             //Log.d("MainActivity", "playing ${sound.rawResId}")
-                            if(sound.filePathId != null) {
+                            mFgId = if(sound.filePathId != null) {
                                 val filePath = getFilePath(sound.filePathId)
                                 Log.d("MainActivity", "playing $filePath")
-                                mFgId = mSoundPoolCompat.playOnce(filePath, currVolume, currVolume, 1F)
-                                Log.d("MainActivity", "playing mFgId $mFgId")
+                                mSoundPoolCompat.playOnce(filePath, currVolume, currVolume, 1F)
                             } else {
-                                mFgId = mSoundPoolCompat.playOnce(sound.rawResId, currVolume, currVolume, 1F)
                                 Log.d("MainActivity", "playing mFgId $mFgId")
+                                mSoundPoolCompat.playOnce(sound.rawResId, currVolume, currVolume, 1F)
                             }
 
                             waitForSoundPlayToComplete(mFgId)

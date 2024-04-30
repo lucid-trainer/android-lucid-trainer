@@ -73,6 +73,7 @@ class PromptMonitor() {
     }
 
     fun handleRestlessEvent(lastTimestamp: String?) {
+        asleepEventCountSinceAwake++
         deepAsleepEventCountSinceActive = 0
     }
 

@@ -11,7 +11,7 @@ object EventSleepStage {
 
         if (workingReadingList.size >= 32) {
             val highActiveCnt =
-                workingReadingList.map { it -> it.accelMovement }.takeLast(5).filter { it > .35 }.size
+                workingReadingList.map { it -> it.accelMovement }.takeLast(5).filter { it > .325 }.size
             val activeCnt =
                 workingReadingList.map { it -> it.accelMovement }.takeLast(5).filter { it > .2 }.size
             val restlessCnt =
@@ -41,7 +41,7 @@ object EventSleepStage {
                 sleepStage = "REM ASLEEP"
             } else if (deepCnt == 0 && lightCnt == 0) {
                 sleepStage = "DEEP ASLEEP"
-            } else if (deepCnt > 0 && lightCnt == 0) {
+            } else if ((deepCnt > 0 && lightCnt == 0) || recentMove > 1) {
                 sleepStage = "ASLEEP"
             }
             //Log.d("EventSleepStage", "${reading.timestamp} setting sleep stage to sleepStage"
