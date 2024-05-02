@@ -80,32 +80,32 @@ class SoundPoolManager() {
                       endBgLabel : String, eventLabel: String, textView : TextView, hour: Int, playCnt: Int) {
 
         //default
-        var bgRawRes = R.raw.brown
+        var bgRawRes = if(endBgRawRes > 0) {
+            //just keep playing the current background
+            endBgRawRes
+        } else {
+            R.raw.brown
+        }
+
         var bgLabel = "Event Brown"
 
         val soundRoutines = mutableListOf<SoundRoutine>()
         if (soundList.contains("p")) {
             Log.d("MainActivity","adding PodSoundRoutine")
             soundRoutines.add(
-                PodSoundRoutine(playCnt, bgRawRes, endBgRawRes,.2F, 0F, .1F,  eventLabel, bgLabel, endBgLabel))
+                PodSoundRoutine(playCnt, bgRawRes, endBgRawRes,.1F, 0F, .25F,  eventLabel, bgLabel, endBgLabel))
         }
         if (soundList.contains("s")) {
+            bgRawRes = R.raw.waves
             soundRoutines.add(
                 SSILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, .3F, 0F, .7F, eventLabel, bgLabel, endBgLabel))
         }
         if (soundList.contains("m")) {
+            bgRawRes = R.raw.waves
             soundRoutines.add(
                 MILDSoundRoutine(playCnt, bgRawRes, endBgRawRes,.3F, 0F, .7F,  eventLabel, bgLabel, endBgLabel))
         }
         if (soundList.contains("w") || soundList.contains("wp")) {
-
-            bgRawRes = if(endBgRawRes > 0) {
-                //just keep playing the current background
-                endBgRawRes
-            } else {
-                R.raw.brown
-            }
-
             val volOffset = when(hour) {
                 2,3 -> 1
                 6,7 -> 2
@@ -127,10 +127,10 @@ class SoundPoolManager() {
                     WILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel))
             } else {
                 //adjust the volumes up a bit for the REM/LIGHT prompts on the lower freq bg
-                if(fgVolume <=.1) {
-                    fgVolume += fgVolume*.2F
-                    altBgVolume += altBgVolume*.2F
-                }
+//                if(fgVolume <=.1) {
+//                    fgVolume += fgVolume*.2F
+//                    altBgVolume += altBgVolume*.2F
+//                }
                 //Log.d("DimVolume", "WILD prompt volumes at $fgVolume and $altBgVolume offset $volOffset")
                 soundRoutines.add(
                     WILDPromptSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel))

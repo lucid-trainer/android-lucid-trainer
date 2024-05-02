@@ -89,10 +89,9 @@
 
     <TextView
         android:id="@+id/textPromptLbl"
-        android:layout_width="51dp"
+        android:layout_width="48dp"
         android:layout_height="33dp"
-        android:layout_marginStart="4dp"
-        android:layout_marginBottom="64dp"
+        android:layout_marginBottom="68dp"
         android:ems="10"
         android:text="Prompt Events"
         app:layout_constraintBottom_toTopOf="@+id/play_status"
@@ -136,13 +135,13 @@
 
     <TextView
         android:id="@+id/textPodLbl"
-        android:layout_width="60dp"
+        android:layout_width="68dp"
         android:layout_height="36dp"
-        android:layout_marginStart="32dp"
+        android:layout_marginStart="20dp"
         android:layout_marginTop="32dp"
         android:layout_marginBottom="64dp"
         android:ems="10"
-        android:text="Podcast"
+        android:text="Pod Number"
         app:layout_constraintBottom_toTopOf="@+id/play_status"
         app:layout_constraintEnd_toEndOf="@id/chipGroupPod"
         app:layout_constraintStart_toEndOf="@id/textPromptLbl"
@@ -153,13 +152,14 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="28dp"
-        android:layout_marginEnd="56dp"
-        app:singleSelection="true"
-        app:selectionRequired="true"
+        android:layout_marginEnd="8dp"
         app:checkedChip="@+id/chip_pod1"
+        app:chipSpacingHorizontal="6dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/textPodLbl"
-        app:layout_constraintTop_toBottomOf="@id/chipGroup">
+        app:layout_constraintTop_toBottomOf="@id/chipGroup"
+        app:selectionRequired="true"
+        app:singleSelection="true">
 
         <com.google.android.material.chip.Chip
             android:id="@+id/chip_pod1"

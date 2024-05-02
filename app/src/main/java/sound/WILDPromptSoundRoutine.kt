@@ -20,14 +20,14 @@ class WILDPromptSoundRoutine(override var playCount: Int, override var bgRawId: 
 
     override fun getRoutine(): List<Sound> {
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()
-        val limit = if(playCount > 2) 2 else playCount
+        //val limit = if(playCount > 2) 2 else playCount
         val randomDelay = (20..40).shuffled().last()
 
-        val cntrs = (1..limit).shuffled()
-        for (index in cntrs.indices) {
-            val cntr = cntrs[index]
-            routine.add(Sound(0, randomDelay, "wild/prompt/prompt_" + cntr + ".ogg"))
-        }
+//        val cntrs = (1..limit).shuffled()
+//        for (index in cntrs.indices) {
+//            val cntr = cntrs[index]
+        routine.add(Sound(0, randomDelay, "wild/prompt/prompt_1.ogg"))
+//        }
 
         return routine
     }

@@ -18,8 +18,6 @@ class PromptMonitor() {
     var deepAsleepEventCountSinceActive = 0
     var lastTimestampSinceDeepAsleep: LocalDateTime? = null
 
-    var playCount = 1
-
     companion object {
         const val PLAY_COUNT_MAX = 4
     }
@@ -32,7 +30,6 @@ class PromptMonitor() {
         asleepEventCountSinceAwake = 0
         stopPromptWindow = null
         promptEventWaiting = null
-        playCount = 1
     }
 
     fun getEventsDisplay(): String {
@@ -111,21 +108,12 @@ class PromptMonitor() {
     }
 
     fun isRemEventAllowed(lastTimestamp: String?, timeBetweenPrompts: Long): Boolean {
-        return promptEventWaiting == null && asleepEventCountSinceAwake >= 20 &&
+        return promptEventWaiting == null && asleepEventCountSinceAwake >= 15 &&
                 (remEventList.isEmpty() || LocalDateTime.parse(lastTimestamp)  >= remEventList.last().plusMinutes(timeBetweenPrompts))
     }
 
     fun isTogglePromptWindow(lastTimestamp: String?): Boolean {
         return stopPromptWindow != null && stopPromptWindow!! > LocalDateTime.parse(lastTimestamp)
-    }
-
-    fun getNextPlayCount() : Int{
-        if (playCount == PLAY_COUNT_MAX) {
-            playCount = 1
-        } else {
-            playCount++
-        }
-        return playCount
     }
 
 }
