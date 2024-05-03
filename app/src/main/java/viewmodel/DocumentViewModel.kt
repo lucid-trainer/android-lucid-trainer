@@ -143,10 +143,6 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
         return request
     }
 
-
-    // 3 "period" moving average
-
-
     private fun getStartDateTime() : LocalDateTime {
        return LocalDateTime.now();
 

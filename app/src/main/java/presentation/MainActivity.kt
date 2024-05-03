@@ -74,7 +74,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     //monitor event sleep stage estimate for prompts
     private val promptMonitor : PromptMonitor = PromptMonitor()
 
-    var maxVolume = 0;
+    private var maxVolume = 0
     private var mBgRawId = -1
     private var mBgLabel = ""
 
@@ -136,10 +136,10 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         purgeOldRecords(viewModel.startingDateTime)
 
         // Create the observer which updates the latest reading from the database
-        val lastTimestampObserver = Observer<String> { _ -> }
-        val lastReadingStringObserver = Observer<String> { _ -> }
-        val sleepStageObserver = Observer<String> { _ -> }
-        val eventMapObserver = Observer<Map<String, String>> { _ -> }
+        val lastTimestampObserver = Observer<String> { }
+        val lastReadingStringObserver = Observer<String> { }
+        val sleepStageObserver = Observer<String> { }
+        val eventMapObserver = Observer<Map<String, String>> { }
 
         // Observe the LiveData, passing in this activity as the LifecycleOwner and the observer.
         viewModel.lastTimestamp.observe(this, lastTimestampObserver)
@@ -183,7 +183,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                     Status.SUCCESS -> {
                         binding.progressBar.isVisible = false
 
-                        if(!lastEventTimestamp.equals(viewModel.lastTimestamp.value)) {
+                        if(lastEventTimestamp != viewModel.lastTimestamp.value) {
                             val dateFormat = DateTimeFormatter.ofPattern("M/dd/yyyy hh:mm:ss")
                             val displayDate = LocalDateTime.parse(viewModel.lastTimestamp.value)
                                 .format(dateFormat)
@@ -252,7 +252,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                     cancelStartCountDownPrompt(EVENT_LABEL_RESTLESS)
                 }
 
-                promptMonitor.handleRestlessEvent(viewModel.lastTimestamp.value)
+                promptMonitor.handleRestlessEvent()
             }
 
             "ASLEEP" -> {
@@ -283,9 +283,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             val isAwakeEventAllowed = hoursAllowed &&  promptMonitor.isAwakeEventAllowed(viewModel.lastTimestamp.value)
 
             if (hoursAllowed) {
-                val document = getDeviceDocument(
-                    EVENT_LABEL_AWAKE, hour, minute.toLong(), isAwakeEventAllowed
-                )
+                val document = getDeviceDocument(EVENT_LABEL_AWAKE, minute.toLong(), isAwakeEventAllowed)
                 logEvent(document)
             }
 
@@ -300,7 +298,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private fun checkAndSubmitLightPromptEvent(hour: Int) {
 
         if (binding.chipLight.isChecked) {
-            val hoursAllowed = hour in 4..7
+            val hoursAllowed = hour in 2..7
 
             val timeBetweenPrompts = when(hour) {
                 6,7 -> 35L
@@ -311,9 +309,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                     && promptMonitor.isLightEventAllowed(viewModel.lastTimestamp.value, timeBetweenPrompts)
 
             if (hoursAllowed) {
-                val document = getDeviceDocument(
-                    EVENT_LABEL_LIGHT, 0, 45, isLightPromptEventAllowed
-                )
+                val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value, 20, 50)
+                val document = getDeviceDocument(EVENT_LABEL_LIGHT, timeBetweenPrompts, isLightPromptEventAllowed, intensityLevel)
                 logEvent(document)
             }
 
@@ -328,10 +325,10 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private fun checkAndSubmitREMPromptEvent(hour: Int) {
 
         if (binding.chipRem.isChecked) {
-            val hoursAllowed = hour in 2..7
+            val hoursAllowed = hour in 2..8
 
             val timeBetweenPrompts = when(hour) {
-                6,7 -> 15L
+                6,7,8 -> 15L
                 4,5 -> 25L
                 else -> 30L
             }
@@ -340,9 +337,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                     promptMonitor.isRemEventAllowed(viewModel.lastTimestamp.value, timeBetweenPrompts)
 
             if (hoursAllowed) {
-                val document = getDeviceDocument(
-                    EVENT_LABEL_REM, 0, 10, isREMPromptEventAllowed
-                )
+                val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value, 20, 50)
+                val document = getDeviceDocument(EVENT_LABEL_REM, timeBetweenPrompts, isREMPromptEventAllowed, intensityLevel)
                 logEvent(document)
             }
 
@@ -374,7 +370,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         binding.btnNoise.setOnClickListener {
             if (mBgRawId != -1) {
                 soundPoolManager.stopPlayingBackground()
-                binding.playStatus.text = "Playing ${mBgLabel}"
+                binding.playStatus.text = "Playing $mBgLabel"
                 soundPoolManager.playBackgroundSound(mBgRawId, 1F, binding.playStatus)
             } else {
                 val text = "You need to choose a white noise selection"
@@ -419,7 +415,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 override fun onProgressChanged(seekBar: SeekBar,
                                                progress: Int, fromUser: Boolean) {
                     //Log.d("MainActivity", "volume=" + progress)
-                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC,progress,0);
+                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC,progress,0)
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar?) {
@@ -445,11 +441,11 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
     }
 
-    private fun playPrompts(eventLabel : String, hour: Int = -1) {
+    private fun playPrompts(eventLabel : String, hour: Int = -1, intensityLevel: Int = 1) {
         val soundList = mutableListOf<String>()
         var pMod = ""
 
-        if(eventLabel.equals(EVENT_LABEL_LIGHT) || eventLabel.equals(EVENT_LABEL_REM)) {
+        if(eventLabel == EVENT_LABEL_LIGHT || eventLabel == EVENT_LABEL_REM) {
             pMod = "p"
             promptMonitor.stopPromptWindow = LocalDateTime.parse(viewModel.lastTimestamp.value)
         } else {
@@ -488,7 +484,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         Log.d("MainActivity", "setting soundlist to=$soundList")
 
         soundPoolManager.playSoundList(
-            soundList, mBgRawId, mBgLabel, eventLabel, binding.playStatus, hour, playCount)
+            soundList, mBgRawId, mBgLabel, eventLabel, binding.playStatus, hour, playCount, intensityLevel)
     }
 
     private fun processEvents(eventMap: Map<String, String>) {
@@ -511,9 +507,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             updateEventList(EVENT_LABEL_AWAKE, triggerDateTime.toString())
 
             CoroutineScope(Dispatchers.Default).launch {
-                deviceDocumentRepository.postDevicePrompt("appdata",
-                    getDeviceDocument(EVENT_LABEL_AWAKE, hour, 0,true)
-                )
+                deviceDocumentRepository.postDevicePrompt("appdata", getDeviceDocument(EVENT_LABEL_AWAKE, 0,true))
             }
 
             soundList = eventMap[PLAY_EVENT]!!.split(",").toMutableList()
@@ -525,7 +519,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             cancelStartCountDownPrompt(DREAM_EVENT)
             if (mBgRawId != -1) {
                 soundPoolManager.stopPlayingBackground()
-                binding.playStatus.text = "Playing ${mBgLabel}"
+                binding.playStatus.text = "Playing $mBgLabel"
                 soundPoolManager.playBackgroundSound(mBgRawId, 1F, binding.playStatus)
             }
         }
@@ -566,12 +560,15 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                     }
                 }
 
+                //determines the level of vibration from watch and volume level of sound prompt
+                val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value, 20, 50)
+
                 //capture in event list in the event list
                 updateEventList(eventLabel, triggerDateTime.toString())
 
                 //send a vibration event to the watch
                 deviceDocumentRepository.postDevicePrompt("appdata",
-                    getDeviceDocument(eventLabel, hour, 0,true ))
+                    getDeviceDocument(eventLabel, 0,true, intensityLevel))
 
                 if(eventLabel != EVENT_LABEL_AWAKE) {
                     //give the watch time to pick up the vibration event
@@ -580,7 +577,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 }
 
                 //Log.d("MainActivity", "play prompts")
-                playPrompts(eventLabel, hour)
+                playPrompts(eventLabel, hour, intensityLevel)
 
                 delay(timeMillis = 10000)
 
@@ -596,7 +593,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         promptMonitor.promptEventWaiting = null
 
-        val document = getDeviceDocument("cancel from: $eventLabel", 0,0,false )
+        val document = getDeviceDocument("cancel from: $eventLabel", 0,false )
         logEvent(document)
 
         if(apJob != null && apJob!!.isActive) {
@@ -613,18 +610,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         soundPoolManager.stopPlayingAltBackground()
     }
 
-    private fun getDeviceDocument(type: String, hour: Int, minutesSinceLastCount: Long,
-                                  allowed: Boolean) : DeviceDocument {
-
-        var intensity = 1;
-//        if(type != EVENT_LABEL_AWAKE) {
-//            intensity = when (hour) {
-//                2, 3, 4 -> 1
-//                5, 6, 7 -> 2
-//                else -> 3
-//            }
-//        }
-
+    private fun getDeviceDocument(type: String, minutesSinceLastCount: Long,
+                                  allowed: Boolean, intensity: Int = 1) : DeviceDocument {
         val triggerTimestamp =
             if (viewModel.lastTimestamp.value != null) viewModel.lastTimestamp.value!! else ""
 
@@ -663,8 +650,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         scope.launch {
             //Log.d("MainActivity", "dateTimeOfQuery=$dateTime")
             val dao = ReadingDatabase.getInstance(application).readingDao
-            val cnt = dao.deleteOlder(dateTime)
-            //Log.d("MainActivity", "recordsDeleted=$cnt")
+            dao.deleteOlder(dateTime)
         }
     }
 
@@ -675,8 +661,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             lastEventTimestamp = ""
             //Log.d("MainActivity", "delete all records")
             val dao = ReadingDatabase.getInstance(application).readingDao
-            val cnt = dao.deleteAll()
-            //Log.d("MainActivity", "recordsDeleted=$cnt")
+            dao.deleteAll()
         }
     }
 

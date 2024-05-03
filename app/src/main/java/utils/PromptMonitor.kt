@@ -3,7 +3,7 @@ package utils
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-class PromptMonitor() {
+class PromptMonitor {
 
     var stopPromptWindow: LocalDateTime? = null
     var promptEventWaiting: String? = null
@@ -18,22 +18,22 @@ class PromptMonitor() {
     var deepAsleepEventCountSinceActive = 0
     var lastTimestampSinceDeepAsleep: LocalDateTime? = null
 
-    companion object {
-        const val PLAY_COUNT_MAX = 4
-    }
-
     private val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
 
     fun clear() {
+        awakeEventList.clear()
         lightEventList.clear()
         remEventList.clear()
+        allPromptEvents.clear()
         asleepEventCountSinceAwake = 0
+        deepAsleepEventCountSinceActive = 0
         stopPromptWindow = null
         promptEventWaiting = null
+        lastTimestampSinceDeepAsleep = null
     }
 
     fun getEventsDisplay(): String {
-        var eventsDisplay = "";
+        var eventsDisplay = ""
 
         if (awakeEventList.isNotEmpty()) {
             val formatAwakeEvents = awakeEventList.map { dateTime -> dateTime.format(formatter) }
@@ -52,7 +52,7 @@ class PromptMonitor() {
             eventsDisplay += "REM Events: $formatRemEvents \n"
         }
 
-        return eventsDisplay;
+        return eventsDisplay
     }
 
     fun handleDeepAsleepEvent(lastTimestamp: String?) {
@@ -69,7 +69,7 @@ class PromptMonitor() {
         deepAsleepEventCountSinceActive = 0
     }
 
-    fun handleRestlessEvent(lastTimestamp: String?) {
+    fun handleRestlessEvent() {
         asleepEventCountSinceAwake++
         deepAsleepEventCountSinceActive = 0
     }
@@ -112,8 +112,17 @@ class PromptMonitor() {
                 (remEventList.isEmpty() || LocalDateTime.parse(lastTimestamp)  >= remEventList.last().plusMinutes(timeBetweenPrompts))
     }
 
-    fun isTogglePromptWindow(lastTimestamp: String?): Boolean {
-        return stopPromptWindow != null && stopPromptWindow!! > LocalDateTime.parse(lastTimestamp)
-    }
 
+    fun promptIntensityLevel(lastTimestamp: String?, minTimeBetweenPrompts: Long, maxTimeBetweenPrompts: Long): Int {
+
+        return if(allPromptEvents.isEmpty()) {
+            1
+        } else if (LocalDateTime.parse(lastTimestamp) <= allPromptEvents.last().plusMinutes(minTimeBetweenPrompts)) {
+            -1
+        } else if (LocalDateTime.parse(lastTimestamp) <= allPromptEvents.last().plusMinutes(maxTimeBetweenPrompts)) {
+            0
+        } else {
+            1
+        }
+    }
 }

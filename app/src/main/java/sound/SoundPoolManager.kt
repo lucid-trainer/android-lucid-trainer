@@ -24,11 +24,11 @@ private const val volMin = .175F
 /*
    Uses library https://gitlab.com/olekdia/common/libraries/sound-pool
  */
-class SoundPoolManager() {
+class SoundPoolManager {
 
     private lateinit var mSoundPoolCompat: SoundPoolCompat
-    private var mBgId = -1;
-    private var mFgId = -1;
+    private var mBgId = -1
+    private var mFgId = -1
     private var fgJob: Job? = null
     private var bgJob: Job? = null
     private var altBgJob: Job? = null
@@ -76,8 +76,8 @@ class SoundPoolManager() {
         })
     }
 
-    fun playSoundList(soundList : List<String>, endBgRawRes : Int,
-                      endBgLabel : String, eventLabel: String, textView : TextView, hour: Int, playCnt: Int) {
+    fun playSoundList(soundList : List<String>, endBgRawRes : Int, endBgLabel : String,
+             eventLabel: String, textView : TextView, hour: Int, playCnt: Int, intensityLevel: Int = 1) {
 
         //default
         var bgRawRes = if(endBgRawRes > 0) {
@@ -87,14 +87,10 @@ class SoundPoolManager() {
             R.raw.brown
         }
 
-        var bgLabel = "Event Brown"
+        val bgLabel = "Event Brown"
 
         val soundRoutines = mutableListOf<SoundRoutine>()
-        if (soundList.contains("p")) {
-            Log.d("MainActivity","adding PodSoundRoutine")
-            soundRoutines.add(
-                PodSoundRoutine(playCnt, bgRawRes, endBgRawRes,.1F, 0F, .25F,  eventLabel, bgLabel, endBgLabel))
-        }
+
         if (soundList.contains("s")) {
             bgRawRes = R.raw.waves
             soundRoutines.add(
@@ -106,40 +102,68 @@ class SoundPoolManager() {
                 MILDSoundRoutine(playCnt, bgRawRes, endBgRawRes,.3F, 0F, .7F,  eventLabel, bgLabel, endBgLabel))
         }
         if (soundList.contains("w") || soundList.contains("wp")) {
-            val volOffset = when(hour) {
-                2,3 -> 1
-                6,7 -> 2
-                else -> 0
-            }
+            val isPrompt = soundList.contains("wp")
+            val soundRoutine = getWildSoundRoutine(bgRawRes, playCnt, endBgRawRes, eventLabel, bgLabel, endBgLabel, hour, intensityLevel, isPrompt)
+            soundRoutines.add(soundRoutine)
+        }
+        if (soundList.contains("p")) {
+            Log.d("MainActivity","adding PodSoundRoutine")
 
-            var (fgVolume, altBgVolume) = when(bgRawRes) {
-                R.raw.green, R.raw.pink -> .45F - (volOffset*.035F) to .5F - (volOffset*.035F)
-                R.raw.boxfan, R.raw.metal_fan  -> .38F - (volOffset*.03F) to .42F - (volOffset*.03F)
-                R.raw.ac -> .3F - (volOffset*.02F) to .36F - (volOffset*.02F)
-                R.raw.brown, R.raw.waves -> .09F - (volOffset*.005F) to .1F - (volOffset*.006F)
-                else -> .4F - (volOffset*.03F) to .43F - (volOffset*.03F)
-            }
-
-
-            if(soundList.contains("w")) {
-                bgLabel = "Event"
-                soundRoutines.add(
-                    WILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel))
-            } else {
-                //adjust the volumes up a bit for the REM/LIGHT prompts on the lower freq bg
-//                if(fgVolume <=.1) {
-//                    fgVolume += fgVolume*.2F
-//                    altBgVolume += altBgVolume*.2F
-//                }
-                //Log.d("DimVolume", "WILD prompt volumes at $fgVolume and $altBgVolume offset $volOffset")
-                soundRoutines.add(
-                    WILDPromptSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel))
-            }
+            val soundRoutine = getPodcastSoundRoutine(bgRawRes, playCnt, endBgRawRes, eventLabel, bgLabel, endBgLabel)
+            soundRoutines.add(soundRoutine)
         }
 
         stopPlayingForeground()
 
         playSoundRoutines(soundRoutines, textView)
+    }
+
+    private fun getWildSoundRoutine(bgRawRes: Int, playCnt: Int, endBgRawRes: Int, eventLabel: String, bgLabel: String,
+             endBgLabel: String, hour: Int, intensityLevel: Int, isPrompt: Boolean, ) : SoundRoutine {
+
+        val volOffset = when (hour) {
+            2, 3 -> 1
+            6, 7, 8 -> 2
+            else -> 0
+        }
+
+        //adjust the volumes based background sound and time of night
+        var (fgVolume, altBgVolume) = when (bgRawRes) {
+            R.raw.green, R.raw.pink -> .45F - (volOffset * .035F) to .5F - (volOffset * .035F)
+            R.raw.boxfan, R.raw.metal_fan -> .38F - (volOffset * .03F) to .42F - (volOffset * .03F)
+            R.raw.ac -> .3F - (volOffset * .02F) to .36F - (volOffset * .02F)
+            R.raw.brown, R.raw.waves -> .09F - (volOffset * .005F) to .1F - (volOffset * .006F)
+            else -> .4F - (volOffset * .03F) to .43F - (volOffset * .03F)
+        }
+
+        //adjust the volumes down further if low intensity
+        if (intensityLevel == 0) {
+            fgVolume *= .6F
+            altBgVolume *= .6F
+        } else if (intensityLevel == -1) {
+            fgVolume *= .3F
+            altBgVolume *= .3F
+        }
+
+        Log.d("DimVolume", "WILD prompt volumes at $fgVolume and $altBgVolume offset $volOffset intensity $intensityLevel")
+
+        return if (isPrompt) {
+            WILDPromptSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
+        } else {
+            WILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
+        }
+    }
+
+    private fun getPodcastSoundRoutine(bgRawRes: Int, playCnt: Int, endBgRawRes: Int, eventLabel: String, bgLabel: String,
+                                       endBgLabel: String): SoundRoutine {
+
+        val (fgVolume, bgVolume) = when (bgRawRes) {
+            R.raw.green, R.raw.pink -> .3F to .075F
+            R.raw.boxfan, R.raw.metal_fan, R.raw.ac -> .25F to .1F
+            else -> .15F to .2F
+        }
+
+        return PodSoundRoutine(playCnt, bgRawRes, endBgRawRes, bgVolume, 0F, fgVolume, eventLabel, bgLabel, endBgLabel)
     }
 
     fun stopPlayingBackground() {
@@ -234,11 +258,11 @@ class SoundPoolManager() {
                 val altBGSounds = soundRoutine.getAltBGSounds()
                 if(altBGSounds.isNotEmpty()) {
                     //setup the volume diminish feature
-                    var currVolume = soundRoutine.altBgVolume
+                    val currVolume = soundRoutine.altBgVolume
                     var dimVolStatus : DimVolUpdateStatus? = null
-                    var dimMinLimit = soundRoutine.dimMinLimit()
+                    val dimMinLimit = soundRoutine.dimMinLimit()
                     if(dimMinLimit > 0) {
-                        var lastLimitTime = LocalDateTime.now()
+                        val lastLimitTime = LocalDateTime.now()
                         dimVolStatus = DimVolUpdateStatus(dimMinLimit, lastLimitTime, currVolume)
                     }
 
@@ -332,7 +356,7 @@ class SoundPoolManager() {
                     //we're about to play the foreground sounds, set up the volume diminish feature
                     var lastLimitTime = LocalDateTime.now()
                     var currVolume = soundRoutine.fgVolume
-                    var dimMinLimit = soundRoutine.dimMinLimit()
+                    val dimMinLimit = soundRoutine.dimMinLimit()
 
                     for (sound in soundRoutine.getRoutine()) {
                         //if we've been looping longer than the dim minutes limit, drop the volume
@@ -427,7 +451,7 @@ class SoundPoolManager() {
         //Log.d("MainActivity", "getting $file")
         //Log.d("MainActivity", "file exists " + file.exists())
 
-        var filePath = ""
+        val filePath: String
         return if (file.exists()) {
             filePath = file.path
             Log.d("File Retrieval", "text=$filePath")
