@@ -223,7 +223,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
         val hour = triggerDateTime.hour
 
-        //stop an prompt/podcast if running too long
+        //stop a prompt/podcast if running too long
         if(sleepStage.contains("ASLEEP") && promptMonitor.isStopPromptWindow(viewModel.lastTimestamp.value)) {
             cancelStartCountDownPrompt(EVENT_LABEL_ASLEEP)
             promptMonitor.stopPromptWindow = LocalDateTime.parse(viewModel.lastTimestamp.value)
@@ -301,15 +301,15 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             val hoursAllowed = hour in 2..7
 
             val timeBetweenPrompts = when(hour) {
-                6,7 -> 35L
-                else -> 45L
+                6,7 -> 40L
+                else -> 50L
             }
 
             val isLightPromptEventAllowed = hoursAllowed
                     && promptMonitor.isLightEventAllowed(viewModel.lastTimestamp.value, timeBetweenPrompts)
 
             if (hoursAllowed) {
-                val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value, 20, 50)
+                val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value, 15, 45)
                 val document = getDeviceDocument(EVENT_LABEL_LIGHT, timeBetweenPrompts, isLightPromptEventAllowed, intensityLevel)
                 logEvent(document)
             }
@@ -337,7 +337,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                     promptMonitor.isRemEventAllowed(viewModel.lastTimestamp.value, timeBetweenPrompts)
 
             if (hoursAllowed) {
-                val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value, 20, 50)
+                val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value, 15, 45)
                 val document = getDeviceDocument(EVENT_LABEL_REM, timeBetweenPrompts, isREMPromptEventAllowed, intensityLevel)
                 logEvent(document)
             }
@@ -561,7 +561,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 }
 
                 //determines the level of vibration from watch and volume level of sound prompt
-                val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value, 20, 50)
+                val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value, 15, 45)
 
                 //capture in event list in the event list
                 updateEventList(eventLabel, triggerDateTime.toString())

@@ -12,13 +12,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
-import utils.DimVolUpdateStatus
 import java.io.File
 import java.time.LocalDateTime
-
-private const val dimBGVolBy = .07F
-private const val dimFGVolBy = .04F
-private const val volMin = .175F
 
 
 /*
@@ -127,22 +122,22 @@ class SoundPoolManager {
             else -> 0
         }
 
-        //adjust the volumes based background sound and time of night
+        //adjust the volumes based on background sound and time of night
         var (fgVolume, altBgVolume) = when (bgRawRes) {
-            R.raw.green, R.raw.pink -> .45F - (volOffset * .035F) to .5F - (volOffset * .035F)
-            R.raw.boxfan, R.raw.metal_fan -> .38F - (volOffset * .03F) to .42F - (volOffset * .03F)
-            R.raw.ac -> .3F - (volOffset * .02F) to .36F - (volOffset * .02F)
-            R.raw.brown, R.raw.waves -> .09F - (volOffset * .005F) to .1F - (volOffset * .006F)
-            else -> .4F - (volOffset * .03F) to .43F - (volOffset * .03F)
+            R.raw.green, R.raw.pink -> .45F - (volOffset * .035F) to .4F - (volOffset * .035F)
+            R.raw.boxfan, R.raw.metal_fan -> .38F - (volOffset * .03F) to .33F - (volOffset * .03F)
+            R.raw.ac -> .3F - (volOffset * .02F) to .25F - (volOffset * .02F)
+            R.raw.brown, R.raw.waves -> .09F - (volOffset * .005F) to .07F - (volOffset * .005F)
+            else -> .4F - (volOffset * .03F) to .35F - (volOffset * .03F)
         }
 
         //adjust the volumes down further if low intensity
         if (intensityLevel == 0) {
-            fgVolume *= .6F
-            altBgVolume *= .6F
+            fgVolume *= .7F
+            altBgVolume *= .7F
         } else if (intensityLevel == -1) {
-            fgVolume *= .3F
-            altBgVolume *= .3F
+            fgVolume *= .4F
+            altBgVolume *= .4F
         }
 
         Log.d("DimVolume", "WILD prompt volumes at $fgVolume and $altBgVolume offset $volOffset intensity $intensityLevel")
@@ -247,7 +242,6 @@ class SoundPoolManager {
             altBgJob = scope.launch {
                 delay(timeMillis = 1000)
 
-
                 val pauseAfterStart = soundRoutine !is WILDPromptSoundRoutine
 
                 val startSounds = soundRoutine.getStartSounds()
@@ -257,17 +251,10 @@ class SoundPoolManager {
 
                 val altBGSounds = soundRoutine.getAltBGSounds()
                 if(altBGSounds.isNotEmpty()) {
-                    //setup the volume diminish feature
                     val currVolume = soundRoutine.altBgVolume
-                    var dimVolStatus : DimVolUpdateStatus? = null
-                    val dimMinLimit = soundRoutine.dimMinLimit()
-                    if(dimMinLimit > 0) {
-                        val lastLimitTime = LocalDateTime.now()
-                        dimVolStatus = DimVolUpdateStatus(dimMinLimit, lastLimitTime, currVolume)
-                    }
 
                     do {
-                        playAltSounds(altBGSounds, currVolume, true, dimVolStatus)
+                        playAltSounds(altBGSounds, currVolume)
                     } while (!isBGSoundStopped)
                 }
 
@@ -279,21 +266,12 @@ class SoundPoolManager {
     private suspend fun playAltSounds(
         altFiles: List<String>,
         volume: Float,
-        pause: Boolean = true,
-        dimVolStatus: DimVolUpdateStatus? = null
+        pause: Boolean = true
     ) {
 
         var currVolume = volume
 
         for (altFile in altFiles) {
-            //if we've been looping longer than the dim minutes limit, drop the volume
-            if( dimVolStatus != null && currVolume.compareTo(volMin) >= 0 && LocalDateTime.now() >
-                    dimVolStatus.lastUpdateTime.plusMinutes(dimVolStatus.updateMinuteLimit)) {
-                dimVolStatus.lastUpdateVol -= dimBGVolBy
-                dimVolStatus.lastUpdateTime = LocalDateTime.now()
-                currVolume = dimVolStatus.lastUpdateVol
-                //Log.d("DimVolume", "dropped ALT BG volume to $currVolume")
-            }
 
             val filePath = getFilePath(altFile)
             Log.d("MainActivity", "playing alt bg filePath $filePath")
@@ -353,18 +331,27 @@ class SoundPoolManager {
                         delay(timeMillis = 5000)
                     }
 
-                    //we're about to play the foreground sounds, set up the volume diminish feature
-                    var lastLimitTime = LocalDateTime.now()
                     var currVolume = soundRoutine.fgVolume
-                    val dimMinLimit = soundRoutine.dimMinLimit()
+                    var currBgVolume = soundRoutine.bgVolume
 
                     for (sound in soundRoutine.getRoutine()) {
-                        //if we've been looping longer than the dim minutes limit, drop the volume
-                        if( dimMinLimit > 0 && (currVolume.compareTo(volMin) >= 0) && LocalDateTime.now() > lastLimitTime.plusMinutes(dimMinLimit)) {
-                            currVolume -= dimFGVolBy
-                            lastLimitTime = LocalDateTime.now()
-                            //Log.d("DimVolume", "dropped FG bg volume to $currVolume")
+
+                        //check for volume adjust value on the clip
+                        Log.d("DimVolume", "before FG volume $currVolume BG volume $currBgVolume")
+                        if(sound.fileVolAdjust != 0F) {
+                            currVolume *= sound.fileVolAdjust
+                            currBgVolume *= .6F
+                            stopPlayingBackground()
+                            playBackgroundSound(soundRoutine.bgRawId, currBgVolume, textView)
+                        } else if(currVolume != soundRoutine.fgVolume){
+                            //reset to the original volumes
+                            currVolume = soundRoutine.fgVolume
+                            currBgVolume = soundRoutine.bgVolume
+                            stopPlayingBackground()
+                            playBackgroundSound(soundRoutine.bgRawId, currBgVolume, textView)
                         }
+
+                        Log.d("DimVolume", "adjusted FG volume to $currVolume BG volume to $currBgVolume")
 
                         //check if stop button pushed mid play or the sound file id is already initialized
                         if (!isFGSoundStopped) {

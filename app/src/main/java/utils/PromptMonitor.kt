@@ -91,7 +91,7 @@ class PromptMonitor {
 
     fun isStopPromptWindow(lastTimestamp: String?): Boolean {
         return stopPromptWindow != null && stopPromptWindow!! > LocalDateTime.parse(lastTimestamp)
-                && (deepAsleepEventCountSinceActive > 16 || asleepEventCountSinceAwake > 40)
+                && (deepAsleepEventCountSinceActive > 20 || asleepEventCountSinceAwake > 40)
     }
 
     fun isAwakeEventAllowed(lastTimestamp: String?): Boolean {
@@ -103,7 +103,7 @@ class PromptMonitor {
 
     fun isLightEventAllowed(lastTimestamp: String?, timeBetweenPrompts: Long): Boolean {
         return promptEventWaiting == null && asleepEventCountSinceAwake >= 50 &&
-                (allPromptEvents.isEmpty() || LocalDateTime.parse(lastTimestamp) >= allPromptEvents.last()
+                (lightEventList.isEmpty() || LocalDateTime.parse(lastTimestamp) >= lightEventList.last()
                     .plusMinutes(timeBetweenPrompts))
     }
 

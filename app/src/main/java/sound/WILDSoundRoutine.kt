@@ -33,7 +33,7 @@ class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()
         var finalRoutine : MutableList<Sound> = emptyList<Sound>().toMutableList()
 
-        val cntrs = (1..70).shuffled().slice(0..25)
+        val cntrs = (1..70).shuffled().slice(0..9)
 
         for (cntr in cntrs) {
             routine.add(Sound(0, 20, "wild/fg/fg_" + cntr + ".ogg"))
@@ -42,11 +42,14 @@ class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
 
         finalRoutine = routine.shuffled().toMutableList()
 
-        //add a couple of prompts at the beginning
-        var cntList = (1..3).shuffled()
-        finalRoutine.add(2, Sound(0, 20, "wild/prompt/prompt_${cntList[0]}.ogg"))
+        //add a prompt near start of the the routine
+        val cnt = (1..3).shuffled().last()
+        finalRoutine.add(3, Sound(0, 20, "wild/prompt/prompt_$cnt.ogg"))
 
-        finalRoutine.add(5, Sound(0, 20, "wild/prompt/prompt_${cntList[1]}.ogg"))
+        //add a longer more distinct sound clip towards the end and adjust volume on it
+        val clipCnt = (1..5).shuffled().last()
+        finalRoutine.add(7, Sound(0, 20, "wild/main/clip_$clipCnt.ogg", 1.5F))
+
 
         return finalRoutine
     }
