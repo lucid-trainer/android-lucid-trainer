@@ -340,15 +340,17 @@ class SoundPoolManager {
                         Log.d("DimVolume", "before FG volume $currVolume BG volume $currBgVolume")
                         if(sound.fileVolAdjust != 0F) {
                             currVolume *= sound.fileVolAdjust
-                            currBgVolume *= .6F
+                            currBgVolume *= .35F
                             stopPlayingBackground()
                             playBackgroundSound(soundRoutine.bgRawId, currBgVolume, textView)
+                            delay(timeMillis = 1000)
                         } else if(currVolume != soundRoutine.fgVolume){
                             //reset to the original volumes
                             currVolume = soundRoutine.fgVolume
                             currBgVolume = soundRoutine.bgVolume
                             stopPlayingBackground()
                             playBackgroundSound(soundRoutine.bgRawId, currBgVolume, textView)
+                            delay(timeMillis = 1000)
                         }
 
                         Log.d("DimVolume", "adjusted FG volume to $currVolume BG volume to $currBgVolume")

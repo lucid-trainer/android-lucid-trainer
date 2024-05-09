@@ -26,7 +26,8 @@ class WILDPromptSoundRoutine(override var playCount: Int, override var bgRawId: 
 //        val cntrs = (1..limit).shuffled()
 //        for (index in cntrs.indices) {
 //            val cntr = cntrs[index]
-        routine.add(Sound(0, 10, "wild/prompt/prompt_1.ogg"))
+        val cnt = (1..3).shuffled().last()
+        routine.add(Sound(0, 10, "wild/prompt/prompt_$cnt.ogg"))
 //        }
 
         return routine

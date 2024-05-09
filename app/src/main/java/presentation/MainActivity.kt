@@ -300,17 +300,12 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         if (binding.chipLight.isChecked) {
             val hoursAllowed = hour in 2..7
 
-            val timeBetweenPrompts = when(hour) {
-                6,7 -> 40L
-                else -> 50L
-            }
-
             val isLightPromptEventAllowed = hoursAllowed
-                    && promptMonitor.isLightEventAllowed(viewModel.lastTimestamp.value, timeBetweenPrompts)
+                    && promptMonitor.isLightEventAllowed(viewModel.lastTimestamp.value)
 
             if (hoursAllowed) {
                 val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value, 15, 45)
-                val document = getDeviceDocument(EVENT_LABEL_LIGHT, timeBetweenPrompts, isLightPromptEventAllowed, intensityLevel)
+                val document = getDeviceDocument(EVENT_LABEL_LIGHT, 0, isLightPromptEventAllowed, intensityLevel)
                 logEvent(document)
             }
 
@@ -327,18 +322,12 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         if (binding.chipRem.isChecked) {
             val hoursAllowed = hour in 2..8
 
-            val timeBetweenPrompts = when(hour) {
-                6,7,8 -> 15L
-                4,5 -> 25L
-                else -> 30L
-            }
-
             val isREMPromptEventAllowed = hoursAllowed &&
-                    promptMonitor.isRemEventAllowed(viewModel.lastTimestamp.value, timeBetweenPrompts)
+                    promptMonitor.isRemEventAllowed(viewModel.lastTimestamp.value)
 
             if (hoursAllowed) {
                 val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value, 15, 45)
-                val document = getDeviceDocument(EVENT_LABEL_REM, timeBetweenPrompts, isREMPromptEventAllowed, intensityLevel)
+                val document = getDeviceDocument(EVENT_LABEL_REM, 0, isREMPromptEventAllowed, intensityLevel)
                 logEvent(document)
             }
 
