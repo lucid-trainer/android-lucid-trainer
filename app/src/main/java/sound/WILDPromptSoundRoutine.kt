@@ -1,5 +1,7 @@
 package sound
 
+import utils.FileMonitor
+
 class WILDPromptSoundRoutine(override var playCount: Int, override var bgRawId: Int, override var endBgRawId: Int,
                              override var bgVolume: Float, override var altBgVolume: Float, override var fgVolume: Float,
                              override val eventLabel : String, override var bgLabel : String, override var endBgLabel : String,
@@ -20,15 +22,10 @@ class WILDPromptSoundRoutine(override var playCount: Int, override var bgRawId: 
 
     override fun getRoutine(): List<Sound> {
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()
-        //val limit = if(playCount > 2) 2 else playCount
-        //val randomDelay = (20..40).shuffled().last()
 
-//        val cntrs = (1..limit).shuffled()
-//        for (index in cntrs.indices) {
-//            val cntr = cntrs[index]
-        val cnt = (1..3).shuffled().last()
-        routine.add(Sound(0, 10, "wild/prompt/prompt_$cnt.ogg"))
-//        }
+        val file = FileMonitor.getFilesFromDirectory("prompt").shuffled().last()
+
+        routine.add(Sound(0, 10, "wild/prompt/$file"))
 
         return routine
     }

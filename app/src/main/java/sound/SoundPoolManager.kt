@@ -12,6 +12,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
+import utils.FileMonitor
 import java.io.File
 import java.time.LocalDateTime
 
@@ -273,7 +274,7 @@ class SoundPoolManager {
 
         for (altFile in altFiles) {
 
-            val filePath = getFilePath(altFile)
+            val filePath =  FileMonitor.getFilePath(altFile)
             Log.d("MainActivity", "playing alt bg filePath $filePath")
 
             if (filePath != null) {
@@ -364,7 +365,7 @@ class SoundPoolManager {
                             //play the sound file - playOnce handles loading and unloading the file
                             //Log.d("MainActivity", "playing ${sound.rawResId}")
                             mFgId = if(sound.filePathId != null) {
-                                val filePath = getFilePath(sound.filePathId)
+                                val filePath = FileMonitor.getFilePath(sound.filePathId)
                                 Log.d("MainActivity", "playing $filePath")
                                 mSoundPoolCompat.playOnce(filePath, currVolume, currVolume, 1F)
                             } else {
@@ -425,29 +426,6 @@ class SoundPoolManager {
                 isPlaying = mSoundPoolCompat.isPlaying(sndId)
                 delay(timeMillis = 1000)
             }
-        }
-    }
-
-    private fun getFilePath(fileName : String): String? {
-        val ex = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
-
-        val fileLocation = fileName.split("/")
-
-        val file = File(
-            File(ex.path + "/" + fileLocation[0] + "/" + fileLocation[1] + "/"),
-               fileLocation[2])
-
-        //Log.d("MainActivity", "getting $file")
-        //Log.d("MainActivity", "file exists " + file.exists())
-
-        val filePath: String
-        return if (file.exists()) {
-            filePath = file.path
-            Log.d("File Retrieval", "text=$filePath")
-
-            filePath
-        } else {
-            null
         }
     }
 

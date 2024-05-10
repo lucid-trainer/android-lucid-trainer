@@ -20,7 +20,6 @@ class PromptMonitor {
 
     companion object {
         const val MAX_PROMPT_PER_HOUR = 2
-        const val MIN_MIN_BETWEEN_PROMPTS = 5
     }
 
     private val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")

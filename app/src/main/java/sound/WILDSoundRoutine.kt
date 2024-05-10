@@ -2,6 +2,7 @@ package sound
 
 import android.util.Log
 import com.lucidtrainer.R
+import utils.FileMonitor
 
 class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, override var endBgRawId: Int,
                        override var bgVolume: Float, override var altBgVolume: Float, override var fgVolume: Float,
@@ -20,10 +21,10 @@ class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
     override fun getAltBGSounds(): List<String> {
         var altBGSounds : MutableList<String> = emptyList<String>().toMutableList()
 
-        val cntrs = (1..12).shuffled().slice(0..8)
+        val files = FileMonitor.getFilesFromDirectory("bg").shuffled().slice(0..8)
 
         for (i in 0..8) {
-            altBGSounds.add("wild/bg/bg_" +  + cntrs[i]+ ".ogg")
+            altBGSounds.add("wild/bg/${files[i]}")
         }
 
         return altBGSounds
@@ -31,27 +32,22 @@ class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
 
     override fun getRoutine(): List<Sound> {
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()
-        var finalRoutine : MutableList<Sound> = emptyList<Sound>().toMutableList()
 
-        val cntrs = (1..70).shuffled().slice(0..7)
+        val files = FileMonitor.getFilesFromDirectory("fg").shuffled().slice(0..7)
 
-        for (cntr in cntrs) {
-            routine.add(Sound(0, 20, "wild/fg/fg_" + cntr + ".ogg"))
-            Log.d("WILDSoundRoutine ", "adding wild/fg/fg_$cntr.ogg")
+        for (i in 0..7) {
+            routine.add(Sound(0, 20, "wild/fg/${files[i]}"))
         }
 
-        finalRoutine = routine.shuffled().toMutableList()
-
         //add a prompt near start of the the routine
-        val cnt = (1..3).shuffled().last()
-        finalRoutine.add(3, Sound(0, 20, "wild/prompt/prompt_$cnt.ogg"))
+        val promptFile = FileMonitor.getFilesFromDirectory("prompt").shuffled().last()
+        routine.add(3, Sound(0, 20, "wild/prompt/$promptFile"))
 
-        //add a longer more distinct sound clip towards the end and adjust volume on it
-        val clipCnt = (1..10).shuffled().last()
-        finalRoutine.add(6, Sound(0, 20, "wild/main/clip_$clipCnt.ogg", 1.25F))
+        //add a longer more distinct main sound clip towards the end and adjust volume on it
+        val clipFile = FileMonitor.getFilesFromDirectory("main").shuffled().last()
+        routine.add(6, Sound(0, 20, "wild/main/$clipFile", 1.25F))
 
-
-        return finalRoutine
+        return routine
     }
 
     override fun dimMinLimit() : Long {
