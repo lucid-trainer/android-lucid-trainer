@@ -1,7 +1,6 @@
 package sound
 
 import android.util.Log
-import com.lucidtrainer.R
 import utils.FileMonitor
 
 class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, override var endBgRawId: Int,
@@ -10,10 +9,18 @@ class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
                        override val fgLabel : String = "WILD",
 ) : SoundRoutine {
 
+    companion object {
+        const val ROOT_DIR = "wild"
+        const val FOREGROUND_DIR = "fg"
+        const val ALT_BACKGROUND_DIR = "bg"
+        const val PROMPT_DIR = "prompt"
+        const val CLIP_DIR = "main"
+    }
+
     override fun getStartSounds(): List<String> {
         val startSounds : MutableList<String> = emptyList<String>().toMutableList()
 
-        startSounds.add("wild/start/wild_start.ogg")
+        startSounds.add("$ROOT_DIR/start/wild_start.ogg")
 
         return startSounds
     }
@@ -21,10 +28,12 @@ class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
     override fun getAltBGSounds(): List<String> {
         var altBGSounds : MutableList<String> = emptyList<String>().toMutableList()
 
-        val files = FileMonitor.getFilesFromDirectory("bg").shuffled().slice(0..8)
+        val dir = "/$ROOT_DIR/$ALT_BACKGROUND_DIR"
+
+        val files = FileMonitor.getFilesFromDirectory(dir).shuffled().slice(0..8)
 
         for (i in 0..8) {
-            altBGSounds.add("wild/bg/${files[i]}")
+            altBGSounds.add("$ROOT_DIR/$ALT_BACKGROUND_DIR/${files[i]}")
         }
 
         return altBGSounds
@@ -33,21 +42,51 @@ class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
     override fun getRoutine(): List<Sound> {
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()
 
-        val files = FileMonitor.getFilesFromDirectory("fg").shuffled().slice(0..7)
+        addForegroundSounds(routine)
 
-        for (i in 0..7) {
-            routine.add(Sound(0, 20, "wild/fg/${files[i]}"))
-        }
+        addPromptSound(routine)
 
-        //add a prompt near start of the the routine
-        val promptFile = FileMonitor.getFilesFromDirectory("prompt").shuffled().last()
-        routine.add(3, Sound(0, 20, "wild/prompt/$promptFile"))
-
-        //add a longer more distinct main sound clip towards the end and adjust volume on it
-        val clipFile = FileMonitor.getFilesFromDirectory("main").shuffled().last()
-        routine.add(6, Sound(0, 20, "wild/main/$clipFile", 1.25F))
+        addClipSound(routine)
 
         return routine
+    }
+
+    private fun addForegroundSounds(routine: MutableList<Sound>) {
+        var dir = "$ROOT_DIR/$FOREGROUND_DIR"
+
+        val files = FileMonitor.getUnusedFilesFromDirectory(dir, 8).shuffled().slice(0..7)
+
+        //Log.d("WildRoutine", "used fg ${FileMonitor.getUnusedFilesFromDirectory(dir, 8).size}")
+
+        for (file in files) {
+            routine.add(Sound(0, 20, "$dir/$file"))
+        }
+
+        FileMonitor.addFilesUsedInSession(dir, files)
+    }
+
+    private fun addPromptSound(routine: MutableList<Sound>) {
+        //add a prompt near start of the the routine
+        var dir = "$ROOT_DIR/$PROMPT_DIR"
+
+        val file = FileMonitor.getFilesFromDirectory(dir).shuffled().last()
+        routine.add(3, Sound(0, 20, "$dir/$file"))
+    }
+
+    private fun addClipSound(routine: MutableList<Sound>) {
+        //add a longer more distinct main sound clip towards the end and adjust volume on it
+        var dir = "$ROOT_DIR/$CLIP_DIR"
+
+        //start with a radio tuning sound
+        routine.add(6, Sound(0, 0, "$ROOT_DIR/start/wild_tune.ogg"))
+
+        //Log.d("WildRoutine ", "unused clips size ${FileMonitor.getUnusedFilesFromDirectory(dir, 1).size}")
+        //Log.d("WildRoutine ", "unused clips ${FileMonitor.getUnusedFilesFromDirectory(dir, 1)}")
+
+        val clipFile = FileMonitor.getUnusedFilesFromDirectory(dir, 1).shuffled().last()
+        routine.add(7, Sound(0, 20, "$dir/$clipFile", 1F))
+
+        FileMonitor.addFileUsedInSession(dir, clipFile)
     }
 
     override fun dimMinLimit() : Long {

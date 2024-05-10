@@ -147,7 +147,7 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
        return LocalDateTime.now();
 
         //for DEBUG, set a specific starting time
-       //return LocalDate.parse("2024-04-26").atTime(5,0)
+       //return LocalDate.parse("2024-05-11").atTime(1,0)
     }
 
     private fun getStartingTimestamp() : String {

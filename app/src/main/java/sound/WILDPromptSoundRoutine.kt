@@ -8,6 +8,11 @@ class WILDPromptSoundRoutine(override var playCount: Int, override var bgRawId: 
                              override val fgLabel : String = "WILD",
 ) : SoundRoutine {
 
+    companion object {
+        const val ROOT_DIR = "wild"
+        const val PROMPT_DIR = "prompt"
+    }
+
     override fun getStartSounds(): List<String> {
         val startSounds : MutableList<String> = emptyList<String>().toMutableList()
 
@@ -23,9 +28,10 @@ class WILDPromptSoundRoutine(override var playCount: Int, override var bgRawId: 
     override fun getRoutine(): List<Sound> {
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()
 
-        val file = FileMonitor.getFilesFromDirectory("prompt").shuffled().last()
+        val dir = "$ROOT_DIR/$PROMPT_DIR"
 
-        routine.add(Sound(0, 10, "wild/prompt/$file"))
+        val file = FileMonitor.getFilesFromDirectory(dir).shuffled().last()
+        routine.add(Sound(0, 10, "$dir/$file"))
 
         return routine
     }

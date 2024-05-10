@@ -33,8 +33,10 @@ import kotlinx.coroutines.yield
 import network.Status
 import network.request.DeviceDocument
 import repository.DeviceDocumentsRepository
+import sound.PodSoundRoutine
 import sound.SoundPoolManager
 import utils.AppConfig
+import utils.FileMonitor
 import utils.PromptMonitor
 import viewmodel.DocumentViewModel
 import viewmodel.DocumentViewModelFactory
@@ -102,29 +104,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         this.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
 
-        // stop any playback when bluetooth is disconnected
-        val broadcastReceiver : BroadcastReceiver = (object :BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                val scope = CoroutineScope(Dispatchers.Default)
-                when (intent?.action) {
-                    BluetoothDevice.ACTION_ACL_CONNECTED -> {
-                        isBTDisconnected = false
-                        //Log.d("MainActivity","bluetooth connected")
-                    }
-
-                    BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
-                        scope.launch {
-                            //Log.d("MainActivity","bluetooth disconnected")
-                            isBTDisconnected = true
-                            delay(6000)
-                            if(isBTDisconnected) {
-                                soundPoolManager.stopPlayingAll(binding.playStatus)
-                            }
-                       }
-                    }
-                }
-            }
-        })
+        // use a broadcast reciever to stop any playback when bluetooth is disconnected
+        val broadcastReceiver: BroadcastReceiver = getBroadcastReceiver()
 
         val filter = IntentFilter().apply {
             addAction(BluetoothDevice.ACTION_ACL_CONNECTED)
@@ -149,7 +130,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         binding.switchcompat.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
-                promptMonitor.clear()
+                clearSessionState()
                 viewModel.setFlowEnabled(true)
                 viewModel.getNewReadings()
             } else {
@@ -215,6 +196,11 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
             }
         }
+    }
+
+    private fun clearSessionState() {
+        promptMonitor.clear()
+        FileMonitor.clearFilesUsedInSession()
     }
 
     private fun processSleepStageEvents(sleepStage: String) {
@@ -298,7 +284,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private fun checkAndSubmitLightPromptEvent(hour: Int) {
 
         if (binding.chipLight.isChecked) {
-            val hoursAllowed = hour in 2..7
+            val hoursAllowed = hour in 4..7
 
             val isLightPromptEventAllowed = hoursAllowed
                     && promptMonitor.isLightEventAllowed(viewModel.lastTimestamp.value)
@@ -416,6 +402,11 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             }
         })
 
+
+
+        val podCount = FileMonitor.getFilesFromDirectory(PodSoundRoutine.ROOT_DIR+"/"+PodSoundRoutine.POD_DIR).size
+        binding.chipPod.isVisible = podCount > 0
+
         binding.chipGroupPod.isVisible = false
         binding.textPodLbl.isVisible = false
 
@@ -430,7 +421,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
     }
 
-    private fun playPrompts(eventLabel : String, hour: Int = -1, intensityLevel: Int = 1) {
+    private fun playPrompts(eventLabel : String, hour: Int = -1, intensityLevel: Int = SoundPoolManager.DEFAULT_INTENSITY_LEVEL) {
         val soundList = mutableListOf<String>()
         var pMod = ""
 
@@ -633,6 +624,32 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
     }
 
+    private fun getBroadcastReceiver(): BroadcastReceiver {
+        val broadcastReceiver: BroadcastReceiver = (object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                val scope = CoroutineScope(Dispatchers.Default)
+                when (intent?.action) {
+                    BluetoothDevice.ACTION_ACL_CONNECTED -> {
+                        isBTDisconnected = false
+                        //Log.d("MainActivity","bluetooth connected")
+                    }
+
+                    BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
+                        scope.launch {
+                            //Log.d("MainActivity","bluetooth disconnected")
+                            isBTDisconnected = true
+                            delay(6000)
+                            if (isBTDisconnected) {
+                                soundPoolManager.stopPlayingAll(binding.playStatus)
+                            }
+                        }
+                    }
+                }
+            }
+        })
+        return broadcastReceiver
+    }
+
     private fun purgeOldRecords(dateTime : LocalDateTime) {
         // create a scope to access the database from a thread other than the main thread
         val scope = CoroutineScope(Dispatchers.Default)
@@ -702,4 +719,5 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     override fun onNothingSelected(parent: AdapterView<*>?) {
         //do nothing
     }
+
 }

@@ -24,7 +24,9 @@ object EventSleepStage {
             val avgHeartRate = workingReadingList.map { it -> it.heartRate }.takeLast(20).take(10).average().roundToInt()
 
             val recentMove =
-                workingReadingList.map { it -> it.accelMovement }.takeLast(10).filter { it > .02 }.size
+                workingReadingList.map { it -> it.accelMovement }.takeLast(10).filter { it > .1 }.size
+            val recentActive =
+                workingReadingList.map { it -> it.accelMovement }.takeLast(12).filter { it > .2 }.size
             val prevHeartCnt =
                 workingReadingList.map { it -> it.heartRate }.takeLast(10).take(5).filter { it <= avgHeartRate}.size
             val heartCnt =
@@ -37,7 +39,7 @@ object EventSleepStage {
                 sleepStage = "AWAKE"
             } else if(restlessCnt >= 1) {
                 sleepStage = "RESTLESS"
-            } else if(recentMove == 0 && prevHeartCnt >=3 && heartCnt >= 3) {
+            } else if(recentActive == 0 && prevHeartCnt >=2 && heartCnt >= 3) {
                 sleepStage = "REM ASLEEP"
             } else if (deepCnt == 0 && lightCnt == 0) {
                 sleepStage = "DEEP ASLEEP"

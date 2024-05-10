@@ -220,8 +220,8 @@
 
     <TextView
         android:id="@+id/play_status"
-        android:layout_width="360dp"
-        android:layout_height="26dp"
+        android:layout_width="350dp"
+        android:layout_height="28dp"
         android:layout_marginStart="32dp"
         android:layout_marginTop="80dp"
         android:textColor="#14c45d"

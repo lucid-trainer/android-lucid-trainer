@@ -32,10 +32,14 @@ class SoundPoolManager {
 
     companion object {
 
+        const val ADJUST_BG_VOL_FACTOR = .6F
+        const val DEFAULT_INTENSITY_LEVEL = 2
+
         @Volatile
         private var INSTANCE: SoundPoolManager? = null
         var isFGSoundStopped = false
         var isBGSoundStopped = false
+        var adjustAltBGVol = false
         var isLoadedMap = emptyMap<Int, Boolean>().toMutableMap()
         var loadingErrorMessage = ""
 
@@ -73,7 +77,7 @@ class SoundPoolManager {
     }
 
     fun playSoundList(soundList : List<String>, endBgRawRes : Int, endBgLabel : String,
-             eventLabel: String, textView : TextView, hour: Int, playCnt: Int, intensityLevel: Int = 1) {
+             eventLabel: String, textView : TextView, hour: Int, playCnt: Int, intensityLevel: Int = DEFAULT_INTENSITY_LEVEL) {
 
         //default
         var bgRawRes = if(endBgRawRes > 0) {
@@ -83,19 +87,19 @@ class SoundPoolManager {
             R.raw.brown
         }
 
-        val bgLabel = "Event Brown"
+        val bgLabel = getBackgroundSoundLabel(bgRawRes)
 
         val soundRoutines = mutableListOf<SoundRoutine>()
 
         if (soundList.contains("s")) {
             bgRawRes = R.raw.waves
             soundRoutines.add(
-                SSILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, .3F, 0F, .7F, eventLabel, bgLabel, endBgLabel))
+                SSILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, .3F, 0F, .7F, eventLabel, "Waves", endBgLabel))
         }
         if (soundList.contains("m")) {
             bgRawRes = R.raw.waves
             soundRoutines.add(
-                MILDSoundRoutine(playCnt, bgRawRes, endBgRawRes,.3F, 0F, .7F,  eventLabel, bgLabel, endBgLabel))
+                MILDSoundRoutine(playCnt, bgRawRes, endBgRawRes,.3F, 0F, .7F,  eventLabel, "Waves", endBgLabel))
         }
         if (soundList.contains("w") || soundList.contains("wp")) {
             val isPrompt = soundList.contains("wp")
@@ -118,27 +122,27 @@ class SoundPoolManager {
              endBgLabel: String, hour: Int, intensityLevel: Int, isPrompt: Boolean, ) : SoundRoutine {
 
         val volOffset = when (hour) {
-            2, 3 -> 1
+            4, 5 -> 1
             6, 7, 8 -> 2
             else -> 0
         }
 
         //adjust the volumes based on background sound and time of night
         var (fgVolume, altBgVolume) = when (bgRawRes) {
-            R.raw.green, R.raw.pink -> .45F - (volOffset * .035F) to .4F - (volOffset * .035F)
-            R.raw.boxfan, R.raw.metal_fan -> .38F - (volOffset * .03F) to .33F - (volOffset * .03F)
-            R.raw.ac -> .3F - (volOffset * .02F) to .25F - (volOffset * .02F)
-            R.raw.brown, R.raw.waves -> .09F - (volOffset * .005F) to .07F - (volOffset * .005F)
-            else -> .4F - (volOffset * .03F) to .35F - (volOffset * .03F)
+            R.raw.green, R.raw.pink -> .48F - (volOffset * .035F) to .44F - (volOffset * .035F)
+            R.raw.boxfan, R.raw.metal_fan -> .4F - (volOffset * .03F) to .36F - (volOffset * .03F)
+            R.raw.ac -> .35F - (volOffset * .03F) to .3F - (volOffset * .03F)
+            R.raw.brown, R.raw.waves -> .0925F - (volOffset * .005F) to .0825F - (volOffset * .005F)
+            else -> .45F - (volOffset * .04F) to .4F - (volOffset * .04F)
         }
 
         //adjust the volumes down further if low intensity
-        if (intensityLevel == 0) {
-            fgVolume *= .7F
-            altBgVolume *= .7F
-        } else if (intensityLevel == -1) {
-            fgVolume *= .4F
-            altBgVolume *= .4F
+        if (intensityLevel == 1) {
+            fgVolume *= .8F
+            altBgVolume *= .8F
+        } else if (intensityLevel == 0) {
+            fgVolume *= .5F
+            altBgVolume *= .5F
         }
 
         Log.d("DimVolume", "WILD prompt volumes at $fgVolume and $altBgVolume offset $volOffset intensity $intensityLevel")
@@ -178,6 +182,7 @@ class SoundPoolManager {
 
     fun stopPlayingAltBackground() {
         //Log.d("MainActivity","Stopping altBgId $altBgId")
+        adjustAltBGVol = false
         mSoundPoolCompat.stop(altBgId)
         mSoundPoolCompat.unload(altBgId)
         altBgId = -1
@@ -186,6 +191,7 @@ class SoundPoolManager {
 
     fun stopPlayingForeground() {
         isFGSoundStopped = true
+        adjustAltBGVol = false
         mSoundPoolCompat.stop(mFgId)
         mSoundPoolCompat.unload(mFgId)
         fgJob?.let { cancelSoundPlayer(it) }
@@ -280,6 +286,13 @@ class SoundPoolManager {
             if (filePath != null) {
                 //Log.d("MainActivity", "starting load for file=$filePath")
 
+                //we're playing a main clip so just turn down the files until done
+                if(adjustAltBGVol) {
+                    currVolume *= ADJUST_BG_VOL_FACTOR
+                }
+
+                Log.d("DimVolume", "adjusted AltBg volume to $currVolume")
+
                 altBgId = mSoundPoolCompat.playOnce(filePath, currVolume, currVolume, 1F)
                 //Log.d("MainActivity", "file loading as id=$altBgId")
 
@@ -341,9 +354,10 @@ class SoundPoolManager {
                         Log.d("DimVolume", "before FG volume $currVolume BG volume $currBgVolume")
                         if(sound.fileVolAdjust != 0F) {
                             currVolume *= sound.fileVolAdjust
-                            currBgVolume *= .35F
+                            currBgVolume *= ADJUST_BG_VOL_FACTOR
                             stopPlayingBackground()
                             playBackgroundSound(soundRoutine.bgRawId, currBgVolume, textView)
+                            adjustAltBGVol = true
                             delay(timeMillis = 1000)
                         } else if(currVolume != soundRoutine.fgVolume){
                             //reset to the original volumes
@@ -351,6 +365,7 @@ class SoundPoolManager {
                             currBgVolume = soundRoutine.bgVolume
                             stopPlayingBackground()
                             playBackgroundSound(soundRoutine.bgRawId, currBgVolume, textView)
+                            adjustAltBGVol = false
                             delay(timeMillis = 1000)
                         }
 
@@ -358,20 +373,24 @@ class SoundPoolManager {
 
                         //check if stop button pushed mid play or the sound file id is already initialized
                         if (!isFGSoundStopped) {
-
-                            textView.text = "Playing ${soundRoutine.bgLabel} and ${soundRoutine.fgLabel} " +
-                                    "routine for ${soundRoutine.playCount} cycles"
+                            var filePath = ""
 
                             //play the sound file - playOnce handles loading and unloading the file
                             //Log.d("MainActivity", "playing ${sound.rawResId}")
                             mFgId = if(sound.filePathId != null) {
-                                val filePath = FileMonitor.getFilePath(sound.filePathId)
+                                filePath = FileMonitor.getFilePath(sound.filePathId).toString()
                                 Log.d("MainActivity", "playing $filePath")
                                 mSoundPoolCompat.playOnce(filePath, currVolume, currVolume, 1F)
                             } else {
                                 Log.d("MainActivity", "playing mFgId $mFgId")
                                 mSoundPoolCompat.playOnce(sound.rawResId, currVolume, currVolume, 1F)
                             }
+
+                             var playStatus = "Playing ${soundRoutine.bgLabel} and ${soundRoutine.fgLabel} routine"
+                             playStatus +=  if(filePath.isNotEmpty()) ", current file ${filePath.substringAfterLast("/")}"
+                                else " for ${soundRoutine.playCount} cycles"
+                             textView.text = playStatus
+
 
                             waitForSoundPlayToComplete(mFgId)
 
@@ -432,6 +451,18 @@ class SoundPoolManager {
     private fun cancelSoundPlayer(job : Job) {
         if(job.isActive) {
             job.cancel()
+        }
+    }
+
+    private fun getBackgroundSoundLabel(rawResId : Int): String {
+        return when(rawResId) {
+            R.raw.green -> "Green"
+            R.raw.pink -> "Pink"
+            R.raw.brown -> "Brown"
+            R.raw.boxfan -> "Fan"
+            R.raw.metal_fan -> "Metal Fan"
+            R.raw.ac -> "AC"
+            else -> "Unknown"
         }
     }
 }
