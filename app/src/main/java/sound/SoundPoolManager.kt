@@ -1,7 +1,6 @@
 package sound
 
 import android.content.Context
-import android.os.Environment
 import android.util.Log
 import android.widget.TextView
 import com.lucidtrainer.R
@@ -12,9 +11,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
-import utils.FileMonitor
-import java.io.File
-import java.time.LocalDateTime
+import utils.FileManager
 
 
 /*
@@ -23,6 +20,7 @@ import java.time.LocalDateTime
 class SoundPoolManager {
 
     private lateinit var mSoundPoolCompat: SoundPoolCompat
+    private lateinit var fileManager: FileManager
     private var mBgId = -1
     private var mFgId = -1
     private var fgJob: Job? = null
@@ -74,6 +72,8 @@ class SoundPoolManager {
                 }
             }
         })
+
+        fileManager = FileManager.getInstance()!!
     }
 
     fun playSoundList(soundList : List<String>, endBgRawRes : Int, endBgLabel : String,
@@ -280,7 +280,7 @@ class SoundPoolManager {
 
         for (altFile in altFiles) {
 
-            val filePath =  FileMonitor.getFilePath(altFile)
+            val filePath = fileManager.getFilePath(altFile)
             Log.d("MainActivity", "playing alt bg filePath $filePath")
 
             if (filePath != null) {
@@ -378,7 +378,7 @@ class SoundPoolManager {
                             //play the sound file - playOnce handles loading and unloading the file
                             //Log.d("MainActivity", "playing ${sound.rawResId}")
                             mFgId = if(sound.filePathId != null) {
-                                filePath = FileMonitor.getFilePath(sound.filePathId).toString()
+                                filePath = fileManager.getFilePath(sound.filePathId).toString()
                                 Log.d("MainActivity", "playing $filePath")
                                 mSoundPoolCompat.playOnce(filePath, currVolume, currVolume, 1F)
                             } else {

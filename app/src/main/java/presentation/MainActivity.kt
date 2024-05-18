@@ -36,7 +36,7 @@ import repository.DeviceDocumentsRepository
 import sound.PodSoundRoutine
 import sound.SoundPoolManager
 import utils.AppConfig
-import utils.FileMonitor
+import utils.FileManager
 import utils.PromptMonitor
 import viewmodel.DocumentViewModel
 import viewmodel.DocumentViewModelFactory
@@ -69,6 +69,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     //set up the AudioManager and SoundPool
     private lateinit var audioManager: AudioManager
     private lateinit var soundPoolManager: SoundPoolManager
+    private lateinit var fileManager: FileManager
     private var  lastEventTimestamp = ""
     private var apJob: Job? = null
     private var isBTDisconnected: Boolean = false
@@ -93,6 +94,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         // instantiate view binding
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        //init the FileManager instance before the SoundManager
+        fileManager = FileManager.getInstance(applicationContext)
 
         setupSound()
 
@@ -200,7 +204,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
     private fun clearSessionState() {
         promptMonitor.clear()
-        FileMonitor.clearFilesUsedInSession()
+        fileManager.clearFilesInSession()
     }
 
     private fun processSleepStageEvents(sleepStage: String) {
@@ -404,7 +408,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
 
 
-        val podCount = FileMonitor.getFilesFromDirectory(PodSoundRoutine.ROOT_DIR+"/"+PodSoundRoutine.POD_DIR).size
+        val podCount = fileManager.getFilesFromDirectory(PodSoundRoutine.ROOT_DIR+"/"+PodSoundRoutine.POD_DIR).size
         binding.chipPod.isVisible = podCount > 0
 
         binding.chipGroupPod.isVisible = false
