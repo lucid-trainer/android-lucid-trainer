@@ -132,17 +132,33 @@ class SoundPoolManager {
             R.raw.green, R.raw.pink -> .48F - (volOffset * .035F) to .44F - (volOffset * .035F)
             R.raw.boxfan, R.raw.metal_fan -> .4F - (volOffset * .03F) to .36F - (volOffset * .03F)
             R.raw.ac -> .35F - (volOffset * .03F) to .3F - (volOffset * .03F)
-            R.raw.brown, R.raw.waves -> .0925F - (volOffset * .005F) to .0825F - (volOffset * .005F)
+            R.raw.brown, R.raw.waves -> .095F - (volOffset * .005F) to .085F - (volOffset * .005F)
             else -> .45F - (volOffset * .04F) to .4F - (volOffset * .04F)
         }
 
-        //adjust the volumes down further if low intensity
-        if (intensityLevel == 1) {
-            fgVolume *= .8F
-            altBgVolume *= .8F
-        } else if (intensityLevel == 0) {
-            fgVolume *= .5F
-            altBgVolume *= .5F
+        //adjust the volumes further if low/high intensity
+        when(intensityLevel) {
+            0 ->  {
+                fgVolume *= .5F
+                altBgVolume *= .5F
+            }
+
+            1 -> {
+                fgVolume *= .8F
+                altBgVolume *= .8F
+            }
+
+            //2, leave as is
+
+            3 -> {
+                fgVolume *= 1.1F
+                altBgVolume *= 1.1F
+            }
+
+            4 -> {
+                fgVolume *= 1.25F
+                altBgVolume *= 1.25F
+            }
         }
 
         Log.d("DimVolume", "WILD prompt volumes at $fgVolume and $altBgVolume offset $volOffset intensity $intensityLevel")

@@ -300,7 +300,7 @@
         app:layout_constraintVertical_bias="1.0" />
 
     <LinearLayout
-        android:layout_width="380dp"
+        android:layout_width="500dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="80dp"
         android:gravity="center"
@@ -341,7 +341,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:soundEffectsEnabled="false"
-            android:text="Stop All"
+            android:text="Stop"
             android:textSize="11sp" />
 
         <View
@@ -355,6 +355,19 @@
             android:layout_height="wrap_content"
             android:soundEffectsEnabled="false"
             android:text="Reset"
+            android:textSize="11sp" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <Button
+            android:id="@+id/btn_clear_db"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:soundEffectsEnabled="false"
+            android:text="Clear Db"
             android:textSize="11sp" />
 
 

@@ -70,13 +70,14 @@ class FileManager(val sharedPreferences : SharedPreferences) {
         addFilesUsed(dir, files)
     }
 
-    private fun resetFilesUsed(dir: String) {
-        with (sharedPreferences.edit()) {
-            putStringSet(FILE_PREFIX+dir, emptySet())
-            apply()
+    fun resetFilesUsed(vararg dirs: String) {
+        for (dir in dirs) {
+            with(sharedPreferences.edit()) {
+                putStringSet(FILE_PREFIX + dir, emptySet())
+                apply()
+            }
+            Log.d("FileManager", "resetting shared pref for $dir")
         }
-
-        Log.d("FileManager", "resetting shared pref for $dir")
     }
 
     fun getUnusedFilesFromDirectory(dir: String, minRequired: Int) : List<String> {

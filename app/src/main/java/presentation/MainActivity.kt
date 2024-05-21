@@ -35,6 +35,10 @@ import network.request.DeviceDocument
 import repository.DeviceDocumentsRepository
 import sound.PodSoundRoutine
 import sound.SoundPoolManager
+import sound.WILDSoundRoutine
+import sound.WILDSoundRoutine.Companion.CLIP_DIR
+import sound.WILDSoundRoutine.Companion.FOREGROUND_DIR
+import sound.WILDSoundRoutine.Companion.ROOT_DIR
 import utils.AppConfig
 import utils.FileManager
 import utils.PromptMonitor
@@ -108,7 +112,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         this.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
 
-        // use a broadcast reciever to stop any playback when bluetooth is disconnected
+        // use a broadcast receiver to stop any playback when bluetooth is disconnected
         val broadcastReceiver: BroadcastReceiver = getBroadcastReceiver()
 
         val filter = IntentFilter().apply {
@@ -255,7 +259,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             }
 
             "REM ASLEEP" -> {
-                checkAndSubmitREMPromptEvent(hour)
+                checkAndSubmitREMPromptEvent()
                 promptMonitor.handleRemAsleepEvent()
             }
         }
@@ -294,7 +298,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                     && promptMonitor.isLightEventAllowed(viewModel.lastTimestamp.value)
 
             if (hoursAllowed) {
-                val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value, 15, 45)
+                val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value, 15, 45, hour)
                 val document = getDeviceDocument(EVENT_LABEL_LIGHT, 0, isLightPromptEventAllowed, intensityLevel)
                 logEvent(document)
             }
@@ -307,16 +311,19 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
     }
 
-    private fun checkAndSubmitREMPromptEvent(hour: Int) {
+    private fun checkAndSubmitREMPromptEvent() {
+        val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
+        val hour = triggerDateTime.hour
+        val minute = triggerDateTime.minute
 
         if (binding.chipRem.isChecked) {
-            val hoursAllowed = hour in 2..8
+            val hoursAllowed = (hour == 1 && minute > 29) || hour in 2..8
 
             val isREMPromptEventAllowed = hoursAllowed &&
                     promptMonitor.isRemEventAllowed(viewModel.lastTimestamp.value)
 
             if (hoursAllowed) {
-                val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value, 15, 45)
+                val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value, 15, 45, hour)
                 val document = getDeviceDocument(EVENT_LABEL_REM, 0, isREMPromptEventAllowed, intensityLevel)
                 logEvent(document)
             }
@@ -371,6 +378,12 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
 
         binding.btnReset.setOnClickListener {
+            //reset used files history for WILD prompts
+            fileManager.resetFilesUsed("$ROOT_DIR/$FOREGROUND_DIR",
+                "$ROOT_DIR/$CLIP_DIR")
+        }
+
+        binding.btnClearDb.setOnClickListener {
             purgeAllRecords()
             viewModel.workingReadingList.clear()
             viewModel.sleepStage.value = ""
@@ -405,8 +418,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 //do nothing
             }
         })
-
-
 
         val podCount = fileManager.getFilesFromDirectory(PodSoundRoutine.ROOT_DIR+"/"+PodSoundRoutine.POD_DIR).size
         binding.chipPod.isVisible = podCount > 0
@@ -545,7 +556,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 }
 
                 //determines the level of vibration from watch and volume level of sound prompt
-                val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value, 15, 45)
+                val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value, 15, 45, hour)
 
                 //capture in event list in the event list
                 updateEventList(eventLabel, triggerDateTime.toString())

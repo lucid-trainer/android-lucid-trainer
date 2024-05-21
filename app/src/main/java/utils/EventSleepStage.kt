@@ -24,7 +24,7 @@ object EventSleepStage {
             val avgHeartRate = workingReadingList.map { it -> it.heartRate }.takeLast(20).take(10).average().roundToInt()
 
             val recentMove =
-                workingReadingList.map { it -> it.accelMovement }.takeLast(10).filter { it > .1 }.size
+                workingReadingList.map { it -> it.accelMovement }.takeLast(8).filter { it > .02 }.size
             val recentActive =
                 workingReadingList.map { it -> it.accelMovement }.takeLast(12).filter { it > .2 }.size
             val prevHeartCnt =
