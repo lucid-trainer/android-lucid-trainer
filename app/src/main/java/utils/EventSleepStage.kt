@@ -21,25 +21,24 @@ object EventSleepStage {
             val lightCnt =
                 workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .02 && it <= .15}.size
 
-            val avgHeartRate = workingReadingList.map { it -> it.heartRate }.takeLast(20).take(10).average().roundToInt()
+            val avgHeartRate = workingReadingList.map { it -> it.heartRate }.takeLast(15).take(5).average().roundToInt()
 
             val recentMove =
-                workingReadingList.map { it -> it.accelMovement }.takeLast(8).filter { it > .02 }.size
-            val recentActive =
-                workingReadingList.map { it -> it.accelMovement }.takeLast(12).filter { it > .2 }.size
-            val prevHeartCnt =
-                workingReadingList.map { it -> it.heartRate }.takeLast(10).take(5).filter { it <= avgHeartRate}.size
-            val heartCnt =
-                workingReadingList.map { it -> it.heartRate }.takeLast(5).filter { it > avgHeartRate+1}.size
+                workingReadingList.map { it -> it.accelMovement }.takeLast(10).filter { it > .15 }.size
+            val currHeartRate =  workingReadingList.map { it -> it.heartRate }.takeLast(5)
 
+
+            //val prevHrAvg  = prevHeartRate.filter { it <= avgHeartRate }.size >= 4
+            val stepHrIncrease = currHeartRate.filter {it > avgHeartRate+1 }.size >= 2
+            val jumpHrIncrease = currHeartRate.filter { it > avgHeartRate+2 }.size >= 2
 
             sleepStage = "LIGHT ASLEEP"
 
-            if(highActiveCnt >= 1 && activeCnt >= 2 && heartCnt >=2) {
+            if(highActiveCnt >= 1 && activeCnt >= 2 && stepHrIncrease) {
                 sleepStage = "AWAKE"
             } else if(restlessCnt >= 1) {
                 sleepStage = "RESTLESS"
-            } else if(recentActive == 0 && prevHeartCnt >=2 && heartCnt >= 3) {
+            } else if(recentMove == 0 &&  (jumpHrIncrease || stepHrIncrease)) {
                 sleepStage = "REM ASLEEP"
             } else if (deepCnt == 0 && lightCnt == 0) {
                 sleepStage = "DEEP ASLEEP"

@@ -120,15 +120,14 @@ class PromptMonitor {
     fun isLightEventAllowed(lastTimestamp: String?): Boolean {
         val totalCnt = lightEventList.size
         val totalPromptCount = allPromptEvents.size
-        val lastHourAllCnt = allPromptEvents.filter{ it > LocalDateTime.parse(lastTimestamp).minusMinutes(60) }.size
-        val recentRemCnt = remEventList.filter{ it > LocalDateTime.parse(lastTimestamp).minusMinutes(10) }.size
+        val recentRemCnt = remEventList.filter{ it > LocalDateTime.parse(lastTimestamp).minusMinutes(12) }.size
 
-        //rem prompts are preferred, but we'll allow a light prompt if there haven't been any for at least an hour or if a recent rem
-        val promptCntNotExceeded = (lastHourAllCnt == 0 || recentRemCnt > 0) && totalCnt < MAX_LIGHT_PROMPT_COUNT
+        //rem prompts are preferred, but we'll allow a light prompt if there is a recent rem period
+        val promptCntNotExceeded = (recentRemCnt > 0) && totalCnt < MAX_LIGHT_PROMPT_COUNT
                 && totalPromptCount < MAX_TOTAL_PROMPT_COUNT
 
         return promptEventWaiting == null && asleepEventCountSinceAwake >= 25 && promptCntNotExceeded &&
-                (allPromptEvents.isEmpty() || LocalDateTime.parse(lastTimestamp) >= allPromptEvents.last().plusMinutes(5))
+                (allPromptEvents.isEmpty() || LocalDateTime.parse(lastTimestamp) >= allPromptEvents.last().plusMinutes(2))
     }
 
     fun promptIntensityLevel(lastTimestamp: String?, minTimeBetweenPrompts: Long, maxTimeBetweenPrompts: Long, hour: Int): Int {
@@ -136,7 +135,7 @@ class PromptMonitor {
         var intensity =  if(allPromptEvents.isEmpty()) {
             4
         } else if (LocalDateTime.parse(lastTimestamp) <= allPromptEvents.last().plusMinutes(minTimeBetweenPrompts)) {
-            3
+            1
         } else if (LocalDateTime.parse(lastTimestamp) <= allPromptEvents.last().plusMinutes(maxTimeBetweenPrompts)) {
             2
         } else {
@@ -144,7 +143,7 @@ class PromptMonitor {
         }
 
         //adjust it down a bit late in the morning for now
-        if(hour > 5 && intensity == 4) {
+        if(hour >= 5 && intensity == 4) {
             intensity--
         }
 

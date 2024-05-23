@@ -16,6 +16,7 @@ import android.widget.AdapterView
 import android.widget.SeekBar
 import android.widget.SeekBar.OnSeekBarChangeListener
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.lifecycle.Observer
@@ -35,7 +36,6 @@ import network.request.DeviceDocument
 import repository.DeviceDocumentsRepository
 import sound.PodSoundRoutine
 import sound.SoundPoolManager
-import sound.WILDSoundRoutine
 import sound.WILDSoundRoutine.Companion.CLIP_DIR
 import sound.WILDSoundRoutine.Companion.FOREGROUND_DIR
 import sound.WILDSoundRoutine.Companion.ROOT_DIR
@@ -67,7 +67,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         const val EVENT_LABEL_LIGHT = "light_event"
         const val EVENT_LABEL_REM = "rem_event"
         const val EVENT_LABEL_RESTLESS = "restless_event"
-        const val SLEEP_EVENT_PROMPT_DELAY = 30000L //3000L DEBUG VALUE
+        const val SLEEP_EVENT_PROMPT_DELAY = 10000L //3000L DEBUG VALUE
     }
 
     //set up the AudioManager and SoundPool
@@ -254,7 +254,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             }
 
             "LIGHT ASLEEP" -> {
-                checkAndSubmitLightPromptEvent(hour)
+                checkAndSubmitLightPromptEvent()
                 promptMonitor.handleLightAsleepEvent()
             }
 
@@ -289,10 +289,13 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
     }
 
-    private fun checkAndSubmitLightPromptEvent(hour: Int) {
+    private fun checkAndSubmitLightPromptEvent() {
+        val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
+        val hour = triggerDateTime.hour
+        val minute = triggerDateTime.minute
 
         if (binding.chipLight.isChecked) {
-            val hoursAllowed = hour in 4..7
+            val hoursAllowed =  (hour == 1 && minute > 29) || hour in 2..7
 
             val isLightPromptEventAllowed = hoursAllowed
                     && promptMonitor.isLightEventAllowed(viewModel.lastTimestamp.value)
@@ -378,9 +381,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
 
         binding.btnReset.setOnClickListener {
-            //reset used files history for WILD prompts
-            fileManager.resetFilesUsed("$ROOT_DIR/$FOREGROUND_DIR",
-                "$ROOT_DIR/$CLIP_DIR")
+            confirmAndReset()
         }
 
         binding.btnClearDb.setOnClickListener {
@@ -434,6 +435,23 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 binding.textPodLbl.isVisible = false
             }
         }
+    }
+
+    private fun confirmAndReset() {
+        val builder = AlertDialog.Builder(this)
+        builder.setMessage("Are you sure you want to reset used files?")
+            .setCancelable(false)
+            .setPositiveButton("Yes") { dialog, id ->
+                fileManager.resetFilesUsed(
+                    "$ROOT_DIR/$FOREGROUND_DIR",
+                    "$ROOT_DIR/$CLIP_DIR"
+                )
+            }
+            .setNegativeButton("No") { dialog, id ->
+                dialog.dismiss()
+            }
+        val alert = builder.create()
+        alert.show()
     }
 
     private fun playPrompts(eventLabel : String, hour: Int = -1, intensityLevel: Int = SoundPoolManager.DEFAULT_INTENSITY_LEVEL) {
@@ -506,7 +524,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             }
 
             soundList = eventMap[PLAY_EVENT]!!.split(",").toMutableList()
-            
+
             promptMonitor.stopPromptWindow = endPromptWindow
 
         } else if (eventMap.containsKey(DREAM_EVENT)) {
@@ -549,7 +567,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
                 if(eventLabel == EVENT_LABEL_LIGHT) {
                     //pause a minute to allow a potential cancel
-                    for (i in 1..2) {
+                    for (i in 1..6) {
                         yield()
                         delay(timeMillis = SLEEP_EVENT_PROMPT_DELAY)
                     }
@@ -566,7 +584,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                     getDeviceDocument(eventLabel, 0,true, intensityLevel))
 
                 if(eventLabel != EVENT_LABEL_AWAKE) {
-                    //give the watch time to pick up the vibration event
+                    //give the watch a little time to pick up the vibration event
                     yield()
                     delay(timeMillis = SLEEP_EVENT_PROMPT_DELAY)
                 }
