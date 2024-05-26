@@ -19,9 +19,11 @@ class PromptMonitor {
     var lastTimestampSinceDeepAsleep: LocalDateTime? = null
 
     companion object {
-        const val MAX_REM_PROMPT_COUNT_PER_HOUR = 3
-        const val MAX_LIGHT_PROMPT_COUNT = 3
-        const val MAX_TOTAL_PROMPT_COUNT = 9
+        const val MAX_PROMPT_COUNT_PER_PERIOD = 3
+        const val MAX_LIGHT_PROMPT_COUNT_PER_PERIOD = 1
+        const val MAX_PROMPT_COUNT = 12
+        const val MIN_TIME_BETWEEN_PROMPTS = 15L
+        const val MAX_TIME_BETWEEN_PROMPTS = 40L
     }
 
     private val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
@@ -109,41 +111,48 @@ class PromptMonitor {
 
     fun isRemEventAllowed(lastTimestamp: String?): Boolean {
         val totalPromptCount = allPromptEvents.size
-        val lastHourCnt = remEventList.filter{ it > LocalDateTime.parse(lastTimestamp).minusMinutes(60) }.size
-        val promptCntNotExceeded = lastHourCnt < MAX_REM_PROMPT_COUNT_PER_HOUR
-                && totalPromptCount < MAX_TOTAL_PROMPT_COUNT
+        val lastPeriodCount = allPromptEvents.filter{ it > LocalDateTime.parse(lastTimestamp).minusMinutes(70) }.size
+
+        val promptCntNotExceeded = lastPeriodCount < MAX_PROMPT_COUNT_PER_PERIOD
+                && totalPromptCount <= MAX_PROMPT_COUNT
 
         return promptEventWaiting == null && asleepEventCountSinceAwake >= 15 && promptCntNotExceeded &&
                 (allPromptEvents.isEmpty() || LocalDateTime.parse(lastTimestamp) >= allPromptEvents.last().plusMinutes(5))
     }
 
     fun isLightEventAllowed(lastTimestamp: String?): Boolean {
-        val totalCnt = lightEventList.size
-        val totalPromptCount = allPromptEvents.size
-        val recentRemCnt = remEventList.filter{ it > LocalDateTime.parse(lastTimestamp).minusMinutes(12) }.size
+        val totalCount = allPromptEvents.size
+        val lastPeriodCount = lightEventList.filter{ it > LocalDateTime.parse(lastTimestamp).minusMinutes(100) }.size
 
-        //rem prompts are preferred, but we'll allow a light prompt if there is a recent rem period
-        val promptCntNotExceeded = (recentRemCnt > 0) && totalCnt < MAX_LIGHT_PROMPT_COUNT
-                && totalPromptCount < MAX_TOTAL_PROMPT_COUNT
+        val promptCntNotExceeded = lastPeriodCount < MAX_LIGHT_PROMPT_COUNT_PER_PERIOD
+                && totalCount <= MAX_PROMPT_COUNT
 
         return promptEventWaiting == null && asleepEventCountSinceAwake >= 25 && promptCntNotExceeded &&
-                (allPromptEvents.isEmpty() || LocalDateTime.parse(lastTimestamp) >= allPromptEvents.last().plusMinutes(2))
+                (allPromptEvents.isEmpty() || LocalDateTime.parse(lastTimestamp) >= allPromptEvents.last().plusMinutes(5))
     }
 
-    fun promptIntensityLevel(lastTimestamp: String?, minTimeBetweenPrompts: Long, maxTimeBetweenPrompts: Long, hour: Int): Int {
+    fun promptIntensityLevel(lastTimestamp: String?): Int {
 
-        var intensity =  if(allPromptEvents.isEmpty()) {
-            4
-        } else if (LocalDateTime.parse(lastTimestamp) <= allPromptEvents.last().plusMinutes(minTimeBetweenPrompts)) {
+        val hour = LocalDateTime.parse(lastTimestamp).hour
+
+        var intensity = if (allPromptEvents.isEmpty()) {
+            3
+        } else if (LocalDateTime.parse(lastTimestamp) <= allPromptEvents.last()
+                .plusMinutes(MIN_TIME_BETWEEN_PROMPTS)
+        ) {
             1
-        } else if (LocalDateTime.parse(lastTimestamp) <= allPromptEvents.last().plusMinutes(maxTimeBetweenPrompts)) {
+        } else if (LocalDateTime.parse(lastTimestamp) <= allPromptEvents.last()
+                .plusMinutes(MAX_TIME_BETWEEN_PROMPTS)
+        ) {
             2
         } else {
-            4
+            3
         }
 
-        //adjust it down a bit late in the morning for now
-        if(hour >= 5 && intensity == 4) {
+        //adjust up or down a bit depending on hour
+        if(hour < 3) {
+            intensity++
+        } else if(hour >= 5) {
             intensity--
         }
 

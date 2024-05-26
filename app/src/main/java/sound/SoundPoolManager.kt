@@ -138,27 +138,23 @@ class SoundPoolManager {
 
         //adjust the volumes further if low/high intensity
         when(intensityLevel) {
-            0 ->  {
-                fgVolume *= .5F
-                altBgVolume *= .5F
-            }
-
-            1 -> {
+            0, 1 ->  {
                 fgVolume *= .8F
                 altBgVolume *= .8F
             }
 
-            //2, leave as is
+            //1,2,3 leave as is
 
             3 -> {
-                fgVolume *= 1.1F
-                altBgVolume *= 1.1F
+                fgVolume *= 1.2F
+                altBgVolume *= 1.2F
             }
 
             4 -> {
-                fgVolume *= 1.25F
-                altBgVolume *= 1.25F
+                fgVolume *= 1.35F
+                altBgVolume *= 1.35F
             }
+
         }
 
         Log.d("DimVolume", "WILD prompt volumes at $fgVolume and $altBgVolume offset $volOffset intensity $intensityLevel")

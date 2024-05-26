@@ -66,8 +66,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         const val EVENT_LABEL_ASLEEP = "asleep_event"
         const val EVENT_LABEL_LIGHT = "light_event"
         const val EVENT_LABEL_REM = "rem_event"
-        const val EVENT_LABEL_RESTLESS = "restless_event"
-        const val SLEEP_EVENT_PROMPT_DELAY = 10000L //3000L DEBUG VALUE
+        const val SLEEP_EVENT_PROMPT_DELAY = 15000L //3000L DEBUG VALUE
     }
 
     //set up the AudioManager and SoundPool
@@ -212,10 +211,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     }
 
     private fun processSleepStageEvents(sleepStage: String) {
-        binding.sleepStageTexview.setTextColor(Color.GREEN)
-
-        val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
-        val hour = triggerDateTime.hour
+        binding.sleepStageTexview.setTextColor(Color.BLUE)
 
         //stop a prompt/podcast if running too long
         if(sleepStage.contains("ASLEEP") && promptMonitor.isStopPromptWindow(viewModel.lastTimestamp.value)) {
@@ -225,6 +221,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         when(sleepStage) {
             "DEEP ASLEEP" -> promptMonitor.handleDeepAsleepEvent(viewModel.lastTimestamp.value)
+
 
             "AWAKE" -> {
                 binding.sleepStageTexview.setTextColor(Color.RED)
@@ -239,28 +236,23 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             }
 
             "RESTLESS" -> {
-                binding.sleepStageTexview.setTextColor(Color.YELLOW)
-
-                if (promptMonitor.promptEventWaiting != null && promptMonitor.promptEventWaiting == EVENT_LABEL_LIGHT) {
-                    //if we have a prompt event waiting based on light movement cancel
-                    cancelStartCountDownPrompt(EVENT_LABEL_RESTLESS)
-                }
-
+                binding.sleepStageTexview.setTextColor(Color.RED)
                 promptMonitor.handleRestlessEvent()
             }
 
-            "ASLEEP" -> {
-                promptMonitor.handleAsleepEvent()
-            }
+            "ASLEEP" -> promptMonitor.handleAsleepEvent()
 
             "LIGHT ASLEEP" -> {
                 checkAndSubmitLightPromptEvent()
                 promptMonitor.handleLightAsleepEvent()
+                binding.sleepStageTexview.setTextColor(Color.YELLOW)
             }
 
             "REM ASLEEP" -> {
                 checkAndSubmitREMPromptEvent()
                 promptMonitor.handleRemAsleepEvent()
+
+                binding.sleepStageTexview.setTextColor(Color.YELLOW)
             }
         }
     }
@@ -301,7 +293,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                     && promptMonitor.isLightEventAllowed(viewModel.lastTimestamp.value)
 
             if (hoursAllowed) {
-                val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value, 15, 45, hour)
+                val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value)
                 val document = getDeviceDocument(EVENT_LABEL_LIGHT, 0, isLightPromptEventAllowed, intensityLevel)
                 logEvent(document)
             }
@@ -326,7 +318,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                     promptMonitor.isRemEventAllowed(viewModel.lastTimestamp.value)
 
             if (hoursAllowed) {
-                val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value, 15, 45, hour)
+                val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value)
                 val document = getDeviceDocument(EVENT_LABEL_REM, 0, isREMPromptEventAllowed, intensityLevel)
                 logEvent(document)
             }
@@ -565,16 +557,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
                 val hour = triggerDateTime.hour
 
-                if(eventLabel == EVENT_LABEL_LIGHT) {
-                    //pause a minute to allow a potential cancel
-                    for (i in 1..6) {
-                        yield()
-                        delay(timeMillis = SLEEP_EVENT_PROMPT_DELAY)
-                    }
-                }
-
                 //determines the level of vibration from watch and volume level of sound prompt
-                val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value, 15, 45, hour)
+                val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value)
 
                 //capture in event list in the event list
                 updateEventList(eventLabel, triggerDateTime.toString())
