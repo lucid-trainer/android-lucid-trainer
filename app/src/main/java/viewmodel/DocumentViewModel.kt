@@ -1,6 +1,5 @@
 package viewmodel
 
-import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Transformations
 import androidx.lifecycle.ViewModel
@@ -23,7 +22,6 @@ import utils.EventSleepStage
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import kotlin.math.roundToInt
 
 
 class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
@@ -43,6 +41,8 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
 
     //get the starting timestamp
     var startingDateTime = getStartDateTime()
+
+    var lastAwakeTimestamp : LocalDateTime? = null
 
     //the last document stored in the database
     private val lastReading = dao.getLatest()
@@ -111,6 +111,9 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
 
                                 workingReadingList.add(reading)
                                 sleepStage.value = EventSleepStage.getSleepStage(workingReadingList)
+                                if(sleepStage.value == "AWAKE") {
+                                    lastAwakeTimestamp = reading.dateTime
+                                }
                             }
                         }
 
@@ -147,7 +150,7 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
        return LocalDateTime.now();
 
         //for DEBUG, set a specific starting time
-       //return LocalDate.parse("2024-05-11").atTime(1,0)
+       //return LocalDate.parse("2024-05-30").atTime(1,0)
     }
 
     private fun getStartingTimestamp() : String {

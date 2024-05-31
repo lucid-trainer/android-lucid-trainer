@@ -14,8 +14,8 @@ class PromptMonitor {
     var remEventList: MutableList<LocalDateTime> = emptyList<LocalDateTime>().toMutableList()
     var allPromptEvents: MutableList<LocalDateTime> =
         emptyList<LocalDateTime>().toMutableList()
-    var asleepEventCountSinceAwake = 0
-    var deepAsleepEventCountSinceActive = 0
+
+    var lastAwakeTimestamp : LocalDateTime? = null
     var lastTimestampSinceDeepAsleep: LocalDateTime? = null
 
     companion object {
@@ -33,8 +33,6 @@ class PromptMonitor {
         lightEventList.clear()
         remEventList.clear()
         allPromptEvents.clear()
-        asleepEventCountSinceAwake = 0
-        deepAsleepEventCountSinceActive = 0
         stopPromptWindow = null
         promptEventWaiting = null
         lastTimestampSinceDeepAsleep = null
@@ -63,43 +61,10 @@ class PromptMonitor {
         return eventsDisplay
     }
 
-    fun handleDeepAsleepEvent(lastTimestamp: String?) {
-        asleepEventCountSinceAwake++
-        deepAsleepEventCountSinceActive++
-        if (deepAsleepEventCountSinceActive > 40) {
-            lastTimestampSinceDeepAsleep = LocalDateTime.parse(lastTimestamp)
-
-        }
-    }
-
-    fun handleAwakeEvent() {
-        asleepEventCountSinceAwake = 0
-        deepAsleepEventCountSinceActive = 0
-    }
-
-    fun handleRestlessEvent() {
-        asleepEventCountSinceAwake++
-        deepAsleepEventCountSinceActive = 0
-    }
-
-    fun handleAsleepEvent() {
-        asleepEventCountSinceAwake++
-        deepAsleepEventCountSinceActive = 0
-    }
-
-    fun handleLightAsleepEvent() {
-        asleepEventCountSinceAwake++
-        deepAsleepEventCountSinceActive = 0
-    }
-
-    fun handleRemAsleepEvent() {
-        asleepEventCountSinceAwake++
-        deepAsleepEventCountSinceActive = 0
-    }
 
     fun isStopPromptWindow(lastTimestamp: String?): Boolean {
-        return stopPromptWindow != null && stopPromptWindow!! > LocalDateTime.parse(lastTimestamp)
-                && (deepAsleepEventCountSinceActive > 20 || asleepEventCountSinceAwake > 40)
+        return stopPromptWindow != null && stopPromptWindow!! > LocalDateTime.parse(lastTimestamp) &&
+                (LocalDateTime.parse(lastTimestamp) >= lastAwakeTimestamp!!.plusMinutes(20))
     }
 
     fun isAwakeEventAllowed(lastTimestamp: String?): Boolean {
@@ -116,7 +81,8 @@ class PromptMonitor {
         val promptCntNotExceeded = lastPeriodCount < MAX_PROMPT_COUNT_PER_PERIOD
                 && totalPromptCount <= MAX_PROMPT_COUNT
 
-        return promptEventWaiting == null && asleepEventCountSinceAwake >= 15 && promptCntNotExceeded &&
+        return promptEventWaiting == null && promptCntNotExceeded &&
+                LocalDateTime.parse(lastTimestamp) >= lastAwakeTimestamp!!.plusMinutes(8) &&
                 (allPromptEvents.isEmpty() || LocalDateTime.parse(lastTimestamp) >= allPromptEvents.last().plusMinutes(5))
     }
 
@@ -127,8 +93,9 @@ class PromptMonitor {
         val promptCntNotExceeded = lastPeriodCount < MAX_LIGHT_PROMPT_COUNT_PER_PERIOD
                 && totalCount <= MAX_PROMPT_COUNT
 
-        return promptEventWaiting == null && asleepEventCountSinceAwake >= 25 && promptCntNotExceeded &&
-                (allPromptEvents.isEmpty() || LocalDateTime.parse(lastTimestamp) >= allPromptEvents.last().plusMinutes(5))
+        return promptEventWaiting == null && promptCntNotExceeded &&
+            LocalDateTime.parse(lastTimestamp) >= lastAwakeTimestamp!!.plusMinutes(12) &&
+            (allPromptEvents.isEmpty() || LocalDateTime.parse(lastTimestamp) >= allPromptEvents.last().plusMinutes(5))
     }
 
     fun promptIntensityLevel(lastTimestamp: String?): Int {

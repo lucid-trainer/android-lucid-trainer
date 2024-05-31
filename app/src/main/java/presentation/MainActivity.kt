@@ -36,6 +36,7 @@ import network.request.DeviceDocument
 import repository.DeviceDocumentsRepository
 import sound.PodSoundRoutine
 import sound.SoundPoolManager
+import sound.WILDSoundRoutine
 import sound.WILDSoundRoutine.Companion.CLIP_DIR
 import sound.WILDSoundRoutine.Companion.FOREGROUND_DIR
 import sound.WILDSoundRoutine.Companion.ROOT_DIR
@@ -66,7 +67,10 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         const val EVENT_LABEL_ASLEEP = "asleep_event"
         const val EVENT_LABEL_LIGHT = "light_event"
         const val EVENT_LABEL_REM = "rem_event"
-        const val SLEEP_EVENT_PROMPT_DELAY = 15000L //3000L DEBUG VALUE
+        const val SLEEP_EVENT_PROMPT_DELAY = 30000L //3000L DEBUG VALUE
+
+        const val WILD_FG_DIR = "$ROOT_DIR/$FOREGROUND_DIR"
+        const val WILD_CLIP_DIR = "$ROOT_DIR/$CLIP_DIR"
     }
 
     //set up the AudioManager and SoundPool
@@ -175,6 +179,12 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                             val dateFormat = DateTimeFormatter.ofPattern("M/dd/yyyy hh:mm:ss")
                             val displayDate = LocalDateTime.parse(viewModel.lastTimestamp.value)
                                 .format(dateFormat)
+
+                            //initialize the lastAwakeTimestamp
+                            if (promptMonitor.lastAwakeTimestamp == null) {
+                                promptMonitor.lastAwakeTimestamp = LocalDateTime.parse(viewModel.lastTimestamp.value)
+                            }
+
                             var reading = viewModel.lastReadingString.value
 
                             val sleepStage = viewModel.sleepStage.value ?: ""
@@ -219,9 +229,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             promptMonitor.stopPromptWindow = LocalDateTime.parse(viewModel.lastTimestamp.value)
         }
 
-        when(sleepStage) {
-            "DEEP ASLEEP" -> promptMonitor.handleDeepAsleepEvent(viewModel.lastTimestamp.value)
+        Log.d("SleepStage", "${viewModel.lastTimestamp.value} stage=$sleepStage lastAwake=${viewModel.lastAwakeTimestamp}")
 
+        when(sleepStage) {
 
             "AWAKE" -> {
                 binding.sleepStageTexview.setTextColor(Color.RED)
@@ -231,26 +241,23 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                     cancelStartCountDownPrompt(EVENT_LABEL_AWAKE)
                 }
 
-                promptMonitor.handleAwakeEvent()
+                promptMonitor.lastAwakeTimestamp = viewModel.lastAwakeTimestamp
                 checkAndSubmitAwakePromptEvent()
             }
 
             "RESTLESS" -> {
                 binding.sleepStageTexview.setTextColor(Color.RED)
-                promptMonitor.handleRestlessEvent()
             }
-
-            "ASLEEP" -> promptMonitor.handleAsleepEvent()
 
             "LIGHT ASLEEP" -> {
                 checkAndSubmitLightPromptEvent()
-                promptMonitor.handleLightAsleepEvent()
+                promptMonitor.lastAwakeTimestamp = viewModel.lastAwakeTimestamp
                 binding.sleepStageTexview.setTextColor(Color.YELLOW)
             }
 
             "REM ASLEEP" -> {
                 checkAndSubmitREMPromptEvent()
-                promptMonitor.handleRemAsleepEvent()
+                promptMonitor.lastAwakeTimestamp = viewModel.lastAwakeTimestamp
 
                 binding.sleepStageTexview.setTextColor(Color.YELLOW)
             }
@@ -266,10 +273,11 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         if (binding.chipAwake.isChecked) {
             val hoursAllowed = (hour == 4 && minute >= 30) || (hour == 5 && minute <= 30)
 
-            val isAwakeEventAllowed = hoursAllowed &&  promptMonitor.isAwakeEventAllowed(viewModel.lastTimestamp.value)
+            val isAwakeEventAllowed = hoursAllowed && !soundPoolManager.isWildRoutineRunning()
+                    && promptMonitor.isAwakeEventAllowed(viewModel.lastTimestamp.value)
 
             if (hoursAllowed) {
-                val document = getDeviceDocument(EVENT_LABEL_AWAKE, minute.toLong(), isAwakeEventAllowed)
+                val document = getDeviceDocument(EVENT_LABEL_AWAKE, isAwakeEventAllowed)
                 logEvent(document)
             }
 
@@ -289,12 +297,12 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         if (binding.chipLight.isChecked) {
             val hoursAllowed =  (hour == 1 && minute > 29) || hour in 2..7
 
-            val isLightPromptEventAllowed = hoursAllowed
-                    && promptMonitor.isLightEventAllowed(viewModel.lastTimestamp.value)
+            val isLightPromptEventAllowed = hoursAllowed && !soundPoolManager.isWildRoutineRunning() &&
+                    promptMonitor.isLightEventAllowed(viewModel.lastTimestamp.value)
 
             if (hoursAllowed) {
                 val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value)
-                val document = getDeviceDocument(EVENT_LABEL_LIGHT, 0, isLightPromptEventAllowed, intensityLevel)
+                val document = getDeviceDocument(EVENT_LABEL_LIGHT, isLightPromptEventAllowed, intensityLevel)
                 logEvent(document)
             }
 
@@ -314,12 +322,12 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         if (binding.chipRem.isChecked) {
             val hoursAllowed = (hour == 1 && minute > 29) || hour in 2..8
 
-            val isREMPromptEventAllowed = hoursAllowed &&
+            val isREMPromptEventAllowed = hoursAllowed && !soundPoolManager.isWildRoutineRunning() &&
                     promptMonitor.isRemEventAllowed(viewModel.lastTimestamp.value)
 
             if (hoursAllowed) {
                 val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value)
-                val document = getDeviceDocument(EVENT_LABEL_REM, 0, isREMPromptEventAllowed, intensityLevel)
+                val document = getDeviceDocument(EVENT_LABEL_REM, isREMPromptEventAllowed, intensityLevel)
                 logEvent(document)
             }
 
@@ -431,7 +439,11 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
     private fun confirmAndReset() {
         val builder = AlertDialog.Builder(this)
-        builder.setMessage("Are you sure you want to reset used files?")
+
+        val fgSize = fileManager.getUsedFilesFromDirectory(WILD_FG_DIR).size
+        val clipSize = fileManager.getUsedFilesFromDirectory(WILD_CLIP_DIR).size
+
+        builder.setMessage("Are you sure you want to reset used files ($fgSize fgs, $clipSize clips?)")
             .setCancelable(false)
             .setPositiveButton("Yes") { dialog, id ->
                 fileManager.resetFilesUsed(
@@ -512,7 +524,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             updateEventList(EVENT_LABEL_AWAKE, triggerDateTime.toString())
 
             CoroutineScope(Dispatchers.Default).launch {
-                deviceDocumentRepository.postDevicePrompt("appdata", getDeviceDocument(EVENT_LABEL_AWAKE, 0,true))
+                deviceDocumentRepository.postDevicePrompt("appdata", getDeviceDocument(EVENT_LABEL_AWAKE, true))
             }
 
             soundList = eventMap[PLAY_EVENT]!!.split(",").toMutableList()
@@ -530,8 +542,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
 
         if(soundList.isNotEmpty()) {
-            promptMonitor.handleAwakeEvent()
-
             soundPoolManager.stopPlayingForeground()
             soundPoolManager.stopPlayingBackground()
             soundPoolManager.playSoundList(
@@ -565,7 +575,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
                 //send a vibration event to the watch
                 deviceDocumentRepository.postDevicePrompt("appdata",
-                    getDeviceDocument(eventLabel, 0,true, intensityLevel))
+                    getDeviceDocument(eventLabel, true, intensityLevel ))
 
                 if(eventLabel != EVENT_LABEL_AWAKE) {
                     //give the watch a little time to pick up the vibration event
@@ -590,7 +600,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         promptMonitor.promptEventWaiting = null
 
-        val document = getDeviceDocument("cancel from: $eventLabel", 0,false )
+        val document = getDeviceDocument("cancel from: $eventLabel", false, 0 )
         logEvent(document)
 
         if(apJob != null && apJob!!.isActive) {
@@ -607,8 +617,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         soundPoolManager.stopPlayingAltBackground()
     }
 
-    private fun getDeviceDocument(type: String, minutesSinceLastCount: Long,
-                                  allowed: Boolean, intensity: Int = 1) : DeviceDocument {
+    private fun getDeviceDocument(type: String, allowed: Boolean, intensity: Int = 1) : DeviceDocument {
         val triggerTimestamp =
             if (viewModel.lastTimestamp.value != null) viewModel.lastTimestamp.value!! else ""
 
@@ -616,12 +625,11 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             LocalDateTime.now().toString(),
             triggerTimestamp,
             type,
+            promptMonitor.lastAwakeTimestamp.toString(),
             intensity,
-            promptMonitor.asleepEventCountSinceAwake,
-            promptMonitor.deepAsleepEventCountSinceActive,
-            minutesSinceLastCount,
-            promptMonitor.lastTimestampSinceDeepAsleep.toString(),
-            allowed
+            allowed,
+            fileManager.getUsedFilesFromDirectory(WILD_FG_DIR).size,
+            fileManager.getUsedFilesFromDirectory(WILD_CLIP_DIR).size
         )
     }
 

@@ -35,6 +35,8 @@ class SoundPoolManager {
 
         @Volatile
         private var INSTANCE: SoundPoolManager? = null
+
+        var runningSoundRoutine: SoundRoutine? = null
         var isFGSoundStopped = false
         var isBGSoundStopped = false
         var adjustAltBGVol = false
@@ -208,6 +210,8 @@ class SoundPoolManager {
         mSoundPoolCompat.unload(mFgId)
         fgJob?.let { cancelSoundPlayer(it) }
 
+        runningSoundRoutine = null
+
         mFgId = -1
     }
 
@@ -330,6 +334,8 @@ class SoundPoolManager {
                 var lastBgLabel = ""
                 for(soundRoutine in soundRoutines) {
 
+                    runningSoundRoutine = soundRoutine
+
                     textView.text = "Playing ${soundRoutine.bgLabel}"
 
                     //stop the background sound if it something other than the one for this routine
@@ -425,6 +431,8 @@ class SoundPoolManager {
                         stopPlayingAltBackground()
                         lastBgRawId = -9999
                     }
+
+                    runningSoundRoutine = null
                 }
 
                 if(lastBgLabel.isEmpty()) {
@@ -439,6 +447,10 @@ class SoundPoolManager {
                 }
             }
         }
+    }
+
+    fun isWildRoutineRunning(): Boolean {
+        return runningSoundRoutine != null && runningSoundRoutine is WILDSoundRoutine
     }
 
     private suspend fun waitForSoundPlayToComplete(sndId: Int) {
