@@ -79,7 +79,7 @@ class SoundPoolManager {
     }
 
     fun playSoundList(soundList : List<String>, endBgRawRes : Int, endBgLabel : String,
-             eventLabel: String, textView : TextView, hour: Int, playCnt: Int, intensityLevel: Int = DEFAULT_INTENSITY_LEVEL) {
+             eventLabel: String, textView : TextView, playCnt: Int, intensityLevel: Int = DEFAULT_INTENSITY_LEVEL) {
 
         //default
         var bgRawRes = if(endBgRawRes > 0) {
@@ -105,7 +105,7 @@ class SoundPoolManager {
         }
         if (soundList.contains("w") || soundList.contains("wp")) {
             val isPrompt = soundList.contains("wp")
-            val soundRoutine = getWildSoundRoutine(bgRawRes, playCnt, endBgRawRes, eventLabel, bgLabel, endBgLabel, hour, intensityLevel, isPrompt)
+            val soundRoutine = getWildSoundRoutine(bgRawRes, playCnt, endBgRawRes, eventLabel, bgLabel, endBgLabel, intensityLevel, isPrompt)
             soundRoutines.add(soundRoutine)
         }
         if (soundList.contains("p")) {
@@ -121,47 +121,35 @@ class SoundPoolManager {
     }
 
     private fun getWildSoundRoutine(bgRawRes: Int, playCnt: Int, endBgRawRes: Int, eventLabel: String, bgLabel: String,
-             endBgLabel: String, hour: Int, intensityLevel: Int, isPrompt: Boolean, ) : SoundRoutine {
-
-        val volOffset = when (hour) {
-            4, 5 -> 1
-            6, 7, 8 -> 2
-            else -> 0
-        }
+             endBgLabel: String, intensityLevel: Int, isPrompt: Boolean, ) : SoundRoutine {
 
         //adjust the volumes based on background sound and time of night
         var (fgVolume, altBgVolume) = when (bgRawRes) {
-            R.raw.green, R.raw.pink -> .48F - (volOffset * .035F) to .44F - (volOffset * .035F)
-            R.raw.boxfan, R.raw.metal_fan -> .4F - (volOffset * .03F) to .36F - (volOffset * .03F)
-            R.raw.ac -> .35F - (volOffset * .03F) to .3F - (volOffset * .03F)
-            R.raw.brown, R.raw.waves -> .095F - (volOffset * .005F) to .085F - (volOffset * .005F)
-            else -> .45F - (volOffset * .04F) to .4F - (volOffset * .04F)
+            R.raw.green, R.raw.pink -> .48F to .44F
+            R.raw.boxfan, R.raw.metal_fan -> .4F to .36F
+            R.raw.ac -> .35F to .3F
+            R.raw.brown, R.raw.waves -> .095F to .085F
+            else -> .45F to .4F
         }
-
-        //adjust the volumes further if low/high intensity
-        when(intensityLevel) {
-            0, 1 ->  {
-                fgVolume *= .8F
-                altBgVolume *= .8F
-            }
-
-            //1,2,3 leave as is
-
-            3 -> {
-                fgVolume *= 1.2F
-                altBgVolume *= 1.2F
-            }
-
-            4 -> {
-                fgVolume *= 1.35F
-                altBgVolume *= 1.35F
-            }
-
-        }
-
-        Log.d("DimVolume", "WILD prompt volumes at $fgVolume and $altBgVolume offset $volOffset intensity $intensityLevel")
 
         return if (isPrompt) {
+            //adjust the volumes further based on intensity for prompts
+            when(intensityLevel) {
+
+                //0, 1 leave as is
+
+                2, 3 -> {
+                    fgVolume *= 1.2F
+                    altBgVolume *= 1.2F
+                }
+
+                4 -> {
+                    fgVolume *= 1.4F
+                    altBgVolume *= 1.4F
+                }
+            }
+            Log.d("DimVolume", "WILD prompt volumes at $fgVolume and $altBgVolume intensity $intensityLevel")
+
             WILDPromptSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
         } else {
             WILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)

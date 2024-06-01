@@ -36,7 +36,6 @@ import network.request.DeviceDocument
 import repository.DeviceDocumentsRepository
 import sound.PodSoundRoutine
 import sound.SoundPoolManager
-import sound.WILDSoundRoutine
 import sound.WILDSoundRoutine.Companion.CLIP_DIR
 import sound.WILDSoundRoutine.Companion.FOREGROUND_DIR
 import sound.WILDSoundRoutine.Companion.ROOT_DIR
@@ -181,8 +180,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                                 .format(dateFormat)
 
                             //initialize the lastAwakeTimestamp
-                            if (promptMonitor.lastAwakeTimestamp == null) {
-                                promptMonitor.lastAwakeTimestamp = LocalDateTime.parse(viewModel.lastTimestamp.value)
+                            if (promptMonitor.lastAwakeDateTime == null) {
+                                promptMonitor.lastAwakeDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
                             }
 
                             var reading = viewModel.lastReadingString.value
@@ -241,7 +240,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                     cancelStartCountDownPrompt(EVENT_LABEL_AWAKE)
                 }
 
-                promptMonitor.lastAwakeTimestamp = viewModel.lastAwakeTimestamp
+                promptMonitor.lastAwakeDateTime = viewModel.lastAwakeTimestamp
                 checkAndSubmitAwakePromptEvent()
             }
 
@@ -251,14 +250,11 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
             "LIGHT ASLEEP" -> {
                 checkAndSubmitLightPromptEvent()
-                promptMonitor.lastAwakeTimestamp = viewModel.lastAwakeTimestamp
                 binding.sleepStageTexview.setTextColor(Color.YELLOW)
             }
 
             "REM ASLEEP" -> {
                 checkAndSubmitREMPromptEvent()
-                promptMonitor.lastAwakeTimestamp = viewModel.lastAwakeTimestamp
-
                 binding.sleepStageTexview.setTextColor(Color.YELLOW)
             }
         }
@@ -501,7 +497,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         Log.d("MainActivity", "setting soundlist to=$soundList")
 
         soundPoolManager.playSoundList(
-            soundList, mBgRawId, mBgLabel, eventLabel, binding.playStatus, hour, playCount, intensityLevel)
+            soundList, mBgRawId, mBgLabel, eventLabel, binding.playStatus, playCount, intensityLevel)
     }
 
     private fun processEvents(eventMap: Map<String, String>) {
@@ -621,15 +617,23 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         val triggerTimestamp =
             if (viewModel.lastTimestamp.value != null) viewModel.lastTimestamp.value!! else ""
 
+        val lastPromptTimestamp = if(promptMonitor.allPromptEvents.isEmpty()) ""
+            else promptMonitor.allPromptEvents.last().toString()
+
+        //add any additional debug logging here
+        val debugLog = ""
+
         return  DeviceDocument(
             LocalDateTime.now().toString(),
             triggerTimestamp,
             type,
-            promptMonitor.lastAwakeTimestamp.toString(),
+            promptMonitor.lastAwakeDateTime.toString(),
+            lastPromptTimestamp,
             intensity,
             allowed,
             fileManager.getUsedFilesFromDirectory(WILD_FG_DIR).size,
-            fileManager.getUsedFilesFromDirectory(WILD_CLIP_DIR).size
+            fileManager.getUsedFilesFromDirectory(WILD_CLIP_DIR).size,
+            debugLog
         )
     }
 
@@ -639,12 +643,10 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         when(eventLabel) {
             EVENT_LABEL_AWAKE -> promptMonitor.awakeEventList.add(now)
             EVENT_LABEL_LIGHT -> {
-                promptMonitor.lightEventList.add(now)
-                promptMonitor.allPromptEvents.add(now)
+                promptMonitor.addLightEvent(now)
             }
             EVENT_LABEL_REM -> {
-                promptMonitor.remEventList.add(now)
-                promptMonitor.allPromptEvents.add(now)
+                promptMonitor.addRemEvent(now)
             }
         }
     }

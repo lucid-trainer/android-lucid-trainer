@@ -1,5 +1,6 @@
 package utils
 
+import android.util.Log
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -15,15 +16,16 @@ class PromptMonitor {
     var allPromptEvents: MutableList<LocalDateTime> =
         emptyList<LocalDateTime>().toMutableList()
 
-    var lastAwakeTimestamp : LocalDateTime? = null
-    var lastTimestampSinceDeepAsleep: LocalDateTime? = null
+    var lastAwakeDateTime : LocalDateTime? = null
+    private var cooldownDateTime : LocalDateTime? = null
 
     companion object {
-        const val MAX_PROMPT_COUNT_PER_PERIOD = 3
-        const val MAX_LIGHT_PROMPT_COUNT_PER_PERIOD = 1
-        const val MAX_PROMPT_COUNT = 12
-        const val MIN_TIME_BETWEEN_PROMPTS = 15L
-        const val MAX_TIME_BETWEEN_PROMPTS = 40L
+        const val MAX_PROMPT_COUNT_PER_PERIOD = 5
+        const val PROMPT_PERIOD = 25L
+        const val LIGHT_PROMPT_PERIOD = 70L
+        const val COOLDOWN_PERIOD = 35L
+        const val MIN_TIME_BETWEEN_PROMPTS = 10L
+        const val MAX_TIME_BETWEEN_PROMPTS = 25L
     }
 
     private val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
@@ -35,67 +37,95 @@ class PromptMonitor {
         allPromptEvents.clear()
         stopPromptWindow = null
         promptEventWaiting = null
-        lastTimestampSinceDeepAsleep = null
+        lastAwakeDateTime = null
+        cooldownDateTime = null
     }
 
     fun getEventsDisplay(): String {
         var eventsDisplay = ""
 
         if (awakeEventList.isNotEmpty()) {
-            val formatAwakeEvents = awakeEventList.map { dateTime -> dateTime.format(formatter) }
+            val formatAwakeEvents = awakeEventList.toMutableList().map { dateTime -> dateTime.format(formatter) }
             eventsDisplay += "ActiveEvents: $formatAwakeEvents \n"
         }
 
         if (lightEventList.isNotEmpty()) {
             val formatLightEvents: List<String> =
-                lightEventList.map { dateTime -> dateTime.format(formatter) }
+                lightEventList.toMutableList().map { dateTime -> dateTime.format(formatter) }
+
             eventsDisplay += "Light Events: $formatLightEvents \n"
         }
 
         if (remEventList.isNotEmpty()) {
             val formatRemEvents: List<String> =
-                remEventList.map { dateTime -> dateTime.format(formatter) }
+                remEventList.toMutableList().map { dateTime -> dateTime.format(formatter) }
             eventsDisplay += "REM Events: $formatRemEvents \n"
         }
 
         return eventsDisplay
     }
 
+    fun addLightEvent(lastDateTime : LocalDateTime) {
+        lightEventList.add(lastDateTime)
+        allPromptEvents.add(lastDateTime)
+
+        checkCooldown(lastDateTime)
+    }
+
+    fun addRemEvent(lastDateTime : LocalDateTime) {
+        remEventList.add(lastDateTime)
+        allPromptEvents.add(lastDateTime)
+
+        checkCooldown(lastDateTime)
+    }
+
+    private fun checkCooldown(lastDateTime: LocalDateTime) {
+        //events tend to cluster which we want.  When we get to the max in a period wait for the cooldown period to end before
+        //allowing any more events
+        if (allPromptEvents.size >= MAX_PROMPT_COUNT_PER_PERIOD
+            && lastDateTime <= allPromptEvents.takeLast(5).first().plusMinutes(PROMPT_PERIOD)
+        ) {
+            cooldownDateTime = lastDateTime
+        }
+    }
+
+    private fun isInCoolDownPeriod(lastTimestamp: String?) : Boolean {
+        return cooldownDateTime != null &&
+                LocalDateTime.parse(lastTimestamp) < cooldownDateTime!!.plusMinutes(COOLDOWN_PERIOD)
+    }
 
     fun isStopPromptWindow(lastTimestamp: String?): Boolean {
         return stopPromptWindow != null && stopPromptWindow!! > LocalDateTime.parse(lastTimestamp) &&
-                (LocalDateTime.parse(lastTimestamp) >= lastAwakeTimestamp!!.plusMinutes(20))
+                (LocalDateTime.parse(lastTimestamp) >= lastAwakeDateTime!!.plusMinutes(20))
     }
 
     fun isAwakeEventAllowed(lastTimestamp: String?): Boolean {
         return (awakeEventList.isEmpty() || LocalDateTime.parse(lastTimestamp) >= awakeEventList.last()
-                    .plusMinutes(60)) &&
-                (lastTimestampSinceDeepAsleep == null || LocalDateTime.parse(lastTimestamp) >=
-                        lastTimestampSinceDeepAsleep!!.plusMinutes(2))
+                    .plusMinutes(60))
     }
 
     fun isRemEventAllowed(lastTimestamp: String?): Boolean {
-        val totalPromptCount = allPromptEvents.size
-        val lastPeriodCount = allPromptEvents.filter{ it > LocalDateTime.parse(lastTimestamp).minusMinutes(70) }.size
-
-        val promptCntNotExceeded = lastPeriodCount < MAX_PROMPT_COUNT_PER_PERIOD
-                && totalPromptCount <= MAX_PROMPT_COUNT
-
-        return promptEventWaiting == null && promptCntNotExceeded &&
-                LocalDateTime.parse(lastTimestamp) >= lastAwakeTimestamp!!.plusMinutes(8) &&
-                (allPromptEvents.isEmpty() || LocalDateTime.parse(lastTimestamp) >= allPromptEvents.last().plusMinutes(5))
+        return promptEventWaiting == null && LocalDateTime.parse(lastTimestamp) >= lastAwakeDateTime!!.plusMinutes(6) &&
+                !isInCoolDownPeriod(lastTimestamp) &&
+                (allPromptEvents.isEmpty() || LocalDateTime.parse(lastTimestamp) >= allPromptEvents.last().plusMinutes(3))
     }
 
     fun isLightEventAllowed(lastTimestamp: String?): Boolean {
-        val totalCount = allPromptEvents.size
-        val lastPeriodCount = lightEventList.filter{ it > LocalDateTime.parse(lastTimestamp).minusMinutes(100) }.size
+        Log.d("PromptMonitor",
+            "$lastTimestamp test 1 = ${allPromptEvents.isNotEmpty() && LocalDateTime.parse(lastTimestamp) <= allPromptEvents.last().plusMinutes(PROMPT_PERIOD)}" +
+                    " test 2 = ${allPromptEvents.isEmpty() || LocalDateTime.parse(lastTimestamp) >= allPromptEvents.last().plusMinutes(LIGHT_PROMPT_PERIOD)}")
 
-        val promptCntNotExceeded = lastPeriodCount < MAX_LIGHT_PROMPT_COUNT_PER_PERIOD
-                && totalCount <= MAX_PROMPT_COUNT
+        if(allPromptEvents.isNotEmpty()) {
+            Log.d("PromptMonitor", "last = ${allPromptEvents.last().toString()} timestamp = ${LocalDateTime.parse(lastTimestamp)}" +
+                    " greater than ${allPromptEvents.last().plusMinutes(LIGHT_PROMPT_PERIOD)}")
+        }
 
-        return promptEventWaiting == null && promptCntNotExceeded &&
-            LocalDateTime.parse(lastTimestamp) >= lastAwakeTimestamp!!.plusMinutes(12) &&
-            (allPromptEvents.isEmpty() || LocalDateTime.parse(lastTimestamp) >= allPromptEvents.last().plusMinutes(5))
+        return promptEventWaiting == null && LocalDateTime.parse(lastTimestamp) >= lastAwakeDateTime!!.plusMinutes(6) &&
+                //allow a light event if in a window of earlier prompts or if there hasn't been one for awhile
+                ((allPromptEvents.isNotEmpty() && LocalDateTime.parse(lastTimestamp) <= allPromptEvents.last().plusMinutes(PROMPT_PERIOD)) ||
+                        allPromptEvents.isEmpty() || LocalDateTime.parse(lastTimestamp) >= allPromptEvents.last().plusMinutes(LIGHT_PROMPT_PERIOD)) &&
+                !isInCoolDownPeriod(lastTimestamp) &&
+                (allPromptEvents.isEmpty() || LocalDateTime.parse(lastTimestamp) >= allPromptEvents.last().plusMinutes(3))
     }
 
     fun promptIntensityLevel(lastTimestamp: String?): Int {
@@ -117,9 +147,9 @@ class PromptMonitor {
         }
 
         //adjust up or down a bit depending on hour
-        if(hour < 3) {
+        if(hour < 5) {
             intensity++
-        } else if(hour >= 5) {
+        } else {
             intensity--
         }
 
