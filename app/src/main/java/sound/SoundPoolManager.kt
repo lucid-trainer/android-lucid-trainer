@@ -132,27 +132,37 @@ class SoundPoolManager {
             else -> .45F to .4F
         }
 
-        return if (isPrompt) {
+
+        if (isPrompt) {
+           // Log.d("DimVolume", "WILD prompt volumes at $fgVolume and $altBgVolume intensity $intensityLevel")
             //adjust the volumes further based on intensity for prompts
             when(intensityLevel) {
+                //0 leave as is
 
-                //0, 1 leave as is
+                1 -> {
+                    fgVolume *= 1.1F
+                    altBgVolume *= 1.1F
+                }
 
-                2, 3 -> {
+                2 -> {
                     fgVolume *= 1.2F
                     altBgVolume *= 1.2F
                 }
 
+                3 -> {
+                    fgVolume *= 1.35F
+                    altBgVolume *= 1.35F
+                }
+
                 4 -> {
-                    fgVolume *= 1.4F
-                    altBgVolume *= 1.4F
+                    fgVolume *= 1.45F
+                    altBgVolume *= 1.45F
                 }
             }
-            Log.d("DimVolume", "WILD prompt volumes at $fgVolume and $altBgVolume intensity $intensityLevel")
 
-            WILDPromptSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
+            return WILDPromptSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
         } else {
-            WILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
+            return WILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
         }
     }
 

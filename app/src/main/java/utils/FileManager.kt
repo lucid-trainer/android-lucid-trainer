@@ -95,7 +95,7 @@ class FileManager(val sharedPreferences : SharedPreferences) {
 
     fun getUsedFilesFromDirectory(dir: String) : List<String> {
         val usedFiles = sharedPreferences.getStringSet(FILE_PREFIX+dir, emptySet())!!.toList()
-        Log.d("FileManager", "shared pref used files for $dir: $usedFiles")
+        //Log.d("FileManager", "shared pref used files for $dir: $usedFiles")
         return sharedPreferences.getStringSet(FILE_PREFIX+dir, emptySet())!!.toList()
     }
 

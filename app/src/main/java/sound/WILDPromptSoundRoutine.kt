@@ -1,5 +1,7 @@
 package sound
 
+import android.util.Log
+import presentation.MainActivity.Companion.EVENT_LABEL_REM
 import utils.FileManager
 
 class WILDPromptSoundRoutine(override var playCount: Int, override var bgRawId: Int, override var endBgRawId: Int,
@@ -18,6 +20,8 @@ class WILDPromptSoundRoutine(override var playCount: Int, override var bgRawId: 
     override fun getStartSounds(): List<String> {
         val startSounds : MutableList<String> = emptyList<String>().toMutableList()
 
+        Log.d("WildPrompt", "eventLabelS = $eventLabel");
+
         startSounds.add("wild/start/prompt_notice.ogg")
 
         return startSounds
@@ -29,6 +33,10 @@ class WILDPromptSoundRoutine(override var playCount: Int, override var bgRawId: 
 
     override fun getRoutine(): List<Sound> {
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()
+
+        if(eventLabel == EVENT_LABEL_REM) {
+            routine.add(Sound(0, 5, "wild/start/rem_prompt_notice.ogg"))
+        }
 
         val dir = "$ROOT_DIR/$PROMPT_DIR"
 

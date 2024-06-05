@@ -66,6 +66,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         const val EVENT_LABEL_ASLEEP = "asleep_event"
         const val EVENT_LABEL_LIGHT = "light_event"
         const val EVENT_LABEL_REM = "rem_event"
+        const val EVENT_LABEL_FOLLOW_UP = "follow_up_event"
         const val SLEEP_EVENT_PROMPT_DELAY = 30000L //3000L DEBUG VALUE
 
         const val WILD_FG_DIR = "$ROOT_DIR/$FOREGROUND_DIR"
@@ -220,7 +221,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     }
 
     private fun processSleepStageEvents(sleepStage: String) {
-        binding.sleepStageTexview.setTextColor(Color.BLUE)
 
         //stop a prompt/podcast if running too long
         if(sleepStage.contains("ASLEEP") && promptMonitor.isStopPromptWindow(viewModel.lastTimestamp.value)) {
@@ -228,7 +228,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             promptMonitor.stopPromptWindow = LocalDateTime.parse(viewModel.lastTimestamp.value)
         }
 
-        Log.d("SleepStage", "${viewModel.lastTimestamp.value} stage=$sleepStage lastAwake=${viewModel.lastAwakeTimestamp}")
+        //Log.d("SleepStage", "${viewModel.lastTimestamp.value} stage=$sleepStage lastAwake=${viewModel.lastAwakeTimestamp}")
 
         when(sleepStage) {
 
@@ -245,6 +245,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             }
 
             "RESTLESS" -> {
+                checkAndSubmitFollowUpPromptEvent()
                 binding.sleepStageTexview.setTextColor(Color.RED)
             }
 
@@ -256,6 +257,11 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             "REM ASLEEP" -> {
                 checkAndSubmitREMPromptEvent()
                 binding.sleepStageTexview.setTextColor(Color.YELLOW)
+            }
+
+            "ASLEEP", "DEEP ASLEEP" -> {
+                checkAndSubmitFollowUpPromptEvent()
+                binding.sleepStageTexview.setTextColor(Color.BLUE)
             }
         }
     }
@@ -293,7 +299,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         if (binding.chipLight.isChecked) {
             val hoursAllowed =  (hour == 1 && minute > 29) || hour in 2..7
 
-            val isLightPromptEventAllowed = hoursAllowed && !soundPoolManager.isWildRoutineRunning() &&
+            val isLightPromptEventAllowed = hoursAllowed &&
                     promptMonitor.isLightEventAllowed(viewModel.lastTimestamp.value)
 
             if (hoursAllowed) {
@@ -318,7 +324,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         if (binding.chipRem.isChecked) {
             val hoursAllowed = (hour == 1 && minute > 29) || hour in 2..8
 
-            val isREMPromptEventAllowed = hoursAllowed && !soundPoolManager.isWildRoutineRunning() &&
+            val isREMPromptEventAllowed = hoursAllowed &&
                     promptMonitor.isRemEventAllowed(viewModel.lastTimestamp.value)
 
             if (hoursAllowed) {
@@ -334,6 +340,28 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             }
         }
     }
+
+    private fun checkAndSubmitFollowUpPromptEvent() {
+        val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
+
+        if (binding.chipLight.isChecked || binding.chipRem.isChecked) {
+            val isFollowUpPromptEventNeeded = !soundPoolManager.isWildRoutineRunning() &&
+                    promptMonitor.isFollowUpEventAllowed(viewModel.lastTimestamp.value)
+
+            val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value)
+
+            if (isFollowUpPromptEventNeeded) {
+                val document = getDeviceDocument(EVENT_LABEL_FOLLOW_UP, true, intensityLevel)
+                logEvent(document)
+
+                //we don't want it to stop the follow-up sleep prompt if stage switches back to ASLEEP
+                promptMonitor.stopPromptWindow = LocalDateTime.parse(viewModel.lastTimestamp.value)
+                startCountDownPromptTimer(EVENT_LABEL_FOLLOW_UP)
+                promptMonitor.lastFollowupDateTime = triggerDateTime
+            }
+        }
+    }
+
 
     private fun logEvent(document: DeviceDocument) {
 
@@ -458,12 +486,12 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         val soundList = mutableListOf<String>()
         var pMod = ""
 
-        if(eventLabel == EVENT_LABEL_LIGHT || eventLabel == EVENT_LABEL_REM) {
+        if(eventLabel == EVENT_LABEL_LIGHT || eventLabel == EVENT_LABEL_REM || eventLabel == EVENT_LABEL_FOLLOW_UP) {
             pMod = "p"
             promptMonitor.stopPromptWindow = LocalDateTime.parse(viewModel.lastTimestamp.value)
         } else {
-            //assume we'll only play for 15 minutes max unless an asleep event occurs sooner
-            promptMonitor.stopPromptWindow = LocalDateTime.parse(viewModel.lastTimestamp.value) .plusMinutes(15)
+            //assume we'll only play for 20 minutes max unless an asleep event occurs sooner
+            promptMonitor.stopPromptWindow = LocalDateTime.parse(viewModel.lastTimestamp.value) .plusMinutes(20)
         }
 
         if (binding.chipSsild.isChecked) {
@@ -641,13 +669,13 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         val now = LocalDateTime.parse(triggerTimestamp)
 
         when(eventLabel) {
-            EVENT_LABEL_AWAKE -> promptMonitor.awakeEventList.add(now)
-            EVENT_LABEL_LIGHT -> {
-                promptMonitor.addLightEvent(now)
-            }
-            EVENT_LABEL_REM -> {
-                promptMonitor.addRemEvent(now)
-            }
+            EVENT_LABEL_AWAKE -> promptMonitor.addAwakeEvent(now)
+
+            EVENT_LABEL_LIGHT -> promptMonitor.addLightEvent(now)
+
+            EVENT_LABEL_REM -> promptMonitor.addRemEvent(now)
+
+            EVENT_LABEL_FOLLOW_UP -> promptMonitor.addFollowUpEvent(now)
         }
     }
 

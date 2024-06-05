@@ -15,17 +15,17 @@ object EventSleepStage {
             val activeCnt =
                 workingReadingList.map { it -> it.accelMovement }.takeLast(5).filter { it > .2 }.size
             val restlessCnt =
-                workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .09 }.size
+                workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .11 }.size
             val deepCnt =
                 workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .01 }.size
             val lightCnt =
-                workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .02 && it <= .09}.size
+                workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .02 && it <= .11}.size
 
             val avgHeartRate =
                 workingReadingList.map { it -> it.heartRate }.takeLast(15).take(10).average()
 
             val recentMove =
-                workingReadingList.map { it -> it.accelMovement }.takeLast(10).filter { it > .09 }.size
+                workingReadingList.map { it -> it.accelMovement }.takeLast(10).filter { it > .11 }.size
             val recentHeartRate =  workingReadingList.map { it -> it.heartRate }.takeLast(5)
 
 

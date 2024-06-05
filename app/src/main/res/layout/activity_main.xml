@@ -220,7 +220,7 @@
 
     <TextView
         android:id="@+id/play_status"
-        android:layout_width="350dp"
+        android:layout_width="400dp"
         android:layout_height="28dp"
         android:layout_marginStart="32dp"
         android:layout_marginTop="80dp"
@@ -269,7 +269,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="32dp"
-        android:layout_marginTop="220dp"
+        android:layout_marginTop="250dp"
         android:textStyle="bold"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/timestamp_lbl_textview" />
