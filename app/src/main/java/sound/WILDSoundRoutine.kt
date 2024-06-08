@@ -15,13 +15,14 @@ class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
         const val FOREGROUND_DIR = "fg"
         const val ALT_BACKGROUND_DIR = "bg"
         const val PROMPT_DIR = "prompt"
+        const val START_DIR = "start"
         const val CLIP_DIR = "main"
     }
 
     override fun getStartSounds(): List<String> {
         val startSounds : MutableList<String> = emptyList<String>().toMutableList()
 
-        startSounds.add("$ROOT_DIR/start/wild_start.ogg")
+        startSounds.add("$ROOT_DIR/$START_DIR/wild_start.ogg")
 
         return startSounds
     }

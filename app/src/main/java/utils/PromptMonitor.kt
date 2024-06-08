@@ -21,10 +21,9 @@ class PromptMonitor {
     private var coolDownDateTime : LocalDateTime? = null
 
     companion object {
-        const val MAX_PROMPT_COUNT_PER_PERIOD = 5
-        const val PROMPT_PERIOD = 25L
-        const val LIGHT_PROMPT_PERIOD = 70L
-        const val COOL_DOWN_PERIOD = 45L
+        const val MAX_PROMPT_COUNT_PER_PERIOD = 4
+        const val PROMPT_PERIOD = 20L
+        const val COOL_DOWN_PERIOD = 25L
         const val MIN_TIME_BETWEEN_PROMPTS = 10L
         const val MAX_TIME_BETWEEN_PROMPTS = 25L
     }
@@ -126,23 +125,22 @@ class PromptMonitor {
     }
 
     fun isRemEventAllowed(lastTimestamp: String?): Boolean {
-        return promptEventWaiting == null && !isInAwakePeriod(lastTimestamp) && !isInCoolDownPeriod(lastTimestamp) &&
+        //we're most interested in the rem events so the constraints are more limited
+        return promptEventWaiting == null && !isInAwakePeriod(lastTimestamp) &&
                 (allPromptEvents.isEmpty() || LocalDateTime.parse(lastTimestamp) >= allPromptEvents.last().plusMinutes(3))
     }
 
     fun isLightEventAllowed(lastTimestamp: String?): Boolean {
-        return promptEventWaiting == null && !isInAwakePeriod(lastTimestamp) &&
-                //allow a light event if in a window of earlier prompts or if there hasn't been one for awhile
-                ((allPromptEvents.isNotEmpty() && LocalDateTime.parse(lastTimestamp) <= allPromptEvents.last().plusMinutes(PROMPT_PERIOD)) ||
-                        allPromptEvents.isEmpty() || LocalDateTime.parse(lastTimestamp) >= allPromptEvents.last().plusMinutes(LIGHT_PROMPT_PERIOD)) &&
-                !isInCoolDownPeriod(lastTimestamp) &&
-                (allPromptEvents.isEmpty() || LocalDateTime.parse(lastTimestamp) >= allPromptEvents.last().plusMinutes(3))
+        return promptEventWaiting == null && !isInAwakePeriod(lastTimestamp) && !isInCoolDownPeriod(lastTimestamp) &&
+        //allow a light event if in a window of earlier prompts
+                ((allPromptEvents.isNotEmpty() &&
+                        LocalDateTime.parse(lastTimestamp) <= allPromptEvents.last().plusMinutes(PROMPT_PERIOD)) &&
+                        (allPromptEvents.isEmpty() || LocalDateTime.parse(lastTimestamp) >= allPromptEvents.last().plusMinutes(3)))
     }
 
     fun isFollowUpEventAllowed(lastTimestamp: String?): Boolean {
         //we want several events in a row to nudge the sleeper - but anchored to a rem or light trigger event within the last few minutes
         //This allows for padding with one or more follow-up events in a cycle of prompts
-
         val remAndLightEvents = (remEventList + lightEventList).sorted()
 
         val isAllowed = remAndLightEvents.isNotEmpty() && promptEventWaiting == null &&
@@ -150,26 +148,6 @@ class PromptMonitor {
                 (lastFollowupDateTime == null || remAndLightEvents.last()  > lastFollowupDateTime) &&
                 LocalDateTime.parse(lastTimestamp) > remAndLightEvents.last().plusMinutes(3) &&
                 LocalDateTime.parse(lastTimestamp) <= remAndLightEvents.last().plusMinutes(5)
-
-
-//        if(remAndLightEvents.isNotEmpty()) {
-//            Log.d("PromptMonitor", "curr timestamp=$lastTimestamp lastRemLight = ${remAndLightEvents.last()} lastFollowedDate = " +
-//                    " $lastFollowupDateTime promptEventWaiting = $promptEventWaiting isAllowed = $isAllowed")
-//
-//            Log.d("PromptMonitor", "curr timestamp=$lastTimestamp " +
-//                    "test0 = ${!isInCoolDownPeriod(lastTimestamp)} " +
-//                    "test1 = ${!isInAwakePeriod(lastTimestamp)} awakeTimeStamp = $lastAwakeDateTime " +
-//                    "test2 = ${checkFollowUpPeriod(lastTimestamp)} " +
-//                    "test3 = ${(followUpEventList.isEmpty() || remAndLightEvents.last() > followUpEventList.last())} " +
-//                    "test4 = ${LocalDateTime.parse(lastTimestamp) >= remAndLightEvents.last().plusMinutes(3)} ")
-//
-//            if(followUpEventList.isNotEmpty()) {
-//                Log.d(
-//                    "PromptMonitor",
-//                    "curr timestamp=$lastTimestamp last followup event = ${followUpEventList.last()}"
-//                )
-//            }
-//        }
 
         return isAllowed
     }
