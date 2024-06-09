@@ -18,8 +18,7 @@ import network.response.APIResponse
 import network.response.transform
 import repository.DocumentsRepository
 import utils.AppConfig
-import utils.EventSleepStage
-import java.time.LocalDate
+import utils.EventMonitor
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -43,6 +42,8 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
     var startingDateTime = getStartDateTime()
 
     var lastAwakeTimestamp : LocalDateTime? = null
+
+    var lastHighActiveTimestamp : LocalDateTime? = null
 
     //the last document stored in the database
     private val lastReading = dao.getLatest()
@@ -110,9 +111,14 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
                                 dao.insert(reading)
 
                                 workingReadingList.add(reading)
-                                sleepStage.value = EventSleepStage.getSleepStage(workingReadingList)
+                                sleepStage.value = EventMonitor.getSleepStage(workingReadingList)
                                 if(sleepStage.value == "AWAKE") {
                                     lastAwakeTimestamp = reading.dateTime
+                                }
+
+                                //track an abrupt change in movement that can indicate a signal from user
+                                if(EventMonitor.getHighActiveEvent(workingReadingList)) {
+                                    lastHighActiveTimestamp = reading.dateTime
                                 }
                             }
                         }

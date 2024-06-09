@@ -116,14 +116,6 @@
             android:textSize="10sp" />
 
         <com.google.android.material.chip.Chip
-            android:id="@+id/chip_light"
-            style="@style/Widget.MaterialComponents.Chip.Choice"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="LIGHT"
-            android:textSize="10sp" />
-
-        <com.google.android.material.chip.Chip
             android:id="@+id/chip_awake"
             style="@style/Widget.MaterialComponents.Chip.Choice"
             android:layout_width="wrap_content"
@@ -220,10 +212,10 @@
 
     <TextView
         android:id="@+id/play_status"
-        android:layout_width="400dp"
-        android:layout_height="28dp"
+        android:layout_width="450dp"
+        android:layout_height="36dp"
         android:layout_marginStart="32dp"
-        android:layout_marginTop="80dp"
+        android:layout_marginTop="70dp"
         android:textColor="#14c45d"
         android:textStyle="bold"
         app:layout_constraintBottom_toTopOf="@+id/timestamp_lbl_textview"

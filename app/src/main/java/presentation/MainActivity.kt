@@ -59,7 +59,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     companion object {
         const val PLAY_EVENT = "playsound"
         const val POD_EVENT = "podcast"
-        const val DREAM_EVENT = "dream"
+        const val SLEEP_EVENT = "sleep"
         const val EVENT_LABEL_BUTTON = "button_press"
         const val EVENT_LABEL_WATCH = "watch_event"
         const val EVENT_LABEL_AWAKE = "awake_event"
@@ -185,6 +185,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                                 promptMonitor.lastAwakeDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
                             }
 
+                            //get any recent high active event (for possible user interrupt)
+                            promptMonitor.lastHighActiveTimestamp = viewModel.lastHighActiveTimestamp
+
                             var reading = viewModel.lastReadingString.value
 
                             val sleepStage = viewModel.sleepStage.value ?: ""
@@ -296,7 +299,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         val hour = triggerDateTime.hour
         val minute = triggerDateTime.minute
 
-        if (binding.chipLight.isChecked) {
+        if (binding.chipRem.isChecked) {
             val hoursAllowed =  (hour == 1 && minute > 29) || hour in 1..7
 
             val isLightPromptEventAllowed = hoursAllowed &&
@@ -343,7 +346,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private fun checkAndSubmitFollowUpPromptEvent() {
         val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
 
-        if (binding.chipLight.isChecked || binding.chipRem.isChecked) {
+        if (binding.chipRem.isChecked) {
             val isFollowUpPromptEventNeeded = !soundPoolManager.isWildRoutineRunning() &&
                     promptMonitor.isFollowUpEventAllowed(viewModel.lastTimestamp.value)
 
@@ -554,9 +557,12 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
             promptMonitor.stopPromptWindow = endPromptWindow
 
-        } else if (eventMap.containsKey(DREAM_EVENT)) {
-            Log.d("MainActivity", "stopping pod event")
-            cancelStartCountDownPrompt(DREAM_EVENT)
+        } else if (eventMap.containsKey(SLEEP_EVENT)) {
+            cancelStartCountDownPrompt(SLEEP_EVENT)
+
+            //stop any more prompts for a period of time
+            promptMonitor.lastHighActiveTimestamp = LocalDateTime.parse(viewModel.lastTimestamp.value)
+
             if (mBgRawId != -1) {
                 soundPoolManager.stopPlayingBackground()
                 binding.playStatus.text = "Playing $mBgLabel"
@@ -656,6 +662,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             type,
             promptMonitor.lastAwakeDateTime.toString(),
             lastPromptTimestamp,
+            promptMonitor.lastHighActiveTimestamp.toString(),
+            promptMonitor.followUpCoolDownDateTime.toString(),
             intensity,
             allowed,
             fileManager.getUsedFilesFromDirectory(WILD_FG_DIR).size,

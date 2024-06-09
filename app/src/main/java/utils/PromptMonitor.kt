@@ -18,14 +18,15 @@ class PromptMonitor {
 
     var lastAwakeDateTime : LocalDateTime? = null
     var lastFollowupDateTime : LocalDateTime? = null
-    private var coolDownDateTime : LocalDateTime? = null
+    var lastHighActiveTimestamp: LocalDateTime? = null
+    var followUpCoolDownDateTime : LocalDateTime? = null
 
     companion object {
-        const val MAX_PROMPT_COUNT_PER_PERIOD = 4
+        const val MAX_PROMPT_COUNT_PER_PERIOD = 5
         const val PROMPT_PERIOD = 20L
-        const val COOL_DOWN_PERIOD = 25L
-        const val MIN_TIME_BETWEEN_PROMPTS = 10L
-        const val MAX_TIME_BETWEEN_PROMPTS = 25L
+        const val FOLLOW_UP_COOL_DOWN_PERIOD = 25L
+        const val ALL_COOL_DOWN_PERIOD = 10L
+        const val MINUTES_BETWEEN_PROMPTS = 2L
     }
 
     private val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
@@ -40,7 +41,7 @@ class PromptMonitor {
         promptEventWaiting = null
         lastAwakeDateTime = null
         lastFollowupDateTime = null
-        coolDownDateTime = null
+        followUpCoolDownDateTime = null
     }
 
     fun getEventsDisplay(): String {
@@ -82,36 +83,44 @@ class PromptMonitor {
         lightEventList.add(lastDateTime)
         allPromptEvents.add(lastDateTime)
 
-        checkCooldown(lastDateTime)
+        checkFollowUpCooldown(lastDateTime)
     }
 
     fun addRemEvent(lastDateTime : LocalDateTime) {
         remEventList.add(lastDateTime)
         allPromptEvents.add(lastDateTime)
 
-        checkCooldown(lastDateTime)
+        checkFollowUpCooldown(lastDateTime)
     }
 
     fun addFollowUpEvent(lastDateTime : LocalDateTime) {
         followUpEventList.add(lastDateTime)
         allPromptEvents.add(lastDateTime)
 
-        checkCooldown(lastDateTime)
+        checkFollowUpCooldown(lastDateTime)
     }
 
-    private fun checkCooldown(lastDateTime: LocalDateTime) {
+    private fun checkFollowUpCooldown(lastDateTime: LocalDateTime) {
         //events tend to cluster which we want.  When we get to the max in a period wait for the cooldown period to end before
         //allowing any more events
         if (allPromptEvents.size >= MAX_PROMPT_COUNT_PER_PERIOD
-            && lastDateTime <= allPromptEvents.takeLast(5).first().plusMinutes(PROMPT_PERIOD)
+            && lastDateTime <= allPromptEvents.takeLast(MAX_PROMPT_COUNT_PER_PERIOD).first().plusMinutes(PROMPT_PERIOD)
         ) {
-            coolDownDateTime = lastDateTime
+            followUpCoolDownDateTime = lastDateTime
         }
     }
 
     private fun isInCoolDownPeriod(lastTimestamp: String?) : Boolean {
-        return coolDownDateTime != null &&
-                LocalDateTime.parse(lastTimestamp) < coolDownDateTime!!.plusMinutes(COOL_DOWN_PERIOD)
+        return isInAllCoolDownPeriod(lastTimestamp) || 
+                (followUpCoolDownDateTime != null &&
+                 LocalDateTime.parse(lastTimestamp) < followUpCoolDownDateTime!!.plusMinutes(FOLLOW_UP_COOL_DOWN_PERIOD))
+                
+    }
+
+    private fun isInAllCoolDownPeriod(lastTimestamp: String?) : Boolean {
+        return lastHighActiveTimestamp != null && allPromptEvents.isNotEmpty() &&
+            lastHighActiveTimestamp!! > allPromptEvents.last() &&
+            LocalDateTime.parse(lastTimestamp) < allPromptEvents.last().plusMinutes(ALL_COOL_DOWN_PERIOD)
     }
 
     fun isStopPromptWindow(lastTimestamp: String?): Boolean {
@@ -125,9 +134,10 @@ class PromptMonitor {
     }
 
     fun isRemEventAllowed(lastTimestamp: String?): Boolean {
-        //we're most interested in the rem events so the constraints are more limited
-        return promptEventWaiting == null && !isInAwakePeriod(lastTimestamp) &&
-                (allPromptEvents.isEmpty() || LocalDateTime.parse(lastTimestamp) >= allPromptEvents.last().plusMinutes(3))
+        val lastDateTime = LocalDateTime.parse(lastTimestamp)
+
+        return promptEventWaiting == null && !isInAwakePeriod(lastTimestamp) && !isInAllCoolDownPeriod(lastTimestamp) &&
+                (allPromptEvents.isEmpty() || lastDateTime >= allPromptEvents.last().plusMinutes(MINUTES_BETWEEN_PROMPTS))
     }
 
     fun isLightEventAllowed(lastTimestamp: String?): Boolean {
@@ -135,7 +145,7 @@ class PromptMonitor {
         //allow a light event if in a window of earlier prompts
                 ((allPromptEvents.isNotEmpty() &&
                         LocalDateTime.parse(lastTimestamp) <= allPromptEvents.last().plusMinutes(PROMPT_PERIOD)) &&
-                        (allPromptEvents.isEmpty() || LocalDateTime.parse(lastTimestamp) >= allPromptEvents.last().plusMinutes(3)))
+                        (allPromptEvents.isEmpty() || LocalDateTime.parse(lastTimestamp) >= allPromptEvents.last().plusMinutes(MINUTES_BETWEEN_PROMPTS)))
     }
 
     fun isFollowUpEventAllowed(lastTimestamp: String?): Boolean {
@@ -146,8 +156,8 @@ class PromptMonitor {
         val isAllowed = remAndLightEvents.isNotEmpty() && promptEventWaiting == null &&
                 !isInCoolDownPeriod(lastTimestamp) && !isInAwakePeriod(lastTimestamp) &&
                 (lastFollowupDateTime == null || remAndLightEvents.last()  > lastFollowupDateTime) &&
-                LocalDateTime.parse(lastTimestamp) > remAndLightEvents.last().plusMinutes(3) &&
-                LocalDateTime.parse(lastTimestamp) <= remAndLightEvents.last().plusMinutes(5)
+                LocalDateTime.parse(lastTimestamp) > remAndLightEvents.last().plusMinutes(MINUTES_BETWEEN_PROMPTS) &&
+                LocalDateTime.parse(lastTimestamp) <= remAndLightEvents.last().plusMinutes(MINUTES_BETWEEN_PROMPTS*2)
 
         return isAllowed
     }
@@ -161,21 +171,13 @@ class PromptMonitor {
 
         val hour = LocalDateTime.parse(lastTimestamp).hour
 
-        var intensity = if (allPromptEvents.isEmpty()) {
-            4
-        } else if (LocalDateTime.parse(lastTimestamp) <= allPromptEvents.last()
-                .plusMinutes(MIN_TIME_BETWEEN_PROMPTS)
-        ) {
-            2
-        } else if (LocalDateTime.parse(lastTimestamp) <= allPromptEvents.last()
-                .plusMinutes(MAX_TIME_BETWEEN_PROMPTS)
-        ) {
-            3
-        } else {
-            4
+        var intensity = 3
+        if(isInCoolDownPeriod(lastTimestamp)) {
+            //this should be the last one before a cool down period starts so up the intensity
+            intensity = 4
         }
 
-        //adjust up or down a bit depending on hour
+        //adjust down a bit if late in the morning
         if(hour >= 6) {
             intensity--
         }

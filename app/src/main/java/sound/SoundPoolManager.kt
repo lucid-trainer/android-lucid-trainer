@@ -132,33 +132,33 @@ class SoundPoolManager {
             else -> .45F to .4F
         }
 
-
         if (isPrompt) {
-           // Log.d("DimVolume", "WILD prompt volumes at $fgVolume and $altBgVolume intensity $intensityLevel")
             //adjust the volumes further based on intensity for prompts
             when(intensityLevel) {
                 //0 leave as is
 
                 1 -> {
                     fgVolume *= 1.1F
-                    altBgVolume *= 1.1F
+                    altBgVolume *= 1.2F
                 }
 
                 2 -> {
                     fgVolume *= 1.2F
-                    altBgVolume *= 1.2F
+                    altBgVolume *= 1.3F
                 }
 
-                3 -> {
-                    fgVolume *= 1.35F
-                    altBgVolume *= 1.35F
+                3-> {
+                    fgVolume *= 1.3F
+                    altBgVolume *= 1.4F
                 }
 
-                4 -> {
-                    fgVolume *= 1.45F
-                    altBgVolume *= 1.45F
+                4-> {
+                    fgVolume *= 1.4F
+                    altBgVolume *= 1.5F
                 }
             }
+
+            Log.d("DimVolume", "WILD prompt volumes at $fgVolume and $altBgVolume intensity $intensityLevel")
 
             return WILDPromptSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
         } else {
@@ -263,11 +263,11 @@ class SoundPoolManager {
             altBgJob = scope.launch {
                 delay(timeMillis = 1000)
 
-                val pauseAfterStart = soundRoutine !is WILDPromptSoundRoutine
+                val delayBetween = if(soundRoutine is WILDPromptSoundRoutine) 5000L else 30000L
 
                 val startSounds = soundRoutine.getStartSounds()
                 if(startSounds.isNotEmpty()) {
-                    playAltSounds(startSounds, soundRoutine.altBgVolume, pauseAfterStart)
+                    playAltSounds(startSounds, soundRoutine.altBgVolume, delayBetween)
                 }
 
                 val altBGSounds = soundRoutine.getAltBGSounds()
@@ -275,7 +275,7 @@ class SoundPoolManager {
                     val currVolume = soundRoutine.altBgVolume
 
                     do {
-                        playAltSounds(altBGSounds, currVolume)
+                        playAltSounds(altBGSounds, currVolume, delayBetween)
                     } while (!isBGSoundStopped)
                 }
 
@@ -287,7 +287,7 @@ class SoundPoolManager {
     private suspend fun playAltSounds(
         altFiles: List<String>,
         volume: Float,
-        pause: Boolean = true
+        delayBetween: Long
     ) {
 
         var currVolume = volume
@@ -305,16 +305,15 @@ class SoundPoolManager {
                     currVolume *= ADJUST_BG_VOL_FACTOR
                 }
 
-                Log.d("DimVolume", "adjusted AltBg volume to $currVolume")
+                //Log.d("DimVolume", "adjusted AltBg volume to $currVolume")
 
                 altBgId = mSoundPoolCompat.playOnce(filePath, currVolume, currVolume, 1F)
                 //Log.d("MainActivity", "file loading as id=$altBgId")
 
                 waitForSoundPlayToComplete(altBgId)
 
-                if(pause) {
-                    delay(timeMillis = 30000)
-                }
+                //Log.d("MainActivity", "delaying for $delayBetween")
+                delay(timeMillis = delayBetween)
 
                 //Log.d("MainActivity", "sound completed for id=$altBgId")
             }
@@ -355,9 +354,9 @@ class SoundPoolManager {
                     }
 
                     //pause for a bit more
-                    val pauseLimit =  if(soundRoutine is WILDSoundRoutine) 5 else 1
-                    for (i in 1..pauseLimit) {
+                    for (i in 1..5) {
                         yield()
+                        //Log.d("MainActivity", "pausing before playing prompt")
                         delay(timeMillis = 5000)
                     }
 
@@ -395,7 +394,7 @@ class SoundPoolManager {
                             //Log.d("MainActivity", "playing ${sound.rawResId}")
                             mFgId = if(sound.filePathId != null) {
                                 filePath = fileManager.getFilePath(sound.filePathId).toString()
-                                Log.d("MainActivity", "playing $filePath")
+                                Log.d("MainActivity", "playing file $filePath")
                                 mSoundPoolCompat.playOnce(filePath, currVolume, currVolume, 1F)
                             } else {
                                 Log.d("MainActivity", "playing mFgId $mFgId")
