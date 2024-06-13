@@ -167,20 +167,21 @@ class PromptMonitor {
                 LocalDateTime.parse(lastTimestamp) <= lastAwakeDateTime!!.plusMinutes(6)
     }
 
-    fun promptIntensityLevel(lastTimestamp: String?): Int {
+    fun promptIntensityLevel(lastTimestamp: String?, isFollowUp: Boolean = false): Int {
 
         val hour = LocalDateTime.parse(lastTimestamp).hour
 
-        var intensity = 3
-        if(isInCoolDownPeriod(lastTimestamp)) {
-            //this should be the last one before a cool down period starts so up the intensity
-            intensity = 4
+        var intensity = 4
+        if(isFollowUp) {
+            //if we have follow-ups up the intensity a bit
+            intensity = 5
         }
 
         //adjust down a bit if late in the morning
         if(hour >= 6) {
             intensity--
         }
+
 
         return intensity
 

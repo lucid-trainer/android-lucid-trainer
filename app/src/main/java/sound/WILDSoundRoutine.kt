@@ -91,7 +91,4 @@ class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
         fileManager.addFileUsed(dir, clipFile)
     }
 
-    override fun dimMinLimit() : Long {
-        return 2L
-    }
 }

@@ -302,7 +302,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         if (binding.chipRem.isChecked) {
             val hoursAllowed =  (hour == 1 && minute > 29) || hour in 1..7
 
-            val isLightPromptEventAllowed = hoursAllowed &&
+            val isLightPromptEventAllowed = hoursAllowed && !soundPoolManager.isWildRoutineRunning() &&
                     promptMonitor.isLightEventAllowed(viewModel.lastTimestamp.value)
 
             if (hoursAllowed) {
@@ -326,7 +326,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         if (binding.chipRem.isChecked) {
             val hoursAllowed = hour in 1..8
 
-            val isREMPromptEventAllowed = hoursAllowed &&
+            val isREMPromptEventAllowed = hoursAllowed && !soundPoolManager.isWildRoutineRunning() &&
                     promptMonitor.isRemEventAllowed(viewModel.lastTimestamp.value)
 
             if (hoursAllowed) {
@@ -350,7 +350,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             val isFollowUpPromptEventNeeded = !soundPoolManager.isWildRoutineRunning() &&
                     promptMonitor.isFollowUpEventAllowed(viewModel.lastTimestamp.value)
 
-            val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value)
+            val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value, true)
 
             if (isFollowUpPromptEventNeeded) {
                 val document = getDeviceDocument(EVENT_LABEL_FOLLOW_UP, true, intensityLevel)
@@ -542,10 +542,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         if(eventMap.containsKey(POD_EVENT) && (eventMap[POD_EVENT] != null)) {
             val podNumber = eventMap[POD_EVENT]!!.toInt()
-            if(podNumber > 1) {
-                playCount = podNumber - 1
-                soundList.add("p")
-            }
+            playCount = podNumber
+            soundList.add("p")
         }  else if(eventMap.containsKey(PLAY_EVENT) && (eventMap[PLAY_EVENT] != null)) {
             updateEventList(EVENT_LABEL_AWAKE, triggerDateTime.toString())
 
@@ -574,7 +572,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             soundPoolManager.stopPlayingForeground()
             soundPoolManager.stopPlayingBackground()
             soundPoolManager.playSoundList(
-                soundList, mBgRawId, mBgLabel, EVENT_LABEL_WATCH, binding.playStatus, hour, playCount)
+                soundList, mBgRawId, mBgLabel, EVENT_LABEL_WATCH, binding.playStatus, playCount)
         }
     }
 

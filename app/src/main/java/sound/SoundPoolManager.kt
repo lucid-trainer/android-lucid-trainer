@@ -109,7 +109,7 @@ class SoundPoolManager {
             soundRoutines.add(soundRoutine)
         }
         if (soundList.contains("p")) {
-            Log.d("MainActivity","adding PodSoundRoutine")
+            Log.d("PodRoutine", "adding podcast with playCnt $playCnt")
 
             val soundRoutine = getPodcastSoundRoutine(bgRawRes, playCnt, endBgRawRes, eventLabel, bgLabel, endBgLabel)
             soundRoutines.add(soundRoutine)
@@ -138,27 +138,32 @@ class SoundPoolManager {
                 //0 leave as is
 
                 1 -> {
-                    fgVolume *= 1.1F
-                    altBgVolume *= 1.2F
-                }
-
-                2 -> {
                     fgVolume *= 1.2F
                     altBgVolume *= 1.3F
                 }
 
-                3-> {
+                2 -> {
                     fgVolume *= 1.3F
                     altBgVolume *= 1.4F
                 }
 
-                4-> {
+                3-> {
                     fgVolume *= 1.4F
                     altBgVolume *= 1.5F
                 }
+
+                4-> {
+                    fgVolume *= 1.5F
+                    altBgVolume *= 1.6F
+                }
+
+                5-> {
+                    fgVolume *= 1.6F
+                    altBgVolume *= 1.7F
+                }
             }
 
-            Log.d("DimVolume", "WILD prompt volumes at $fgVolume and $altBgVolume intensity $intensityLevel")
+            //Log.d("DimVolume", "WILD prompt volumes at $fgVolume and $altBgVolume intensity $intensityLevel")
 
             return WILDPromptSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
         } else {
@@ -354,7 +359,8 @@ class SoundPoolManager {
                     }
 
                     //pause for a bit more
-                    for (i in 1..5) {
+                    val delayCnt = if(soundRoutine is PodSoundRoutine) 1 else 5
+                    for (i in 1..delayCnt) {
                         yield()
                         //Log.d("MainActivity", "pausing before playing prompt")
                         delay(timeMillis = 5000)
