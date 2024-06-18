@@ -44,6 +44,7 @@ import utils.FileManager
 import utils.PromptMonitor
 import viewmodel.DocumentViewModel
 import viewmodel.DocumentViewModelFactory
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -78,6 +79,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private lateinit var soundPoolManager: SoundPoolManager
     private lateinit var fileManager: FileManager
     private var  lastEventTimestamp = ""
+    private var lastHighActiveTimestamp: LocalDateTime? = null
     private var apJob: Job? = null
     private var isBTDisconnected: Boolean = false
 
@@ -185,8 +187,13 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                                 promptMonitor.lastAwakeDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
                             }
 
-                            //get any recent high active event (for possible user interrupt)
-                            promptMonitor.lastHighActiveTimestamp = viewModel.lastHighActiveTimestamp
+                            //get any recent high active event and interrupt any prompts if found running
+                            if(viewModel.lastHighActiveTimestamp != null && (lastHighActiveTimestamp == null || (
+                                viewModel.lastHighActiveTimestamp!! > lastHighActiveTimestamp))) {
+
+                                lastHighActiveTimestamp = viewModel.lastHighActiveTimestamp
+                                checkShouldStartAllCoolDown(false)
+                            }
 
                             var reading = viewModel.lastReadingString.value
 
@@ -216,6 +223,13 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
             }
         }
+    }
+
+    private fun checkShouldStartAllCoolDown(checkRunRoutine : Boolean = true) {
+        val isStartAllCoolDown = promptMonitor.checkAllCoolDown(viewModel.lastTimestamp.value)
+         if (isStartAllCoolDown && (!checkRunRoutine || !soundPoolManager.isWildRoutineRunning())) {
+             stopSoundRoutine()
+         }
     }
 
     private fun clearSessionState() {
@@ -556,16 +570,12 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             promptMonitor.stopPromptWindow = endPromptWindow
 
         } else if (eventMap.containsKey(SLEEP_EVENT)) {
-            cancelStartCountDownPrompt(SLEEP_EVENT)
-
+            Log.d("PromptMonitor", "viewModel.lastTimestamp.value sleep event setting lastHigh = ${LocalDateTime.parse(viewModel.lastTimestamp.value)}")
             //stop any more prompts for a period of time
-            promptMonitor.lastHighActiveTimestamp = LocalDateTime.parse(viewModel.lastTimestamp.value)
+            lastHighActiveTimestamp = LocalDateTime.parse(viewModel.lastTimestamp.value)
 
-            if (mBgRawId != -1) {
-                soundPoolManager.stopPlayingBackground()
-                binding.playStatus.text = "Playing $mBgLabel"
-                soundPoolManager.playBackgroundSound(mBgRawId, 1F, binding.playStatus)
-            }
+            cancelStartCountDownPrompt(SLEEP_EVENT)
+            checkShouldStartAllCoolDown()
         }
 
         if(soundList.isNotEmpty()) {
@@ -573,6 +583,14 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             soundPoolManager.stopPlayingBackground()
             soundPoolManager.playSoundList(
                 soundList, mBgRawId, mBgLabel, EVENT_LABEL_WATCH, binding.playStatus, playCount)
+        }
+    }
+
+    private fun stopSoundRoutine() {
+        if (mBgRawId != -1) {
+            soundPoolManager.stopPlayingBackground()
+            binding.playStatus.text = "Playing $mBgLabel"
+            soundPoolManager.playBackgroundSound(mBgRawId, 1F, binding.playStatus)
         }
     }
 
@@ -660,8 +678,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             type,
             promptMonitor.lastAwakeDateTime.toString(),
             lastPromptTimestamp,
-            promptMonitor.lastHighActiveTimestamp.toString(),
             promptMonitor.followUpCoolDownDateTime.toString(),
+            promptMonitor.allCoolDownDateTime.toString(),
+            promptMonitor.isInAllCoolDownPeriod(triggerTimestamp),
             intensity,
             allowed,
             fileManager.getUsedFilesFromDirectory(WILD_FG_DIR).size,

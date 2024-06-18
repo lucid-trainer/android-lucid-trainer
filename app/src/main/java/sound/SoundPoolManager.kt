@@ -123,12 +123,12 @@ class SoundPoolManager {
     private fun getWildSoundRoutine(bgRawRes: Int, playCnt: Int, endBgRawRes: Int, eventLabel: String, bgLabel: String,
              endBgLabel: String, intensityLevel: Int, isPrompt: Boolean, ) : SoundRoutine {
 
-        //adjust the volumes based on background sound and time of night
+        //adjust the volumes based on background sound
         var (fgVolume, altBgVolume) = when (bgRawRes) {
             R.raw.green, R.raw.pink -> .48F to .44F
             R.raw.boxfan, R.raw.metal_fan -> .4F to .36F
             R.raw.ac -> .35F to .3F
-            R.raw.brown, R.raw.waves -> .095F to .085F
+            R.raw.brown, R.raw.waves -> .105F to .095F
             else -> .45F to .4F
         }
 
@@ -138,28 +138,28 @@ class SoundPoolManager {
                 //0 leave as is
 
                 1 -> {
-                    fgVolume *= 1.2F
-                    altBgVolume *= 1.3F
+                    fgVolume *= 1.3F
+                    altBgVolume *= 1.1F
                 }
 
                 2 -> {
-                    fgVolume *= 1.3F
-                    altBgVolume *= 1.4F
+                    fgVolume *= 1.4F
+                    altBgVolume *= 1.2F
                 }
 
                 3-> {
-                    fgVolume *= 1.4F
-                    altBgVolume *= 1.5F
+                    fgVolume *= 1.5F
+                    altBgVolume *= 1.3F
                 }
 
                 4-> {
-                    fgVolume *= 1.5F
-                    altBgVolume *= 1.6F
+                    fgVolume *= 1.6F
+                    altBgVolume *= 1.4F
                 }
 
                 5-> {
-                    fgVolume *= 1.6F
-                    altBgVolume *= 1.7F
+                    fgVolume *= 1.7F
+                    altBgVolume *= 1.5F
                 }
             }
 
@@ -359,7 +359,7 @@ class SoundPoolManager {
                     }
 
                     //pause for a bit more
-                    val delayCnt = if(soundRoutine is PodSoundRoutine) 1 else 5
+                    val delayCnt = if(soundRoutine is PodSoundRoutine) 1 else 4
                     for (i in 1..delayCnt) {
                         yield()
                         //Log.d("MainActivity", "pausing before playing prompt")
