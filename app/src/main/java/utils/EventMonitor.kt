@@ -67,8 +67,7 @@ object EventMonitor {
     }
 
     fun getHighActiveEvent(workingReadingList:  ArrayList<Reading>) : Boolean {
-        return (workingReadingList.size >= 4 &&
-                workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it <= .11 }.size >= 2 &&
-                workingReadingList.map { it -> it.accelMovement }.last() > .325)
+        return (workingReadingList.size >= 1 &&
+                workingReadingList.map { it -> it.accelMovement }.last() > .275)
     }
 }

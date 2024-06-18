@@ -128,39 +128,25 @@ class SoundPoolManager {
             R.raw.green, R.raw.pink -> .48F to .44F
             R.raw.boxfan, R.raw.metal_fan -> .4F to .36F
             R.raw.ac -> .35F to .3F
-            R.raw.brown, R.raw.waves -> .105F to .095F
+            R.raw.brown, R.raw.waves -> .1F to .09F
             else -> .45F to .4F
         }
 
         if (isPrompt) {
             //adjust the volumes further based on intensity for prompts
             when(intensityLevel) {
-                //0 leave as is
+                //0, 1 leave as is
 
-                1 -> {
-                    fgVolume *= 1.3F
+                2 -> {
+                    fgVolume *= 1.1F
                     altBgVolume *= 1.1F
                 }
 
-                2 -> {
-                    fgVolume *= 1.4F
+                3-> {
+                    fgVolume *= 1.2F
                     altBgVolume *= 1.2F
                 }
 
-                3-> {
-                    fgVolume *= 1.5F
-                    altBgVolume *= 1.3F
-                }
-
-                4-> {
-                    fgVolume *= 1.6F
-                    altBgVolume *= 1.4F
-                }
-
-                5-> {
-                    fgVolume *= 1.7F
-                    altBgVolume *= 1.5F
-                }
             }
 
             //Log.d("DimVolume", "WILD prompt volumes at $fgVolume and $altBgVolume intensity $intensityLevel")

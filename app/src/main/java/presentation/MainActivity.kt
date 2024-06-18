@@ -44,7 +44,6 @@ import utils.FileManager
 import utils.PromptMonitor
 import viewmodel.DocumentViewModel
 import viewmodel.DocumentViewModelFactory
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -68,7 +67,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         const val EVENT_LABEL_LIGHT = "light_event"
         const val EVENT_LABEL_REM = "rem_event"
         const val EVENT_LABEL_FOLLOW_UP = "follow_up_event"
-        const val SLEEP_EVENT_PROMPT_DELAY = 30000L //3000L DEBUG VALUE
+        const val SLEEP_EVENT_PROMPT_DELAY = 15000L //3000L DEBUG VALUE
 
         const val WILD_FG_DIR = "$ROOT_DIR/$FOREGROUND_DIR"
         const val WILD_CLIP_DIR = "$ROOT_DIR/$CLIP_DIR"
@@ -192,7 +191,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                                 viewModel.lastHighActiveTimestamp!! > lastHighActiveTimestamp))) {
 
                                 lastHighActiveTimestamp = viewModel.lastHighActiveTimestamp
-                                checkShouldStartAllCoolDown(false)
+                                checkShouldStartAllCoolDown()
                             }
 
                             var reading = viewModel.lastReadingString.value
@@ -225,9 +224,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
     }
 
-    private fun checkShouldStartAllCoolDown(checkRunRoutine : Boolean = true) {
-        val isStartAllCoolDown = promptMonitor.checkAllCoolDown(viewModel.lastTimestamp.value)
-         if (isStartAllCoolDown && (!checkRunRoutine || !soundPoolManager.isWildRoutineRunning())) {
+    private fun checkShouldStartAllCoolDown(isStartButton : Boolean = false) {
+        val isStartAllCoolDown = promptMonitor.checkAllCoolDown(viewModel.lastTimestamp.value, isStartButton)
+         if (isStartAllCoolDown && (!isStartButton || !soundPoolManager.isWildRoutineRunning())) {
              stopSoundRoutine()
          }
     }
@@ -364,7 +363,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             val isFollowUpPromptEventNeeded = !soundPoolManager.isWildRoutineRunning() &&
                     promptMonitor.isFollowUpEventAllowed(viewModel.lastTimestamp.value)
 
-            val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value, true)
+            val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value)
 
             if (isFollowUpPromptEventNeeded) {
                 val document = getDeviceDocument(EVENT_LABEL_FOLLOW_UP, true, intensityLevel)
@@ -575,7 +574,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             lastHighActiveTimestamp = LocalDateTime.parse(viewModel.lastTimestamp.value)
 
             cancelStartCountDownPrompt(SLEEP_EVENT)
-            checkShouldStartAllCoolDown()
+            checkShouldStartAllCoolDown(true)
         }
 
         if(soundList.isNotEmpty()) {
@@ -618,9 +617,13 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 //capture in event list in the event list
                 updateEventList(eventLabel, triggerDateTime.toString())
 
-                //send a vibration event to the watch
+                //send a vibration event to the watch.  For now we'll lower non-rem events
+                var vibrationIntensityLevel = intensityLevel
+                if(eventLabel != EVENT_LABEL_REM) {
+                    vibrationIntensityLevel = 1
+                }
                 deviceDocumentRepository.postDevicePrompt("appdata",
-                    getDeviceDocument(eventLabel, true, intensityLevel ))
+                    getDeviceDocument(eventLabel, true, vibrationIntensityLevel ))
 
                 if(eventLabel != EVENT_LABEL_AWAKE) {
                     //give the watch a little time to pick up the vibration event
@@ -678,8 +681,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             type,
             promptMonitor.lastAwakeDateTime.toString(),
             lastPromptTimestamp,
-            promptMonitor.followUpCoolDownDateTime.toString(),
-            promptMonitor.allCoolDownDateTime.toString(),
+            promptMonitor.followUpCoolDownEndDateTime.toString(),
+            promptMonitor.allCoolDownEndDateTime.toString(),
             promptMonitor.isInAllCoolDownPeriod(triggerTimestamp),
             intensity,
             allowed,
