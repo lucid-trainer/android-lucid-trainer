@@ -21,10 +21,12 @@ class PromptMonitor {
     var followUpCoolDownEndDateTime : LocalDateTime? = null
     var allCoolDownEndDateTime : LocalDateTime? = null
 
+
     companion object {
         const val MAX_PROMPT_COUNT_PER_PERIOD = 5
         const val PROMPT_PERIOD = 20L
         const val FOLLOW_UP_COOL_DOWN_PERIOD = 25L
+        const val ACTIVE_FOLLOW_UP_COOL_DOWN_PERIOD = 35L
         const val ALL_COOL_DOWN_PERIOD_BASE = 10L
         const val SECONDS_BETWEEN_PROMPTS = 120L
     }
@@ -78,6 +80,9 @@ class PromptMonitor {
 
     fun addAwakeEvent(lastDateTime: LocalDateTime) {
         awakeEventList.add(lastDateTime)
+        //don't allow prompts for a longer period of time after an active event
+        followUpCoolDownEndDateTime = lastDateTime.plusMinutes(ACTIVE_FOLLOW_UP_COOL_DOWN_PERIOD)
+        //Log.d("PromptMonitor", "$lastDateTime setting $followUpCoolDownEndDateTime follow-up time for awake event")
     }
 
     fun addLightEvent(lastDateTime : LocalDateTime) {
@@ -103,7 +108,8 @@ class PromptMonitor {
 
     private fun checkFollowUpCoolDown(lastDateTime: LocalDateTime) {
         //events tend to cluster which we want.  When we get to the max in a period wait for the cooldown period to end before
-        //allowing any more events
+        //allowing any more events.  We also set this when a manual sound routine such as WildRoutine or PodcastRoutine is initiated
+        //as this indicates the user is awake and going back to sleep
         if (allPromptEvents.size >= MAX_PROMPT_COUNT_PER_PERIOD
             && lastDateTime <= allPromptEvents.takeLast(MAX_PROMPT_COUNT_PER_PERIOD).first().plusMinutes(PROMPT_PERIOD)
         ) {
@@ -160,9 +166,9 @@ class PromptMonitor {
     fun isRemEventAllowed(lastTimestamp: String?): Boolean {
         val lastDateTime = LocalDateTime.parse(lastTimestamp)
 
-        Log.d("PromptMonitor", "$lastTimestamp isInAllCoolDown = ${isInAllCoolDownPeriod(lastTimestamp)}")
+        Log.d("PromptMonitor", "$lastTimestamp isInAllCoolDown = ${isInCoolDownPeriod(lastTimestamp)}")
 
-        return promptEventWaiting == null && !isInAwakePeriod(lastTimestamp) && !isInAllCoolDownPeriod(lastTimestamp) &&
+        return promptEventWaiting == null && !isInAwakePeriod(lastTimestamp) && !isInCoolDownPeriod(lastTimestamp) &&
                 (allPromptEvents.isEmpty() || lastDateTime >= allPromptEvents.last().plusSeconds(SECONDS_BETWEEN_PROMPTS))
     }
 

@@ -67,7 +67,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         const val EVENT_LABEL_LIGHT = "light_event"
         const val EVENT_LABEL_REM = "rem_event"
         const val EVENT_LABEL_FOLLOW_UP = "follow_up_event"
-        const val SLEEP_EVENT_PROMPT_DELAY = 15000L //3000L DEBUG VALUE
+        const val SLEEP_EVENT_PROMPT_DELAY = 30000L //3000L DEBUG VALUE
 
         const val WILD_FG_DIR = "$ROOT_DIR/$FOREGROUND_DIR"
         const val WILD_CLIP_DIR = "$ROOT_DIR/$CLIP_DIR"
@@ -226,7 +226,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
     private fun checkShouldStartAllCoolDown(isStartButton : Boolean = false) {
         val isStartAllCoolDown = promptMonitor.checkAllCoolDown(viewModel.lastTimestamp.value, isStartButton)
-         if (isStartAllCoolDown && (!isStartButton || !soundPoolManager.isWildRoutineRunning())) {
+         if (isStartAllCoolDown && !isStartButton) {
              stopSoundRoutine()
          }
     }
@@ -291,8 +291,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         if (binding.chipAwake.isChecked) {
             val hoursAllowed = (hour == 4 && minute >= 30) || (hour == 5 && minute <= 30)
 
-            val isAwakeEventAllowed = hoursAllowed && !soundPoolManager.isWildRoutineRunning()
-                    && promptMonitor.isAwakeEventAllowed(viewModel.lastTimestamp.value)
+            val isAwakeEventAllowed = hoursAllowed && promptMonitor.isAwakeEventAllowed(viewModel.lastTimestamp.value)
 
             if (hoursAllowed) {
                 val document = getDeviceDocument(EVENT_LABEL_AWAKE, isAwakeEventAllowed)
@@ -313,10 +312,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         val minute = triggerDateTime.minute
 
         if (binding.chipRem.isChecked) {
-            val hoursAllowed =  (hour == 1 && minute > 29) || hour in 1..7
+            val hoursAllowed =  (hour == 2 && minute > 29) || hour in 3..7
 
-            val isLightPromptEventAllowed = hoursAllowed && !soundPoolManager.isWildRoutineRunning() &&
-                    promptMonitor.isLightEventAllowed(viewModel.lastTimestamp.value)
+            val isLightPromptEventAllowed = hoursAllowed && promptMonitor.isLightEventAllowed(viewModel.lastTimestamp.value)
 
             if (hoursAllowed) {
                 val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value)
@@ -335,12 +333,12 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private fun checkAndSubmitREMPromptEvent() {
         val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
         val hour = triggerDateTime.hour
+        val minute = triggerDateTime.minute
 
         if (binding.chipRem.isChecked) {
-            val hoursAllowed = hour in 1..8
+            val hoursAllowed = (hour == 2 && minute > 29) || hour in 3..7
 
-            val isREMPromptEventAllowed = hoursAllowed && !soundPoolManager.isWildRoutineRunning() &&
-                    promptMonitor.isRemEventAllowed(viewModel.lastTimestamp.value)
+            val isREMPromptEventAllowed = hoursAllowed && promptMonitor.isRemEventAllowed(viewModel.lastTimestamp.value)
 
             if (hoursAllowed) {
                 val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value)
@@ -360,8 +358,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
 
         if (binding.chipRem.isChecked) {
-            val isFollowUpPromptEventNeeded = !soundPoolManager.isWildRoutineRunning() &&
-                    promptMonitor.isFollowUpEventAllowed(viewModel.lastTimestamp.value)
+            val isFollowUpPromptEventNeeded = promptMonitor.isFollowUpEventAllowed(viewModel.lastTimestamp.value)
 
             val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value)
 
@@ -505,8 +502,10 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             pMod = "p"
             promptMonitor.stopPromptWindow = LocalDateTime.parse(viewModel.lastTimestamp.value)
         } else {
-            //assume we'll only play for 20 minutes max unless an asleep event occurs sooner
-            promptMonitor.stopPromptWindow = LocalDateTime.parse(viewModel.lastTimestamp.value) .plusMinutes(20)
+            //assume we'll only play for 20 minutes max unless an asleep event occurs sooner and set the prompt timeout ahead
+            val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
+            promptMonitor.stopPromptWindow = triggerDateTime.plusMinutes(20)
+            promptMonitor.addAwakeEvent(triggerDateTime)
         }
 
         if (binding.chipSsild.isChecked) {
@@ -593,7 +592,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
     }
 
-    //on auto event set 1 minute window to run prompt in with some randomness
     private fun startCountDownPromptTimer(eventLabel : String) {
         //avoid stepping on a waiting or running job
         val isRunning = promptMonitor.promptEventWaiting != null

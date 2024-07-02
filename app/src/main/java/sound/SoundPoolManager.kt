@@ -126,7 +126,7 @@ class SoundPoolManager {
         //adjust the volumes based on background sound
         var (fgVolume, altBgVolume) = when (bgRawRes) {
             R.raw.green, R.raw.pink -> .48F to .44F
-            R.raw.boxfan, R.raw.metal_fan -> .4F to .36F
+            R.raw.boxfan, R.raw.metal_fan -> .44F to .4F
             R.raw.ac -> .35F to .3F
             R.raw.brown, R.raw.waves -> .1F to .09F
             else -> .45F to .4F
@@ -436,10 +436,6 @@ class SoundPoolManager {
                 }
             }
         }
-    }
-
-    fun isWildRoutineRunning(): Boolean {
-        return runningSoundRoutine != null && runningSoundRoutine is WILDSoundRoutine
     }
 
     private suspend fun waitForSoundPlayToComplete(sndId: Int) {
