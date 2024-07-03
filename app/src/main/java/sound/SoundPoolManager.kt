@@ -96,16 +96,15 @@ class SoundPoolManager {
         if (soundList.contains("s")) {
             bgRawRes = R.raw.waves
             soundRoutines.add(
-                SSILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, .3F, 0F, .7F, eventLabel, "Waves", endBgLabel))
+                SSILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, .3F, 0F, .7F, eventLabel, bgLabel, endBgLabel))
         }
         if (soundList.contains("m")) {
-            bgRawRes = R.raw.waves
-            soundRoutines.add(
-                MILDSoundRoutine(playCnt, bgRawRes, endBgRawRes,.3F, 0F, .7F,  eventLabel, "Waves", endBgLabel))
+            val soundRoutine = getSoundRoutine(bgRawRes, playCnt, endBgRawRes, eventLabel, bgLabel, endBgLabel, intensityLevel, "m")
+            soundRoutines.add(soundRoutine)
         }
         if (soundList.contains("w") || soundList.contains("wp")) {
-            val isPrompt = soundList.contains("wp")
-            val soundRoutine = getWildSoundRoutine(bgRawRes, playCnt, endBgRawRes, eventLabel, bgLabel, endBgLabel, intensityLevel, isPrompt)
+            val type = if(soundList.contains("wp")) "wp" else "w"
+            val soundRoutine = getSoundRoutine(bgRawRes, playCnt, endBgRawRes, eventLabel, bgLabel, endBgLabel, intensityLevel, type)
             soundRoutines.add(soundRoutine)
         }
         if (soundList.contains("p")) {
@@ -120,8 +119,8 @@ class SoundPoolManager {
         playSoundRoutines(soundRoutines, textView)
     }
 
-    private fun getWildSoundRoutine(bgRawRes: Int, playCnt: Int, endBgRawRes: Int, eventLabel: String, bgLabel: String,
-             endBgLabel: String, intensityLevel: Int, isPrompt: Boolean, ) : SoundRoutine {
+    private fun getSoundRoutine(bgRawRes: Int, playCnt: Int, endBgRawRes: Int, eventLabel: String, bgLabel: String,
+             endBgLabel: String, intensityLevel: Int, type: String ) : SoundRoutine {
 
         //adjust the volumes based on background sound
         var (fgVolume, altBgVolume) = when (bgRawRes) {
@@ -132,29 +131,35 @@ class SoundPoolManager {
             else -> .45F to .4F
         }
 
-        if (isPrompt) {
+        var soundRoutine = when (type) {
             //adjust the volumes further based on intensity for prompts
-            when(intensityLevel) {
-                //0, 1 leave as is
+            //Log.d("DimVolume", "WILD prompt volumes at $fgVolume and $altBgVolume intensity $intensityLevel")
+            "wp" -> {
+                when(intensityLevel) {
+                    //0, 1 leave as is
 
-                2 -> {
-                    fgVolume *= 1.1F
-                    altBgVolume *= 1.1F
+                    2 -> {
+                        fgVolume *= 1.1F
+                        altBgVolume *= 1.1F
+                    }
+
+                    3-> {
+                        fgVolume *= 1.2F
+                        altBgVolume *= 1.2F
+                    }
                 }
-
-                3-> {
-                    fgVolume *= 1.2F
-                    altBgVolume *= 1.2F
-                }
-
+                WILDPromptSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
             }
 
-            //Log.d("DimVolume", "WILD prompt volumes at $fgVolume and $altBgVolume intensity $intensityLevel")
 
-            return WILDPromptSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
-        } else {
-            return WILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
+             "w" -> WILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
+
+             else -> MILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
+
         }
+
+        return soundRoutine
+
     }
 
     private fun getPodcastSoundRoutine(bgRawRes: Int, playCnt: Int, endBgRawRes: Int, eventLabel: String, bgLabel: String,

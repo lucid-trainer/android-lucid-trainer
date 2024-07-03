@@ -67,7 +67,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         const val EVENT_LABEL_LIGHT = "light_event"
         const val EVENT_LABEL_REM = "rem_event"
         const val EVENT_LABEL_FOLLOW_UP = "follow_up_event"
-        const val SLEEP_EVENT_PROMPT_DELAY = 30000L //3000L DEBUG VALUE
+        const val SLEEP_EVENT_PROMPT_DELAY = 15000L //3000L DEBUG VALUE
 
         const val WILD_FG_DIR = "$ROOT_DIR/$FOREGROUND_DIR"
         const val WILD_CLIP_DIR = "$ROOT_DIR/$CLIP_DIR"
@@ -312,7 +312,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         val minute = triggerDateTime.minute
 
         if (binding.chipRem.isChecked) {
-            val hoursAllowed =  (hour == 2 && minute > 29) || hour in 3..7
+            val hoursAllowed =  hour in 2..3 || hour in 6..8
 
             val isLightPromptEventAllowed = hoursAllowed && promptMonitor.isLightEventAllowed(viewModel.lastTimestamp.value)
 
@@ -336,7 +336,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         val minute = triggerDateTime.minute
 
         if (binding.chipRem.isChecked) {
-            val hoursAllowed = (hour == 2 && minute > 29) || hour in 3..7
+            val hoursAllowed = hour in 2..3 || hour in 6..8
 
             val isREMPromptEventAllowed = hoursAllowed && promptMonitor.isRemEventAllowed(viewModel.lastTimestamp.value)
 
@@ -505,7 +505,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             //assume we'll only play for 20 minutes max unless an asleep event occurs sooner and set the prompt timeout ahead
             val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
             promptMonitor.stopPromptWindow = triggerDateTime.plusMinutes(20)
-            promptMonitor.addAwakeEvent(triggerDateTime)
+            updateEventList(EVENT_LABEL_AWAKE, triggerDateTime.toString())
         }
 
         if (binding.chipSsild.isChecked) {
@@ -536,7 +536,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             soundList.add("p")
         }
 
-        Log.d("MainActivity", "setting soundlist to=$soundList")
+        //Log.d("MainActivity", "setting soundlist to=$soundList")
 
         soundPoolManager.playSoundList(
             soundList, mBgRawId, mBgLabel, eventLabel, binding.playStatus, playCount, intensityLevel)
@@ -553,14 +553,20 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         val endPromptWindow = LocalDateTime.parse(viewModel.lastTimestamp.value).plusMinutes(20)
 
         if(eventMap.containsKey(POD_EVENT) && (eventMap[POD_EVENT] != null)) {
+            updateEventList(EVENT_LABEL_AWAKE, triggerDateTime.toString())
+            CoroutineScope(Dispatchers.Default).launch {
+                deviceDocumentRepository.postDevicePrompt("appdata", getDeviceDocument(EVENT_LABEL_AWAKE, true))
+                //Log.d("MainActivity", "sending awake event to device repository for podcast event")
+            }
+
             val podNumber = eventMap[POD_EVENT]!!.toInt()
             playCount = podNumber
             soundList.add("p")
         }  else if(eventMap.containsKey(PLAY_EVENT) && (eventMap[PLAY_EVENT] != null)) {
             updateEventList(EVENT_LABEL_AWAKE, triggerDateTime.toString())
-
             CoroutineScope(Dispatchers.Default).launch {
                 deviceDocumentRepository.postDevicePrompt("appdata", getDeviceDocument(EVENT_LABEL_AWAKE, true))
+                //Log.d("MainActivity", "sending awake event to device repository for play event")
             }
 
             soundList = eventMap[PLAY_EVENT]!!.split(",").toMutableList()
@@ -568,7 +574,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             promptMonitor.stopPromptWindow = endPromptWindow
 
         } else if (eventMap.containsKey(SLEEP_EVENT)) {
-            Log.d("PromptMonitor", "viewModel.lastTimestamp.value sleep event setting lastHigh = ${LocalDateTime.parse(viewModel.lastTimestamp.value)}")
+            //Log.d("PromptMonitor", "viewModel.lastTimestamp.value sleep event setting lastHigh = ${LocalDateTime.parse(viewModel.lastTimestamp.value)}")
             //stop any more prompts for a period of time
             lastHighActiveTimestamp = LocalDateTime.parse(viewModel.lastTimestamp.value)
 
