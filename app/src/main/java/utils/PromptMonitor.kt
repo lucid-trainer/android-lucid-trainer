@@ -18,16 +18,15 @@ class PromptMonitor {
 
     var lastAwakeDateTime : LocalDateTime? = null
     var lastFollowupDateTime : LocalDateTime? = null
-    var followUpCoolDownEndDateTime : LocalDateTime? = null
-    var allCoolDownEndDateTime : LocalDateTime? = null
+    var coolDownEndDateTime : LocalDateTime? = null
 
 
     companion object {
-        const val MAX_PROMPT_COUNT_PER_PERIOD = 5
+        const val MAX_REM_PROMPT_COUNT_PER_PERIOD = 4
         const val PROMPT_PERIOD = 20L
-        const val FOLLOW_UP_COOL_DOWN_PERIOD = 25L
-        const val ACTIVE_FOLLOW_UP_COOL_DOWN_PERIOD = 35L
-        const val ALL_COOL_DOWN_PERIOD_BASE = 10L
+        const val MAX_PROMPT_COOL_DOWN_PERIOD = 15L
+        const val INTERRUPT_COOL_DOWN_PERIOD = 15L
+        const val AWAKE_COOL_DOWN_PERIOD = 35L
         const val SECONDS_BETWEEN_PROMPTS = 120L
     }
 
@@ -43,8 +42,7 @@ class PromptMonitor {
         promptEventWaiting = null
         lastAwakeDateTime = null
         lastFollowupDateTime = null
-        followUpCoolDownEndDateTime = null
-        allCoolDownEndDateTime = null
+        coolDownEndDateTime = null
     }
 
     fun getEventsDisplay(): String {
@@ -70,9 +68,9 @@ class PromptMonitor {
         }
 
         if (followUpEventList.isNotEmpty()) {
-            val formatfollowUpEvents: List<String> =
+            val formatFollowUpEvents: List<String> =
                 followUpEventList.toMutableList().map { dateTime -> dateTime.format(formatter) }
-            eventsDisplay += "Follow-up Events: $formatfollowUpEvents \n"
+            eventsDisplay += "Follow-up Events: $formatFollowUpEvents \n"
         }
 
         return eventsDisplay
@@ -81,7 +79,7 @@ class PromptMonitor {
     fun addAwakeEvent(lastDateTime: LocalDateTime) {
         awakeEventList.add(lastDateTime)
         //don't allow prompts for a longer period of time after an active event
-        followUpCoolDownEndDateTime = lastDateTime.plusMinutes(ACTIVE_FOLLOW_UP_COOL_DOWN_PERIOD)
+        coolDownEndDateTime = lastDateTime.plusMinutes(AWAKE_COOL_DOWN_PERIOD)
         //Log.d("PromptMonitor", "$lastDateTime setting $followUpCoolDownEndDateTime follow-up time for awake event")
     }
 
@@ -89,35 +87,35 @@ class PromptMonitor {
         lightEventList.add(lastDateTime)
         allPromptEvents.add(lastDateTime)
 
-        checkFollowUpCoolDown(lastDateTime)
+        checkMaxPromptCoolDown(lastDateTime)
     }
 
     fun addRemEvent(lastDateTime : LocalDateTime) {
         remEventList.add(lastDateTime)
         allPromptEvents.add(lastDateTime)
 
-        checkFollowUpCoolDown(lastDateTime)
+        checkMaxPromptCoolDown(lastDateTime)
     }
 
     fun addFollowUpEvent(lastDateTime : LocalDateTime) {
         followUpEventList.add(lastDateTime)
         allPromptEvents.add(lastDateTime)
 
-        checkFollowUpCoolDown(lastDateTime)
+        checkMaxPromptCoolDown(lastDateTime)
     }
 
-    private fun checkFollowUpCoolDown(lastDateTime: LocalDateTime) {
+    private fun checkMaxPromptCoolDown(lastDateTime: LocalDateTime) {
         //events tend to cluster which we want.  When we get to the max in a period wait for the cooldown period to end before
         //allowing any more events.  We also set this when a manual sound routine such as WildRoutine or PodcastRoutine is initiated
         //as this indicates the user is awake and going back to sleep
-        if (allPromptEvents.size >= MAX_PROMPT_COUNT_PER_PERIOD
-            && lastDateTime <= allPromptEvents.takeLast(MAX_PROMPT_COUNT_PER_PERIOD).first().plusMinutes(PROMPT_PERIOD)
+        if (remEventList.size >= MAX_REM_PROMPT_COUNT_PER_PERIOD
+            && lastDateTime <= allPromptEvents.takeLast(MAX_REM_PROMPT_COUNT_PER_PERIOD).first().plusMinutes(PROMPT_PERIOD)
         ) {
-            followUpCoolDownEndDateTime = lastDateTime.plusMinutes(FOLLOW_UP_COOL_DOWN_PERIOD)
+            coolDownEndDateTime = lastDateTime.plusMinutes(MAX_PROMPT_COOL_DOWN_PERIOD)
         }
     }
 
-    fun checkAllCoolDown(lastTimestamp: String?, isSleepButton: Boolean) : Boolean {
+    fun checkInterruptCoolDown(lastTimestamp: String?, isSleepButton: Boolean) : Boolean {
         //Check if we've had an interrupt from the watch device via high movement or the Sleep button and disable prompts for a time if so
         var updatedAllCoolDown = false
         val lastDateTime = LocalDateTime.parse(lastTimestamp)
@@ -126,16 +124,17 @@ class PromptMonitor {
 //        if(allPromptEvents.isNotEmpty()) {
 //            Log.d("PromptMonitor", "$lastTimestamp lastPrompt = ${allPromptEvents.last()} plus4 = ${allPromptEvents.last().plusMinutes(4)}")
 //        }
-        var allCoolDownPeriodAdj = ALL_COOL_DOWN_PERIOD_BASE
+        var allCoolDownPeriod = INTERRUPT_COOL_DOWN_PERIOD
 
         if(isSleepButton) {
-            allCoolDownPeriodAdj += 8
+            //just make it a full hour if we use the sleep button
+            allCoolDownPeriod = 60
         }
 
-        if(allPromptEvents.isNotEmpty() && ( allCoolDownEndDateTime == null ||
-            (lastDateTime > allCoolDownEndDateTime && lastDateTime > allPromptEvents.last() &&
+        if(allPromptEvents.isNotEmpty() && ( coolDownEndDateTime == null ||
+            (lastDateTime > coolDownEndDateTime && lastDateTime > allPromptEvents.last() &&
              lastDateTime < allPromptEvents.last().plusMinutes(4)))) {
-            allCoolDownEndDateTime = lastDateTime.plusMinutes(allCoolDownPeriodAdj)
+            coolDownEndDateTime = lastDateTime.plusMinutes(allCoolDownPeriod)
             updatedAllCoolDown = true
 
             //Log.d("PromptMonitor", "$lastTimestamp setting all cool down $allCoolDownEndDateTime")
@@ -144,13 +143,8 @@ class PromptMonitor {
         return updatedAllCoolDown
     }
 
-    private fun isInCoolDownPeriod(lastTimestamp: String?) : Boolean {
-        return isInAllCoolDownPeriod(lastTimestamp) || (followUpCoolDownEndDateTime != null &&
-                 LocalDateTime.parse(lastTimestamp) < followUpCoolDownEndDateTime)
-    }
-
-   fun isInAllCoolDownPeriod(lastTimestamp: String?) : Boolean {
-       return allCoolDownEndDateTime != null && LocalDateTime.parse(lastTimestamp) <= allCoolDownEndDateTime
+    fun isInCoolDownPeriod(lastTimestamp: String?) : Boolean {
+       return coolDownEndDateTime != null && LocalDateTime.parse(lastTimestamp) <= coolDownEndDateTime
     }
 
     fun isStopPromptWindow(lastTimestamp: String?): Boolean {

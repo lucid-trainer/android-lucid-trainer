@@ -191,7 +191,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                                 viewModel.lastHighActiveTimestamp!! > lastHighActiveTimestamp))) {
 
                                 lastHighActiveTimestamp = viewModel.lastHighActiveTimestamp
-                                checkShouldStartAllCoolDown()
+                                checkShouldStartInterruptCoolDown()
                             }
 
                             var reading = viewModel.lastReadingString.value
@@ -224,8 +224,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
     }
 
-    private fun checkShouldStartAllCoolDown(isStartButton : Boolean = false) {
-        val isStartAllCoolDown = promptMonitor.checkAllCoolDown(viewModel.lastTimestamp.value, isStartButton)
+    private fun checkShouldStartInterruptCoolDown(isStartButton : Boolean = false) {
+        val isStartAllCoolDown = promptMonitor.checkInterruptCoolDown(viewModel.lastTimestamp.value, isStartButton)
          if (isStartAllCoolDown && !isStartButton) {
              stopSoundRoutine()
          }
@@ -579,7 +579,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             lastHighActiveTimestamp = LocalDateTime.parse(viewModel.lastTimestamp.value)
 
             cancelStartCountDownPrompt(SLEEP_EVENT)
-            checkShouldStartAllCoolDown(true)
+            checkShouldStartInterruptCoolDown(true)
         }
 
         if(soundList.isNotEmpty()) {
@@ -685,9 +685,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             type,
             promptMonitor.lastAwakeDateTime.toString(),
             lastPromptTimestamp,
-            promptMonitor.followUpCoolDownEndDateTime.toString(),
-            promptMonitor.allCoolDownEndDateTime.toString(),
-            promptMonitor.isInAllCoolDownPeriod(triggerTimestamp),
+            promptMonitor.coolDownEndDateTime.toString(),
+            promptMonitor.isInCoolDownPeriod(triggerTimestamp),
             intensity,
             allowed,
             fileManager.getUsedFilesFromDirectory(WILD_FG_DIR).size,
