@@ -124,11 +124,11 @@ class SoundPoolManager {
 
         //adjust the volumes based on background sound
         var (fgVolume, altBgVolume) = when (bgRawRes) {
-            R.raw.green, R.raw.pink -> .48F to .44F
-            R.raw.boxfan, R.raw.metal_fan -> .44F to .4F
+            R.raw.green, R.raw.pink -> .52F to .48F
+            R.raw.boxfan, R.raw.metal_fan -> .45F to .5F
             R.raw.ac -> .35F to .3F
-            R.raw.brown, R.raw.waves -> .1F to .09F
-            else -> .45F to .4F
+            R.raw.brown, R.raw.waves -> .12F to .1F
+            else -> .45F to .5F
         }
 
         var soundRoutine = when (type) {
@@ -137,7 +137,6 @@ class SoundPoolManager {
             "wp" -> {
                 when(intensityLevel) {
                     //0, 1 leave as is
-
                     2 -> {
                         fgVolume *= 1.1F
                         altBgVolume *= 1.1F

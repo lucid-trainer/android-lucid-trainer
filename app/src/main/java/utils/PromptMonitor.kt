@@ -22,7 +22,7 @@ class PromptMonitor {
 
 
     companion object {
-        const val MAX_REM_PROMPT_COUNT_PER_PERIOD = 4
+        const val MAX_PROMPT_COUNT_PER_PERIOD = 6
         const val PROMPT_PERIOD = 20L
         const val MAX_PROMPT_COOL_DOWN_PERIOD = 15L
         const val INTERRUPT_COOL_DOWN_PERIOD = 15L
@@ -108,8 +108,8 @@ class PromptMonitor {
         //events tend to cluster which we want.  When we get to the max in a period wait for the cooldown period to end before
         //allowing any more events.  We also set this when a manual sound routine such as WildRoutine or PodcastRoutine is initiated
         //as this indicates the user is awake and going back to sleep
-        if (remEventList.size >= MAX_REM_PROMPT_COUNT_PER_PERIOD
-            && lastDateTime <= allPromptEvents.takeLast(MAX_REM_PROMPT_COUNT_PER_PERIOD).first().plusMinutes(PROMPT_PERIOD)
+        if (allPromptEvents.size >= MAX_PROMPT_COUNT_PER_PERIOD
+            && lastDateTime <= allPromptEvents.takeLast(MAX_PROMPT_COUNT_PER_PERIOD).first().plusMinutes(PROMPT_PERIOD)
         ) {
             coolDownEndDateTime = lastDateTime.plusMinutes(MAX_PROMPT_COOL_DOWN_PERIOD)
         }
@@ -150,6 +150,11 @@ class PromptMonitor {
     fun isStopPromptWindow(lastTimestamp: String?): Boolean {
         return stopPromptWindow != null && stopPromptWindow!! > LocalDateTime.parse(lastTimestamp) &&
                 (LocalDateTime.parse(lastTimestamp) >= lastAwakeDateTime!!.plusMinutes(20))
+    }
+
+    fun isAwakeEventBeforePeriod(lastTimestamp: String?, period: Long): Boolean {
+        return (awakeEventList.isEmpty() || LocalDateTime.parse(lastTimestamp) >= awakeEventList.last()
+            .plusMinutes(period))
     }
 
     fun isAwakeEventAllowed(lastTimestamp: String?): Boolean {

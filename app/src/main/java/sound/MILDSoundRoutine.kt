@@ -20,18 +20,17 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
         const val START_DIR = "start"
     }
 
-
     override fun getRoutine(): List<Sound> {
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()
 
         routine.add(Sound(R.raw.mild_intro, 30))
-        routine.add(Sound(R.raw.mild_dream_1, 60))
-        routine.add(Sound(R.raw.mild_sign, 25))
+        routine.add(Sound(R.raw.mild_dream_1, 50))
+        routine.add(Sound(R.raw.mild_sign, 20))
         routine.add(Sound(R.raw.mild_replay, 50))
 
         if(playCount > 2) {
-            routine.add(Sound(R.raw.mild_dream_2, 60))
-            routine.add(Sound(R.raw.mild_sign, 25))
+            routine.add(Sound(R.raw.mild_dream_2, 50))
+            routine.add(Sound(R.raw.mild_sign, 20))
             routine.add(Sound(R.raw.mild_replay, 50))
         }
 

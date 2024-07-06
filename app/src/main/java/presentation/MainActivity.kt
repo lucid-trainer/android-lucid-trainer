@@ -312,7 +312,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         val minute = triggerDateTime.minute
 
         if (binding.chipRem.isChecked) {
-            val hoursAllowed =  hour in 2..3 || hour in 6..8
+            val hoursAllowed = getPromptHoursAllowed(hour)
 
             val isLightPromptEventAllowed = hoursAllowed && promptMonitor.isLightEventAllowed(viewModel.lastTimestamp.value)
 
@@ -333,10 +333,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private fun checkAndSubmitREMPromptEvent() {
         val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
         val hour = triggerDateTime.hour
-        val minute = triggerDateTime.minute
 
         if (binding.chipRem.isChecked) {
-            val hoursAllowed = hour in 2..3 || hour in 6..8
+            val hoursAllowed = getPromptHoursAllowed(hour)
 
             val isREMPromptEventAllowed = hoursAllowed && promptMonitor.isRemEventAllowed(viewModel.lastTimestamp.value)
 
@@ -352,6 +351,12 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 startCountDownPromptTimer(EVENT_LABEL_REM)
             }
         }
+    }
+
+    private fun getPromptHoursAllowed(hour: Int): Boolean {
+        //use a little randomness to sometimes do prompts in the 5 o'clock hour
+        return hour == 2 || (hour in 3..5 && promptMonitor.isAwakeEventBeforePeriod(viewModel.lastTimestamp.value, 100))
+                || hour in 6..9
     }
 
     private fun checkAndSubmitFollowUpPromptEvent() {
