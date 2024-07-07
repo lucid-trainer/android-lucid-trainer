@@ -5,8 +5,6 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 class PromptMonitor {
-
-    var stopPromptWindow: LocalDateTime? = null
     var promptEventWaiting: String? = null
     private var awakeEventList: MutableList<LocalDateTime> =
         emptyList<LocalDateTime>().toMutableList()
@@ -38,7 +36,6 @@ class PromptMonitor {
         remEventList.clear()
         followUpEventList.clear()
         allPromptEvents.clear()
-        stopPromptWindow = null
         promptEventWaiting = null
         lastAwakeDateTime = null
         lastFollowupDateTime = null
@@ -145,11 +142,6 @@ class PromptMonitor {
 
     fun isInCoolDownPeriod(lastTimestamp: String?) : Boolean {
        return coolDownEndDateTime != null && LocalDateTime.parse(lastTimestamp) <= coolDownEndDateTime
-    }
-
-    fun isStopPromptWindow(lastTimestamp: String?): Boolean {
-        return stopPromptWindow != null && stopPromptWindow!! > LocalDateTime.parse(lastTimestamp) &&
-                (LocalDateTime.parse(lastTimestamp) >= lastAwakeDateTime!!.plusMinutes(20))
     }
 
     fun isAwakeEventBeforePeriod(lastTimestamp: String?, period: Long): Boolean {

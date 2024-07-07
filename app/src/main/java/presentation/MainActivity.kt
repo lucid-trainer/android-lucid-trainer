@@ -238,12 +238,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
     private fun processSleepStageEvents(sleepStage: String) {
 
-        //stop a prompt/podcast if running too long
-        if(sleepStage.contains("ASLEEP") && promptMonitor.isStopPromptWindow(viewModel.lastTimestamp.value)) {
-            cancelStartCountDownPrompt(EVENT_LABEL_ASLEEP)
-            promptMonitor.stopPromptWindow = LocalDateTime.parse(viewModel.lastTimestamp.value)
-        }
-
         //Log.d("SleepStage", "${viewModel.lastTimestamp.value} stage=$sleepStage lastAwake=${viewModel.lastAwakeTimestamp}")
 
         when(sleepStage) {
@@ -300,8 +294,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
             if (isAwakeEventAllowed) {
                 startCountDownPromptTimer(EVENT_LABEL_AWAKE)
-                promptMonitor.stopPromptWindow =
-                    LocalDateTime.parse(viewModel.lastTimestamp.value).plusMinutes(15)
             }
         }
     }
@@ -323,8 +315,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             }
 
             if (isLightPromptEventAllowed) {
-                //we don't want it to stop the light/rem sleep prompt if stage switches back to ASLEEP
-                promptMonitor.stopPromptWindow = LocalDateTime.parse(viewModel.lastTimestamp.value)
                 startCountDownPromptTimer(EVENT_LABEL_LIGHT)
             }
         }
@@ -346,8 +336,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             }
 
             if (isREMPromptEventAllowed) {
-                //we don't want it to stop the light/rem sleep prompt if stage switches back to ASLEEP
-                promptMonitor.stopPromptWindow = LocalDateTime.parse(viewModel.lastTimestamp.value)
                 startCountDownPromptTimer(EVENT_LABEL_REM)
             }
         }
@@ -371,8 +359,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 val document = getDeviceDocument(EVENT_LABEL_FOLLOW_UP, true, intensityLevel)
                 logEvent(document)
 
-                //we don't want it to stop the follow-up sleep prompt if stage switches back to ASLEEP
-                promptMonitor.stopPromptWindow = LocalDateTime.parse(viewModel.lastTimestamp.value)
                 startCountDownPromptTimer(EVENT_LABEL_FOLLOW_UP)
                 promptMonitor.lastFollowupDateTime = triggerDateTime
             }
@@ -505,11 +491,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         if(eventLabel == EVENT_LABEL_LIGHT || eventLabel == EVENT_LABEL_REM || eventLabel == EVENT_LABEL_FOLLOW_UP) {
             pMod = "p"
-            promptMonitor.stopPromptWindow = LocalDateTime.parse(viewModel.lastTimestamp.value)
         } else {
-            //assume we'll only play for 20 minutes max unless an asleep event occurs sooner and set the prompt timeout ahead
             val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
-            promptMonitor.stopPromptWindow = triggerDateTime.plusMinutes(20)
             updateEventList(EVENT_LABEL_AWAKE, triggerDateTime.toString())
         }
 
@@ -554,9 +537,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         var soundList : MutableList<String> = emptyList<String>().toMutableList()
         var playCount = getPlayCount(hour)
 
-        //assume we'll only play for 20 minutes max unless an asleep event occurs sooner
-        val endPromptWindow = LocalDateTime.parse(viewModel.lastTimestamp.value).plusMinutes(20)
-
         if(eventMap.containsKey(POD_EVENT) && (eventMap[POD_EVENT] != null)) {
             updateEventList(EVENT_LABEL_AWAKE, triggerDateTime.toString())
             CoroutineScope(Dispatchers.Default).launch {
@@ -575,8 +555,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             }
 
             soundList = eventMap[PLAY_EVENT]!!.split(",").toMutableList()
-
-            promptMonitor.stopPromptWindow = endPromptWindow
 
         } else if (eventMap.containsKey(SLEEP_EVENT)) {
             //Log.d("PromptMonitor", "viewModel.lastTimestamp.value sleep event setting lastHigh = ${LocalDateTime.parse(viewModel.lastTimestamp.value)}")
