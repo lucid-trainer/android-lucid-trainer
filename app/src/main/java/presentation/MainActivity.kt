@@ -63,7 +63,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         const val EVENT_LABEL_BUTTON = "button_press"
         const val EVENT_LABEL_WATCH = "watch_event"
         const val EVENT_LABEL_AWAKE = "awake_event"
-        const val EVENT_LABEL_ASLEEP = "asleep_event"
         const val EVENT_LABEL_LIGHT = "light_event"
         const val EVENT_LABEL_REM = "rem_event"
         const val EVENT_LABEL_FOLLOW_UP = "follow_up_event"
@@ -78,7 +77,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private lateinit var soundPoolManager: SoundPoolManager
     private lateinit var fileManager: FileManager
     private var  lastEventTimestamp = ""
-    private var lastHighActiveTimestamp: LocalDateTime? = null
+    private var lastActiveEventTimestamp: LocalDateTime? = null
     private var apJob: Job? = null
     private var isBTDisconnected: Boolean = false
 
@@ -187,10 +186,10 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                             }
 
                             //get any recent high active event and interrupt any prompts if found running
-                            if(viewModel.lastHighActiveTimestamp != null && (lastHighActiveTimestamp == null || (
-                                viewModel.lastHighActiveTimestamp!! > lastHighActiveTimestamp))) {
+                            if(viewModel.lastActiveEventTimestamp != null && (lastActiveEventTimestamp == null || (
+                                viewModel.lastActiveEventTimestamp!! > lastActiveEventTimestamp))) {
 
-                                lastHighActiveTimestamp = viewModel.lastHighActiveTimestamp
+                                lastActiveEventTimestamp = viewModel.lastActiveEventTimestamp
                                 checkShouldStartInterruptCoolDown()
                             }
 
@@ -237,9 +236,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     }
 
     private fun processSleepStageEvents(sleepStage: String) {
-
         //Log.d("SleepStage", "${viewModel.lastTimestamp.value} stage=$sleepStage lastAwake=${viewModel.lastAwakeTimestamp}")
-
         when(sleepStage) {
 
             "AWAKE" -> {
@@ -342,8 +339,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     }
 
     private fun getPromptHoursAllowed(hour: Int): Boolean {
-        //use a little randomness to sometimes do prompts in the 5 o'clock hour
-        return hour == 2 || (hour in 3..5 && promptMonitor.isAwakeEventBeforePeriod(viewModel.lastTimestamp.value, 100))
+        return hour in 1..2 || (hour in 3..5 && promptMonitor.isAwakeEventBeforePeriod(viewModel.lastTimestamp.value, 80))
                 || hour in 6..9
     }
 
@@ -364,7 +360,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             }
         }
     }
-
 
     private fun logEvent(document: DeviceDocument) {
 
@@ -559,7 +554,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         } else if (eventMap.containsKey(SLEEP_EVENT)) {
             //Log.d("PromptMonitor", "viewModel.lastTimestamp.value sleep event setting lastHigh = ${LocalDateTime.parse(viewModel.lastTimestamp.value)}")
             //stop any more prompts for a period of time
-            lastHighActiveTimestamp = LocalDateTime.parse(viewModel.lastTimestamp.value)
+            lastActiveEventTimestamp = LocalDateTime.parse(viewModel.lastTimestamp.value)
 
             cancelStartCountDownPrompt(SLEEP_EVENT)
             checkShouldStartInterruptCoolDown(true)

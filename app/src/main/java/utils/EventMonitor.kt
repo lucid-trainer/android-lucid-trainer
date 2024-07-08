@@ -1,6 +1,5 @@
 package utils
 
-import android.util.Log
 import database.Reading
 
 object EventMonitor {
@@ -66,8 +65,8 @@ object EventMonitor {
         return sleepStage;
     }
 
-    fun getHighActiveEvent(workingReadingList:  ArrayList<Reading>) : Boolean {
+    fun getActiveEvent(workingReadingList:  ArrayList<Reading>) : Boolean {
         return (workingReadingList.size >= 1 &&
-                workingReadingList.map { it -> it.accelMovement }.last() > .275)
+                workingReadingList.map { it -> it.accelMovement }.last() > .2)
     }
 }

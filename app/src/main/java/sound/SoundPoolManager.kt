@@ -125,36 +125,32 @@ class SoundPoolManager {
         //adjust the volumes based on background sound
         var (fgVolume, altBgVolume) = when (bgRawRes) {
             R.raw.green, R.raw.pink -> .52F to .48F
-            R.raw.boxfan, R.raw.metal_fan -> .45F to .5F
+            R.raw.boxfan, R.raw.metal_fan -> .42F to .4F
             R.raw.ac -> .35F to .3F
             R.raw.brown, R.raw.waves -> .12F to .1F
             else -> .45F to .5F
         }
 
         var soundRoutine = when (type) {
-            //adjust the volumes further based on intensity for prompts
-            //Log.d("DimVolume", "WILD prompt volumes at $fgVolume and $altBgVolume intensity $intensityLevel")
             "wp" -> {
-                when(intensityLevel) {
-                    //0, 1 leave as is
-                    2 -> {
-                        fgVolume *= 1.1F
-                        altBgVolume *= 1.1F
-                    }
-
-                    3-> {
-                        fgVolume *= 1.2F
-                        altBgVolume *= 1.2F
-                    }
+                //adjust the volumes further based on intensity for prompts
+                //Log.d("DimVolume", "WILD prompt volumes at $fgVolume and $altBgVolume intensity $intensityLevel")
+                val adjustVal = when(intensityLevel) {
+                    0 -> .65F
+                    1 -> .8F
+                    2 -> 1F
+                    3-> 1.1F
+                    else -> 1.2F
                 }
+                fgVolume *= adjustVal
+                altBgVolume *= adjustVal
+
                 WILDPromptSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
             }
 
+            "w" -> WILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
 
-             "w" -> WILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
-
-             else -> MILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
-
+            else -> MILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
         }
 
         return soundRoutine

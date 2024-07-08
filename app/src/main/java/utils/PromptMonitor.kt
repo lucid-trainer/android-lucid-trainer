@@ -176,13 +176,11 @@ class PromptMonitor {
         //This allows for padding with one or more follow-up events in a cycle of prompts
         val remAndLightEvents = (remEventList + lightEventList).sorted()
 
-        val isAllowed = remAndLightEvents.isNotEmpty() && promptEventWaiting == null &&
+        return remAndLightEvents.isNotEmpty() && promptEventWaiting == null &&
                 !isInCoolDownPeriod(lastTimestamp) && !isInAwakePeriod(lastTimestamp) &&
-                (lastFollowupDateTime == null || remAndLightEvents.last()  > lastFollowupDateTime) &&
+                (lastFollowupDateTime == null || remAndLightEvents.last() > lastFollowupDateTime) &&
                 LocalDateTime.parse(lastTimestamp) > remAndLightEvents.last().plusSeconds(SECONDS_BETWEEN_PROMPTS) &&
-                LocalDateTime.parse(lastTimestamp) <= remAndLightEvents.last().plusSeconds(SECONDS_BETWEEN_PROMPTS*2)
-
-        return isAllowed
+                LocalDateTime.parse(lastTimestamp) <= remAndLightEvents.last().plusSeconds(SECONDS_BETWEEN_PROMPTS * 2)
     }
 
     private fun isInAwakePeriod(lastTimestamp: String?) : Boolean {
@@ -193,16 +191,14 @@ class PromptMonitor {
     fun promptIntensityLevel(lastTimestamp: String?): Int {
 
         val hour = LocalDateTime.parse(lastTimestamp).hour
-
         var intensity = 2
 
-        //adjust down a bit if late in the morning
-        if(hour >= 6) {
-            intensity--
+        if(hour in 6..7) {
+            intensity = 1
+        } else if (hour == 1 || hour > 7) {
+            intensity = 0
         }
 
         return intensity
-
     }
-
 }
