@@ -10,7 +10,7 @@ data class Document(
     val hrArray: String?,
     val hrVar: String?,
     val isSleep: String?,
-    val move: String?,
+    val moveZ: String?,
     val positionArray: List<Position>?,
     val sessionId: String?,
     val timestamp: String?,
@@ -38,7 +38,7 @@ fun Document.transform(): Reading {
 
         reading.position = gson.toJson(positionArray?.get(0))
 
-        reading.accelMovement = move?.toDouble() ?: 0.0
+        reading.accelMovement = moveZ?.toDouble() ?: 0.0
 
         if (timestamp != null) {
             reading.timestamp = timestamp

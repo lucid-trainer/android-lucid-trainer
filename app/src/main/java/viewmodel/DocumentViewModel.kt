@@ -1,7 +1,5 @@
 package viewmodel
 
-import android.util.Log
-import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Transformations
 import androidx.lifecycle.ViewModel
@@ -20,10 +18,9 @@ import network.response.APIResponse
 import network.response.transform
 import repository.DocumentsRepository
 import utils.AppConfig
-import java.time.LocalDate
+import utils.EventMonitor
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util.Collections.list
 
 
 class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
@@ -43,6 +40,10 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
 
     //get the starting timestamp
     var startingDateTime = getStartDateTime()
+
+    var lastAwakeTimestamp : LocalDateTime? = null
+
+    var lastActiveEventTimestamp : LocalDateTime? = null
 
     //the last document stored in the database
     private val lastReading = dao.getLatest()
@@ -71,7 +72,7 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
         isFlowEnabled = value
     }
 
-    // Function to get new Comments
+    // Function to get new Documents
     fun getNewReadings() {
 
         // ApiCalls takes some time, So it has to be
@@ -107,20 +108,25 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
                         var size = it.data?.documents?.size;
                         if (size != null) {
                             it.data?.documents?.transform()?.forEach { reading ->
-                                //lastTimestamp = reading.timestamp
-                                Log.d("DocumentViewModel", "lastReadingTimestamp=$lastTimestamp")
+                                dao.insert(reading)
 
-                                val lastInsertId = dao.insert(reading)
-                                Log.d("DocumentViewModel", "insertId=$lastInsertId")
+                                workingReadingList.add(reading)
+                                sleepStage.value = EventMonitor.getSleepStage(workingReadingList)
+                                if(sleepStage.value == "AWAKE") {
+                                    lastAwakeTimestamp = reading.dateTime
+                                }
 
-                                setSleepStage(reading)
+                                //track an elevated increase in movement that can indicate a signal from user
+                                if(EventMonitor.getActiveEvent(workingReadingList)) {
+                                    lastActiveEventTimestamp = reading.dateTime
+                                }
                             }
                         }
 
                         //set the documents in  the response data
                         documentState.value = DocumentApiState.success(it.data)
                     }
-                delay(15000L)
+                delay(15000L) //DEBUG value change to 3000L
             }
 
             //the flow is disabled
@@ -129,12 +135,12 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
     }
 
     private fun getAPIRequest(lastTimestamp: String): APIRequest {
-        Log.d("DocumentViewModel", "lastTimestamp=$lastTimestamp")
+        //Log.d("DocumentViewModel", "lastTimestamp=$lastTimestamp")
 
         val request = APIRequest(
-            "[Mongodb Atlas collection]",
-            "[Mongodb Atlas data source]",
-            "[Mongodb Atlas database]",
+            "fitdata",
+            "Cluster0",
+            "lucid-trainer",
             1,
             1,
             lastTimestamp
@@ -142,30 +148,15 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
 
         val gson = Gson()
         val requestJson: String? = gson.toJson(request, APIRequest::class.java)
-        Log.d("DocumentViewModel", "requestJson=$requestJson")
+        //Log.d("DocumentViewModel", "requestJson=$requestJson")
         return request
     }
 
-
-    // 3 "period" moving average
-
-
     private fun getStartDateTime() : LocalDateTime {
-        val currDateTime = LocalDateTime.now()
+       return LocalDateTime.now();
 
-        //start with today at 10pm as starting point
-        //var dateTime = LocalDate.now().atTime(20, 0);
-        var dateTime = LocalDateTime.now();
-
-        //for debugging, set a specific starting time
-        //var dateTime = LocalDate.parse("2023-09-04").atTime(12, 0)
-
-//        if (currDateTime.hour in 0..10) {
-//            //but if we're in the morning hours set it to yesterday
-//            dateTime = LocalDate.now().minusDays(1).atTime(22, 0)
-//        }
-
-        return dateTime
+        //for DEBUG, set a specific starting time
+       //return LocalDate.parse("2024-05-30").atTime(1,0)
     }
 
     private fun getStartingTimestamp() : String {
@@ -185,17 +176,4 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
         return str
     }
 
-    private fun setSleepStage(reading: Reading) {
-        workingReadingList.add(reading)
-
-        if (workingReadingList.size > 6) {
-            val moveCnt =
-                workingReadingList.map { it -> it.accelMovement }.takeLast(6).filter { it > 1.25 }.size
-            if (reading.isSleep == "awake" || reading.isSleep == "unknown" || moveCnt >= 2) {
-                sleepStage.value = "AWAKE"
-            } else {
-                sleepStage.value = "ASLEEP"
-            }
-        }
-    }
 }
