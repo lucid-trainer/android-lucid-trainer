@@ -10,6 +10,8 @@ data class DeviceDocument (
     val lastPromptTimestamp: String,
     val coolDownDateTime: String,
     val isInCooldownPeriod: Boolean,
+    val startPromptAllowPeriod: String,
+    val isInPromptWindow: Boolean,
     val intensity: Int,
     val prompt_allowed: Boolean,
     val fgFilesUsed: Int,

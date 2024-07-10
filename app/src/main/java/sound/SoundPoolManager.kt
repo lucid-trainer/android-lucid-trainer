@@ -136,8 +136,8 @@ class SoundPoolManager {
                 //adjust the volumes further based on intensity for prompts
                 //Log.d("DimVolume", "WILD prompt volumes at $fgVolume and $altBgVolume intensity $intensityLevel")
                 val adjustVal = when(intensityLevel) {
-                    0 -> .65F
-                    1 -> .8F
+                    0 -> .35F
+                    1 -> .6F
                     2 -> 1F
                     3-> 1.1F
                     else -> 1.2F
@@ -254,7 +254,7 @@ class SoundPoolManager {
             altBgJob = scope.launch {
                 delay(timeMillis = 1000)
 
-                val delayBetween = if(soundRoutine is WILDPromptSoundRoutine) 5000L else 30000L
+                val delayBetween = if(soundRoutine is WILDPromptSoundRoutine) 15000L else 30000L
 
                 val startSounds = soundRoutine.getStartSounds()
                 if(startSounds.isNotEmpty()) {
@@ -356,17 +356,18 @@ class SoundPoolManager {
                     var currBgVolume = soundRoutine.bgVolume
 
                     for (sound in soundRoutine.getRoutine()) {
+                        val adjBgVolFactor = if(soundRoutine is WILDPromptSoundRoutine) .4F else ADJUST_BG_VOL_FACTOR
 
                         //check for volume adjust value on the clip
                         Log.d("DimVolume", "before FG volume $currVolume BG volume $currBgVolume")
                         if(sound.fileVolAdjust != 0F) {
                             currVolume *= sound.fileVolAdjust
-                            currBgVolume *= ADJUST_BG_VOL_FACTOR
+                            currBgVolume *= adjBgVolFactor
                             stopPlayingBackground()
                             playBackgroundSound(soundRoutine.bgRawId, currBgVolume, textView)
                             adjustAltBGVol = true
                             delay(timeMillis = 1000)
-                        } else if(currVolume != soundRoutine.fgVolume){
+                        } else if(currVolume != soundRoutine.fgVolume || currBgVolume != soundRoutine.bgVolume){
                             //reset to the original volumes
                             currVolume = soundRoutine.fgVolume
                             currBgVolume = soundRoutine.bgVolume

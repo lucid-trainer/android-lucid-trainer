@@ -298,12 +298,11 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private fun checkAndSubmitLightPromptEvent() {
         val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
         val hour = triggerDateTime.hour
-        val minute = triggerDateTime.minute
 
         if (binding.chipRem.isChecked) {
             val hoursAllowed = getPromptHoursAllowed(hour)
 
-            val isLightPromptEventAllowed = hoursAllowed && promptMonitor.isLightEventAllowed(viewModel.lastTimestamp.value)
+            val isLightPromptEventAllowed = hoursAllowed && promptMonitor.isPromptEventAllowed(viewModel.lastTimestamp.value)
 
             if (hoursAllowed) {
                 val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value)
@@ -324,7 +323,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         if (binding.chipRem.isChecked) {
             val hoursAllowed = getPromptHoursAllowed(hour)
 
-            val isREMPromptEventAllowed = hoursAllowed && promptMonitor.isRemEventAllowed(viewModel.lastTimestamp.value)
+            val isREMPromptEventAllowed = hoursAllowed && promptMonitor.isPromptEventAllowed(viewModel.lastTimestamp.value)
 
             if (hoursAllowed) {
                 val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value)
@@ -335,11 +334,14 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             if (isREMPromptEventAllowed) {
                 startCountDownPromptTimer(EVENT_LABEL_REM)
             }
+
+            //each rem trigger event is evaluated to possibly set next allowed prompt window
+            promptMonitor.checkRemTriggerEvent(viewModel.lastTimestamp.value)
         }
     }
 
     private fun getPromptHoursAllowed(hour: Int): Boolean {
-        return hour in 1..2 || (hour in 3..5 && promptMonitor.isAwakeEventBeforePeriod(viewModel.lastTimestamp.value, 80))
+        return hour == 2|| (hour in 3..5 && promptMonitor.isAwakeEventBeforePeriod(viewModel.lastTimestamp.value, 80))
                 || hour in 6..9
     }
 
@@ -665,6 +667,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             lastPromptTimestamp,
             promptMonitor.coolDownEndDateTime.toString(),
             promptMonitor.isInCoolDownPeriod(triggerTimestamp),
+            promptMonitor.startPromptAllowPeriod.toString(),
+            promptMonitor.isInPromptWindow(triggerTimestamp),
             intensity,
             allowed,
             fileManager.getUsedFilesFromDirectory(WILD_FG_DIR).size,
