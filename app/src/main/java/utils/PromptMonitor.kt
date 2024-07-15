@@ -23,13 +23,14 @@ class PromptMonitor {
     var startPromptAllowPeriod: LocalDateTime? = null
 
 
+
     companion object {
-        const val NEW_PROMPT_PERIOD_WAIT = 4L
+        const val NEW_PROMPT_PERIOD_WAIT = 2L
         const val PROMPT_PERIOD = 15L
         const val MAX_PROMPT_COOL_DOWN_PERIOD = 10L
-        const val INTERRUPT_COOL_DOWN_PERIOD = 15L
+        const val INTERRUPT_COOL_DOWN_PERIOD = 20L
         const val SLEEP_COOL_DOWN_PERIOD = 60L
-        const val AWAKE_COOL_DOWN_PERIOD = 35L
+        const val AWAKE_COOL_DOWN_PERIOD = 25L
         const val SECONDS_BETWEEN_PROMPTS = 120L
     }
 
@@ -131,6 +132,7 @@ class PromptMonitor {
             && lastDateTime <= allPromptEvents.takeLast(maxPromptCount).first().plusMinutes(PROMPT_PERIOD)
         ) {
             coolDownEndDateTime = lastDateTime.plusMinutes(MAX_PROMPT_COOL_DOWN_PERIOD)
+            Log.d("PromptMonitor", "maxPromptCount = $maxPromptCount setting coolDownEndDateTime=$coolDownEndDateTime")
         }
     }
 
@@ -208,25 +210,21 @@ class PromptMonitor {
     }
 
     fun promptIntensityLevel(lastTimestamp: String?): Int {
-
-        val intensity = when (LocalDateTime.parse(lastTimestamp).hour) {
-            5 -> 2
+        return when (LocalDateTime.parse(lastTimestamp).hour) {
             6 -> 1
             7, 8, 9 -> 0
             else -> 3
         }
-
-        return intensity
     }
 
     private fun getMaxPromptCountPerPeriod(lastDateTime: LocalDateTime): Int {
         val hour = lastDateTime.hour
-        var maxPromptCount = 6
+        var maxPromptCount = 5
 
         if(hour == 6) {
             maxPromptCount = 4
         } else if (hour > 6) {
-            maxPromptCount = 2
+            maxPromptCount = 3
         }
 
         return maxPromptCount

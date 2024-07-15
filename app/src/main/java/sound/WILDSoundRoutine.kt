@@ -56,9 +56,7 @@ class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
     private fun addForegroundSounds(routine: MutableList<Sound>) {
         var dir = "$ROOT_DIR/$FOREGROUND_DIR"
 
-        val files = fileManager.getUnusedFilesFromDirectory(dir, 8).shuffled().slice(0..7)
-
-        //Log.d("WildRoutine", "used fg ${FileMonitor.getUnusedFilesFromDirectory(dir, 8).size}")
+        val files = fileManager.getUnusedFilesFromDirectory(dir, 15).shuffled().slice(0..14)
 
         for (file in files) {
             routine.add(Sound(0, 20, "$dir/$file"))
@@ -81,9 +79,6 @@ class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
 
         //start with a radio tuning sound
         routine.add(6, Sound(0, 0, "$ROOT_DIR/start/wild_tune.ogg"))
-
-        //Log.d("WildRoutine ", "unused clips size ${FileMonitor.getUnusedFilesFromDirectory(dir, 1).size}")
-        //Log.d("WildRoutine ", "unused clips ${FileMonitor.getUnusedFilesFromDirectory(dir, 1)}")
 
         val clipFile = fileManager.getUnusedFilesFromDirectory(dir, 1).shuffled().last()
         routine.add(7, Sound(0, 20, "$dir/$clipFile", 1F))

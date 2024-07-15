@@ -131,13 +131,19 @@ class SoundPoolManager {
             else -> .45F to .5F
         }
 
-        var soundRoutine = when (type) {
+        val soundRoutine = when (type) {
+            "m" -> {
+                fgVolume *= .85F
+                altBgVolume *= .85F
+                MILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
+            }
+
             "wp" -> {
                 //adjust the volumes further based on intensity for prompts
                 //Log.d("DimVolume", "WILD prompt volumes at $fgVolume and $altBgVolume intensity $intensityLevel")
                 val adjustVal = when(intensityLevel) {
-                    0 -> .35F
-                    1 -> .6F
+                    0 -> .4F
+                    1 -> .65F
                     2 -> 1F
                     3-> 1.1F
                     else -> 1.2F
@@ -148,9 +154,7 @@ class SoundPoolManager {
                 WILDPromptSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
             }
 
-            "w" -> WILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
-
-            else -> MILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
+            else -> WILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
         }
 
         return soundRoutine
@@ -367,9 +371,9 @@ class SoundPoolManager {
                             playBackgroundSound(soundRoutine.bgRawId, currBgVolume, textView)
                             adjustAltBGVol = true
                             delay(timeMillis = 1000)
-                        } else if(currVolume != soundRoutine.fgVolume || currBgVolume != soundRoutine.bgVolume){
-                            //reset to the original volumes
-                            currVolume = soundRoutine.fgVolume
+                        } else if(currBgVolume != soundRoutine.bgVolume){
+                            //turn the white noise sound back to normal but play the rest of the clips at diminished volume
+                            currVolume = soundRoutine.fgVolume * .85F
                             currBgVolume = soundRoutine.bgVolume
                             stopPlayingBackground()
                             playBackgroundSound(soundRoutine.bgRawId, currBgVolume, textView)

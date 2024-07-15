@@ -341,7 +341,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     }
 
     private fun getPromptHoursAllowed(hour: Int): Boolean {
-        return hour == 2|| (hour in 3..5 && promptMonitor.isAwakeEventBeforePeriod(viewModel.lastTimestamp.value, 80))
+        return (hour in 3..5 && promptMonitor.isAwakeEventBeforePeriod(viewModel.lastTimestamp.value, 75))
                 || hour in 6..9
     }
 
@@ -601,13 +601,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 //capture in event list in the event list
                 updateEventList(eventLabel, triggerDateTime.toString())
 
-                //send a vibration event to the watch.  For now we'll lower non-rem events
-                var vibrationIntensityLevel = intensityLevel
-                if(eventLabel != EVENT_LABEL_REM) {
-                    vibrationIntensityLevel = 1
-                }
+                //send a vibration event to the watch
                 deviceDocumentRepository.postDevicePrompt("appdata",
-                    getDeviceDocument(eventLabel, true, vibrationIntensityLevel ))
+                    getDeviceDocument(eventLabel, true, intensityLevel ))
 
                 if(eventLabel != EVENT_LABEL_AWAKE) {
                     //give the watch a little time to pick up the vibration event
@@ -615,7 +611,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                     delay(timeMillis = SLEEP_EVENT_PROMPT_DELAY)
                 }
 
-                //Log.d("MainActivity", "play prompts")
+                Log.d("MainActivity", "${viewModel.lastTimestamp.value} play prompts intensityLevel = $intensityLevel")
                 playPrompts(eventLabel, hour, intensityLevel)
 
                 delay(timeMillis = 10000)

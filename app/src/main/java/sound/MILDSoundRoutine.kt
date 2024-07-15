@@ -68,7 +68,7 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
 
         var dir = "$ROOT_DIR/$FOREGROUND_DIR"
 
-        val files = fileManager.getUnusedFilesFromDirectory(dir, 15).shuffled().slice(0..14)
+        val files = fileManager.getUnusedFilesFromDirectory(dir, 25).shuffled().slice(0..24)
 
         //Log.d("WildRoutine", "used fg ${FileMonitor.getUnusedFilesFromDirectory(dir, 8).size}")
 
