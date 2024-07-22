@@ -2,7 +2,7 @@ package sound
 
 import utils.FileManager
 
-class WILDPromptSoundRoutine(
+class PromptSoundRoutine(
     override var playCount: Int, override var bgRawId: Int, override var endBgRawId: Int,
     override var bgVolume: Float, override var altBgVolume: Float, override var fgVolume: Float,
     override val eventLabel: String, override var bgLabel: String, override var endBgLabel: String,

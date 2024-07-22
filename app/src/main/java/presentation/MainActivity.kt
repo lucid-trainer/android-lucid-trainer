@@ -277,11 +277,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
         val hour = triggerDateTime.hour
-        val minute = triggerDateTime.minute
 
         if (binding.chipAwake.isChecked) {
-            val hoursAllowed = (hour == 4 && minute >= 30) || (hour == 5 && minute <= 30)
-
+            val hoursAllowed = hour in 2..6
             val isAwakeEventAllowed = hoursAllowed && promptMonitor.isAwakeEventAllowed(viewModel.lastTimestamp.value)
 
             if (hoursAllowed) {
@@ -341,8 +339,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     }
 
     private fun getPromptHoursAllowed(hour: Int): Boolean {
-        return (hour in 3..5 && promptMonitor.isAwakeEventBeforePeriod(viewModel.lastTimestamp.value, 75))
-                || hour in 6..9
+        return (hour in 3..4 && promptMonitor.isAwakeEventBeforePeriod(viewModel.lastTimestamp.value, 70)) ||
+                (hour in 5..9 && promptMonitor.isAwakeEventBeforePeriod(viewModel.lastTimestamp.value, 15))
     }
 
     private fun checkAndSubmitFollowUpPromptEvent() {
@@ -489,8 +487,13 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         if(eventLabel == EVENT_LABEL_LIGHT || eventLabel == EVENT_LABEL_REM || eventLabel == EVENT_LABEL_FOLLOW_UP) {
             pMod = "p"
         } else {
-            val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
-            updateEventList(EVENT_LABEL_AWAKE, triggerDateTime.toString())
+            //this can either be an auto awake event or an manual button event
+            pMod = if(eventLabel == EVENT_LABEL_AWAKE) "a" else ""
+            if(pMod.isEmpty()) {
+                //it's a manual event from watch so update the event list
+                val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
+                updateEventList(EVENT_LABEL_AWAKE, triggerDateTime.toString())
+            }
         }
 
         if (binding.chipSsild.isChecked) {

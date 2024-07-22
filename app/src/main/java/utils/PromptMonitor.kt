@@ -174,7 +174,7 @@ class PromptMonitor {
 
     fun isAwakeEventAllowed(lastTimestamp: String?): Boolean {
         return (awakeEventList.isEmpty() || LocalDateTime.parse(lastTimestamp) >= awakeEventList.last()
-                    .plusMinutes(60))
+                    .plusMinutes(AWAKE_COOL_DOWN_PERIOD))
     }
 
     fun isPromptEventAllowed(lastTimestamp: String?): Boolean {
