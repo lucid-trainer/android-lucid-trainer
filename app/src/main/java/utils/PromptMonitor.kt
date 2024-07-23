@@ -30,6 +30,7 @@ class PromptMonitor {
         const val MAX_PROMPT_COOL_DOWN_PERIOD = 10L
         const val INTERRUPT_COOL_DOWN_PERIOD = 20L
         const val SLEEP_COOL_DOWN_PERIOD = 60L
+        const val IN_AWAKE_PERIOD = 6L
         const val AWAKE_COOL_DOWN_PERIOD = 25L
         const val SECONDS_BETWEEN_PROMPTS = 120L
     }
@@ -83,9 +84,6 @@ class PromptMonitor {
 
     fun addAwakeEvent(lastDateTime: LocalDateTime) {
         awakeEventList.add(lastDateTime)
-        //don't allow prompts for a longer period of time after an active event
-        coolDownEndDateTime = lastDateTime.plusMinutes(AWAKE_COOL_DOWN_PERIOD)
-        //Log.d("PromptMonitor", "$lastDateTime setting $followUpCoolDownEndDateTime follow-up time for awake event")
     }
 
     fun addLightEvent(lastDateTime : LocalDateTime) {
@@ -112,7 +110,7 @@ class PromptMonitor {
     fun checkRemTriggerEvent(lastTimestamp: String?) {
         //if we have a Rem trigger event we'll check if we should start a new prompting window
         val lastDateTime = LocalDateTime.parse(lastTimestamp)
-        val prevTriggerCnt = remEventTriggerList.filter { it < lastDateTime.minusMinutes(1) && it > lastDateTime.minusMinutes(9) }.size
+        val prevTriggerCnt = remEventTriggerList.filter { it < lastDateTime.minusMinutes(1) && it > lastDateTime.minusMinutes(10) }.size
 
         if( prevTriggerCnt > 0 &&
             (startPromptAllowPeriod == null || lastDateTime > startPromptAllowPeriod!!.plusMinutes(PROMPT_PERIOD))) {
@@ -206,7 +204,7 @@ class PromptMonitor {
 
     private fun isInAwakePeriod(lastTimestamp: String?) : Boolean {
         return lastAwakeDateTime != null &&
-                LocalDateTime.parse(lastTimestamp) <= lastAwakeDateTime!!.plusMinutes(6)
+                LocalDateTime.parse(lastTimestamp) <= lastAwakeDateTime!!.plusMinutes(IN_AWAKE_PERIOD)
     }
 
     fun promptIntensityLevel(lastTimestamp: String?): Int {

@@ -339,8 +339,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     }
 
     private fun getPromptHoursAllowed(hour: Int): Boolean {
-        return (hour in 3..4 && promptMonitor.isAwakeEventBeforePeriod(viewModel.lastTimestamp.value, 70)) ||
-                (hour in 5..9 && promptMonitor.isAwakeEventBeforePeriod(viewModel.lastTimestamp.value, 15))
+        return (hour in 3..4 && promptMonitor.isAwakeEventBeforePeriod(viewModel.lastTimestamp.value, 60)) || hour in 5..9
     }
 
     private fun checkAndSubmitFollowUpPromptEvent() {

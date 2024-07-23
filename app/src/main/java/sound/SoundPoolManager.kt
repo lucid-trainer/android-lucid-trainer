@@ -139,8 +139,8 @@ class SoundPoolManager {
             }
 
             "ma" -> {
-                fgVolume *= .7F
-                altBgVolume *= .7F
+                fgVolume *= .75F
+                altBgVolume *= .75F
                 MILDSoundRoutine(1, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
             }
 

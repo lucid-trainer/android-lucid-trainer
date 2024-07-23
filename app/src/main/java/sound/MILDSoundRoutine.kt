@@ -23,18 +23,10 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
     override fun getRoutine(): List<Sound> {
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()
 
-        routine.add(Sound(R.raw.mild_intro, 30))
-        routine.add(Sound(R.raw.mild_dream_1, 50))
-        routine.add(Sound(R.raw.mild_sign, 20))
-        routine.add(Sound(R.raw.mild_replay, 50))
-
-        if(playCount > 2) {
-            routine.add(Sound(R.raw.mild_dream_2, 50))
-            routine.add(Sound(R.raw.mild_sign, 20))
-            routine.add(Sound(R.raw.mild_replay, 50))
-        }
-
-        routine.add(Sound(R.raw.mild_finish, 25))
+        routine.add(Sound(R.raw.mild_intro, 0))
+        routine.add(Sound(R.raw.mild_dream_1, 90))
+        routine.add(Sound(R.raw.mild_replay, 90))
+        routine.add(Sound(R.raw.mild_finish, 20))
 
         //add light wild routine (quiet, hard to hear sound to hopefully fall asleep to but no long main clip)
         addWildStartSound(routine)
