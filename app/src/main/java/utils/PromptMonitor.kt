@@ -16,22 +16,23 @@ class PromptMonitor {
 
     var lastAwakeDateTime : LocalDateTime? = null
     var lastFollowupDateTime : LocalDateTime? = null
+    var lastSleepButtonDateTime: LocalDateTime? = null
+    var lastHighActivityEventDateTime: LocalDateTime? = null
     var coolDownEndDateTime : LocalDateTime? = null
 
     private var remEventTriggerList: MutableList<LocalDateTime> =
         emptyList<LocalDateTime>().toMutableList()
     var startPromptAllowPeriod: LocalDateTime? = null
 
-
-
     companion object {
         const val NEW_PROMPT_PERIOD_WAIT = 2L
         const val PROMPT_PERIOD = 15L
         const val MAX_PROMPT_COOL_DOWN_PERIOD = 10L
         const val INTERRUPT_COOL_DOWN_PERIOD = 20L
+        const val HIGH_ACTIVITY_COOL_DOWN_PERIOD = 10L
         const val SLEEP_COOL_DOWN_PERIOD = 60L
         const val IN_AWAKE_PERIOD = 6L
-        const val AWAKE_COOL_DOWN_PERIOD = 25L
+        const val BETWEEN_AWAKE_PERIOD = 45L
         const val SECONDS_BETWEEN_PROMPTS = 120L
     }
 
@@ -47,6 +48,7 @@ class PromptMonitor {
         promptEventWaiting = null
         lastAwakeDateTime = null
         lastFollowupDateTime = null
+        lastHighActivityEventDateTime = null
         coolDownEndDateTime = null
         startPromptAllowPeriod = null
     }
@@ -138,6 +140,7 @@ class PromptMonitor {
         //Check if we've had an interrupt from the watch device via high movement or the Sleep button and disable prompts for a time if so
         var updatedAllCoolDown = false
         val lastDateTime = LocalDateTime.parse(lastTimestamp)
+        lastHighActivityEventDateTime = lastDateTime
 
         if(isSleepButton) {
             //just set we use the sleep button
@@ -165,14 +168,25 @@ class PromptMonitor {
        return coolDownEndDateTime != null && LocalDateTime.parse(lastTimestamp) <= coolDownEndDateTime
     }
 
+    private fun isInSleepButtonPeriod(lastTimestamp: String?) : Boolean {
+        return lastSleepButtonDateTime != null && LocalDateTime.parse(lastTimestamp) <= lastSleepButtonDateTime!!.plusMinutes(
+            SLEEP_COOL_DOWN_PERIOD)
+    }
+
+    //if we detect a possible interrupt event we may want to do something with it even if no recent prompts
+    fun isInHighActivityPeriod(lastTimestamp: String?) : Boolean {
+        return lastHighActivityEventDateTime != null && LocalDateTime.parse(lastTimestamp) <= lastHighActivityEventDateTime!!.plusMinutes(
+            HIGH_ACTIVITY_COOL_DOWN_PERIOD)
+    }
+
     fun isAwakeEventBeforePeriod(lastTimestamp: String?, period: Long): Boolean {
         return (awakeEventList.isEmpty() || LocalDateTime.parse(lastTimestamp) >= awakeEventList.last()
             .plusMinutes(period))
     }
 
     fun isAwakeEventAllowed(lastTimestamp: String?): Boolean {
-        return (awakeEventList.isEmpty() || LocalDateTime.parse(lastTimestamp) >= awakeEventList.last()
-                    .plusMinutes(AWAKE_COOL_DOWN_PERIOD))
+        return !isInSleepButtonPeriod(lastTimestamp) && (awakeEventList.isEmpty() || LocalDateTime.parse(lastTimestamp) >= awakeEventList.last()
+                    .plusMinutes(BETWEEN_AWAKE_PERIOD))
     }
 
     fun isPromptEventAllowed(lastTimestamp: String?): Boolean {
@@ -209,10 +223,17 @@ class PromptMonitor {
 
     fun promptIntensityLevel(lastTimestamp: String?): Int {
         return when (LocalDateTime.parse(lastTimestamp).hour) {
+            5 -> 2
             6 -> 1
             7, 8, 9 -> 0
             else -> 3
         }
+    }
+
+    fun getPromptCountInPeriod(lastDateTime: LocalDateTime) : Int {
+        //Log.d("MainActivity", "$lastDateTime promptCnt = " +
+        //        "${allPromptEvents.filter { it > lastDateTime.minusMinutes(PROMPT_PERIOD) }.size}")
+        return allPromptEvents.filter { it > lastDateTime.minusMinutes(PROMPT_PERIOD) }.size
     }
 
     private fun getMaxPromptCountPerPeriod(lastDateTime: LocalDateTime): Int {

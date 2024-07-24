@@ -65,6 +65,6 @@ object EventMonitor {
 
     fun getActiveEvent(workingReadingList:  ArrayList<Reading>) : Boolean {
         return (workingReadingList.size >= 1 &&
-                workingReadingList.map { it -> it.accelMovement }.last() > .2)
+                workingReadingList.map { it -> it.accelMovement }.last() > .25)
     }
 }

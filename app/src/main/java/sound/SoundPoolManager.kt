@@ -93,6 +93,7 @@ class SoundPoolManager {
 
         val soundRoutines = mutableListOf<SoundRoutine>()
 
+        Log.d("MainActivity", "soundList = $soundList")
         for(soundType in soundList) {
             when(soundType) {
                 "s" -> {
@@ -107,12 +108,15 @@ class SoundPoolManager {
                 }
 
                 else -> {
-                    val soundRoutine = getSoundRoutine(bgRawRes, playCnt, endBgRawRes, eventLabel, bgLabel, endBgLabel, intensityLevel, soundType)
-                    soundRoutines.add(soundRoutine)
+                    if(soundType.isNotEmpty()) {
+                        val soundRoutine = getSoundRoutine(bgRawRes, playCnt, endBgRawRes, eventLabel, bgLabel, endBgLabel, intensityLevel, soundType)
+                        soundRoutines.add(soundRoutine)
+                    }
                 }
-
             }
         }
+
+        //Log.d("MainActivity", "soundRoutines = $soundRoutines")
 
         stopPlayingForeground()
 
@@ -133,14 +137,14 @@ class SoundPoolManager {
 
         val soundRoutine = when (type) {
             "m" -> {
-                fgVolume *= .85F
-                altBgVolume *= .85F
+                fgVolume *= .8F
+                altBgVolume *= .8F
                 MILDSoundRoutine(2, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
             }
 
             "ma" -> {
-                fgVolume *= .75F
-                altBgVolume *= .75F
+                fgVolume *= .65F
+                altBgVolume *= .65F
                 MILDSoundRoutine(1, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
             }
 
@@ -148,8 +152,8 @@ class SoundPoolManager {
                 //adjust the volumes further based on intensity for prompts
                 //Log.d("DimVolume", "WILD prompt volumes at $fgVolume and $altBgVolume intensity $intensityLevel")
                 val adjustVal = when(intensityLevel) {
-                    0 -> .3F
-                    1 -> .6F
+                    0 -> .35F
+                    1 -> .65F
                     2 -> 1F
                     3-> 1.1F
                     else -> 1.2F
@@ -157,7 +161,9 @@ class SoundPoolManager {
                 fgVolume *= adjustVal
                 altBgVolume *= adjustVal
 
-                PromptSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
+                val fgLabel = if(type == "wp") "WILD" else "MILD"
+
+                PromptSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel, fgLabel)
             }
 
             else -> WILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
@@ -336,7 +342,7 @@ class SoundPoolManager {
 
                     textView.text = "Playing ${soundRoutine.bgLabel}"
 
-                    //Log.d("MainActivity", "playing $soundRoutine.javaClass.name} ${soundRoutine.fgVolume} ${soundRoutine.altFgVolume}");
+                    Log.d("MainActivity", "playing $soundRoutine.javaClass.name} ${soundRoutine.fgVolume} ${soundRoutine.altBgVolume}");
                     if(soundRoutine.overrideBG() && mSoundPoolCompat.isPlaying(mBgId)) {
                         //Log.d("MainActivity", "override bg and original playing background")
                         stopPlayingBackground()
@@ -364,17 +370,20 @@ class SoundPoolManager {
                     var currBgVolume = soundRoutine.bgVolume
 
                     for (sound in soundRoutine.getRoutine()) {
-                        val adjBgVolFactor = if(soundRoutine is PromptSoundRoutine) .4F else ADJUST_BG_VOL_FACTOR
+                        val adjBgVolFactor = if(soundRoutine is PromptSoundRoutine) .35F else ADJUST_BG_VOL_FACTOR
 
                         //check for volume adjust value on the clip
                         Log.d("DimVolume", "before FG volume $currVolume BG volume $currBgVolume")
                         if(sound.fileVolAdjust != 0F) {
-                            currVolume *= sound.fileVolAdjust
-                            currBgVolume *= adjBgVolFactor
-                            stopPlayingBackground()
-                            playBackgroundSound(soundRoutine.bgRawId, currBgVolume, textView)
-                            adjustAltBGVol = true
-                            delay(timeMillis = 1000)
+                            //if we have more than one in a row just keep the volumes as is
+                            if(currBgVolume == soundRoutine.bgVolume) {
+                                currVolume *= sound.fileVolAdjust
+                                currBgVolume *= adjBgVolFactor
+                                stopPlayingBackground()
+                                playBackgroundSound(soundRoutine.bgRawId, currBgVolume, textView)
+                                adjustAltBGVol = true
+                                delay(timeMillis = 1000)
+                            }
                         } else if(currBgVolume != soundRoutine.bgVolume){
                             //turn the white noise sound back to normal but play the rest of the clips at diminished volume
                             currVolume = soundRoutine.fgVolume * .85F
