@@ -60,7 +60,7 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
 
         val dir = "$ROOT_DIR/$FOREGROUND_DIR"
 
-        val limit = if(playCount > 1) 25 else 12
+        val limit = if(playCount > 1) 15 else 8
 
         val files = fileManager.getUnusedFilesFromDirectory(dir, limit).shuffled().slice(0 until limit)
 
