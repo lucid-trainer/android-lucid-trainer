@@ -23,18 +23,10 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
     override fun getRoutine(): List<Sound> {
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()
 
-        routine.add(Sound(R.raw.mild_intro, 30))
-        routine.add(Sound(R.raw.mild_dream_1, 50))
-        routine.add(Sound(R.raw.mild_sign, 20))
-        routine.add(Sound(R.raw.mild_replay, 50))
-
-        if(playCount > 2) {
-            routine.add(Sound(R.raw.mild_dream_2, 50))
-            routine.add(Sound(R.raw.mild_sign, 20))
-            routine.add(Sound(R.raw.mild_replay, 50))
-        }
-
-        routine.add(Sound(R.raw.mild_finish, 25))
+        routine.add(Sound(R.raw.mild_intro, 0))
+        routine.add(Sound(R.raw.mild_dream_1, 90))
+        routine.add(Sound(R.raw.mild_replay, 90))
+        routine.add(Sound(R.raw.mild_finish, 20))
 
         //add light wild routine (quiet, hard to hear sound to hopefully fall asleep to but no long main clip)
         addWildStartSound(routine)
@@ -51,7 +43,7 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
     }
 
     override fun getAltBGSounds(): List<String> {
-        var altBGSounds : MutableList<String> = emptyList<String>().toMutableList()
+        val altBGSounds : MutableList<String> = emptyList<String>().toMutableList()
 
         val dir = "/$ROOT_DIR/$ALT_BACKGROUND_DIR"
 
@@ -66,9 +58,11 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
 
     private fun addForegroundSounds(routine: MutableList<Sound>) {
 
-        var dir = "$ROOT_DIR/$FOREGROUND_DIR"
+        val dir = "$ROOT_DIR/$FOREGROUND_DIR"
 
-        val files = fileManager.getUnusedFilesFromDirectory(dir, 15).shuffled().slice(0..14)
+        val limit = if(playCount > 1) 15 else 8
+
+        val files = fileManager.getUnusedFilesFromDirectory(dir, limit).shuffled().slice(0 until limit)
 
         //Log.d("WildRoutine", "used fg ${FileMonitor.getUnusedFilesFromDirectory(dir, 8).size}")
 

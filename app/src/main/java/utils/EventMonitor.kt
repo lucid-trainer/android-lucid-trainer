@@ -30,19 +30,17 @@ object EventMonitor {
             val avgHeartRate =
                 workingReadingList.map { it -> it.heartRate }.takeLast(15).take(10).average()
             val recentHeartRate =  workingReadingList.map { it -> it.heartRate }.takeLast(5)
-            val stepHrIncrease = recentHeartRate.filter { it > avgHeartRate + 1.25 }.size >= 2 &&
-                    recentHeartRate.any { it > avgHeartRate + 2.25 } && extendedDeepCnt > 0
+            val stepHrIncrease = recentHeartRate.filter { it > avgHeartRate + 1 }.size >= 2 &&
+                    recentHeartRate.any { it > avgHeartRate + 2 } && extendedDeepCnt > 0
 
             //hrVar trigger
             val avgHeartVarRate =
                 workingReadingList.map { it -> it.heartRateVar }.takeLast(15).take(10).average()
             val recentHeartRateVar =  workingReadingList.map { it -> it.heartRateVar }.takeLast(5)
-            val currentMoveCnt =
-                workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .05 }.size
-            val stepHrVarIncrease = currentMoveCnt == 0 && extendedDeepCnt > 0 &&
-                    (recentHeartRateVar.filter { it > avgHeartVarRate + .35 }.size >= 2 ||
-                            recentHeartRateVar.any {it > avgHeartVarRate + .7})
-            val jumpHrVarIncrease = currentMoveCnt == 0 && recentHeartRateVar.any {it > avgHeartVarRate + 1}
+            val currentMoveCnt = workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .05 }.size
+            val stepHrVarIncrease = currentMoveCnt == 0  &&
+                    ((extendedDeepCnt > 0 && recentHeartRateVar.filter { it > avgHeartVarRate + .25 }.size >= 2) ||
+                            recentHeartRateVar.any {it > avgHeartVarRate + .5})
 
             sleepStage = "LIGHT ASLEEP"
 
@@ -50,7 +48,7 @@ object EventMonitor {
                 sleepStage = "AWAKE"
             } else if(restlessCnt >= 1) {
                 sleepStage = "RESTLESS"
-            } else if(recentMove == 0 && (stepHrIncrease || stepHrVarIncrease || jumpHrVarIncrease)) {
+            } else if(recentMove == 0 && (stepHrIncrease || stepHrVarIncrease)) {
                 sleepStage = "REM ASLEEP"
             } else if (deepCnt == 0 && lightCnt == 0) {
                 sleepStage = "DEEP ASLEEP"
@@ -67,6 +65,6 @@ object EventMonitor {
 
     fun getActiveEvent(workingReadingList:  ArrayList<Reading>) : Boolean {
         return (workingReadingList.size >= 1 &&
-                workingReadingList.map { it -> it.accelMovement }.last() > .2)
+                workingReadingList.map { it -> it.accelMovement }.last() > .25)
     }
 }

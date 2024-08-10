@@ -10,6 +10,7 @@ import android.content.pm.ActivityInfo
 import android.graphics.Color
 import android.media.AudioManager
 import android.os.Bundle
+import android.speech.tts.TextToSpeech
 import android.util.Log
 import android.view.View
 import android.widget.AdapterView
@@ -45,7 +46,9 @@ import utils.PromptMonitor
 import viewmodel.DocumentViewModel
 import viewmodel.DocumentViewModelFactory
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 
 class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
@@ -70,12 +73,23 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         const val WILD_FG_DIR = "$ROOT_DIR/$FOREGROUND_DIR"
         const val WILD_CLIP_DIR = "$ROOT_DIR/$CLIP_DIR"
+
+        const val MANUAL_PLAY_MESSAGE = "Manual play"
+        const val ACTIVE_EVENT_MESSAGE = "Elevated movement"
+        const val REM_EVENT_MESSAGE = "Rem event"
+        const val WATCH_EVENT_MESSAGE = "Watch event"
+
+        const val WILD_MESSAGE = "wild"
+        const val MILD_MESSAGE = "mild"
+        const val SSILD_MESSAGE = "s s i l d"
     }
 
     //set up the AudioManager and SoundPool
     private lateinit var audioManager: AudioManager
     private lateinit var soundPoolManager: SoundPoolManager
     private lateinit var fileManager: FileManager
+    private lateinit var textToSpeech: TextToSpeech
+
     private var  lastEventTimestamp = ""
     private var lastActiveEventTimestamp: LocalDateTime? = null
     private var apJob: Job? = null
@@ -104,6 +118,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         //init the FileManager instance before the SoundManager
         fileManager = FileManager.getInstance(applicationContext)
+
+        textToSpeech = getTextToSpeech()
 
         setupSound()
 
@@ -186,12 +202,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                             }
 
                             //get any recent high active event and interrupt any prompts if found running
-                            if(viewModel.lastActiveEventTimestamp != null && (lastActiveEventTimestamp == null || (
-                                viewModel.lastActiveEventTimestamp!! > lastActiveEventTimestamp))) {
-
-                                lastActiveEventTimestamp = viewModel.lastActiveEventTimestamp
-                                checkShouldStartInterruptCoolDown()
-                            }
+                            handleHighActivityEvent()
 
                             var reading = viewModel.lastReadingString.value
 
@@ -220,6 +231,23 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 }
 
             }
+        }
+    }
+
+    private fun handleHighActivityEvent() {
+        if (viewModel.lastActiveEventTimestamp != null && (lastActiveEventTimestamp == null || (
+                    viewModel.lastActiveEventTimestamp!! > lastActiveEventTimestamp))
+        ) {
+
+            lastActiveEventTimestamp = viewModel.lastActiveEventTimestamp
+            val hour = LocalDateTime.parse(viewModel.lastTimestamp.value).hour
+            val hoursAllowed = hour in 2..8
+            if (hoursAllowed && !promptMonitor.isInHighActivityPeriod(viewModel.lastTimestamp.value)) {
+                //we'll read out the time for any new possible interrupt periods
+                speakTheTime(ACTIVE_EVENT_MESSAGE)
+            }
+
+            checkShouldStartInterruptCoolDown()
         }
     }
 
@@ -277,11 +305,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
         val hour = triggerDateTime.hour
-        val minute = triggerDateTime.minute
 
         if (binding.chipAwake.isChecked) {
-            val hoursAllowed = (hour == 4 && minute >= 30) || (hour == 5 && minute <= 30)
-
+            val hoursAllowed = hour in 2..6
             val isAwakeEventAllowed = hoursAllowed && promptMonitor.isAwakeEventAllowed(viewModel.lastTimestamp.value)
 
             if (hoursAllowed) {
@@ -298,12 +324,11 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private fun checkAndSubmitLightPromptEvent() {
         val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
         val hour = triggerDateTime.hour
-        val minute = triggerDateTime.minute
 
         if (binding.chipRem.isChecked) {
             val hoursAllowed = getPromptHoursAllowed(hour)
 
-            val isLightPromptEventAllowed = hoursAllowed && promptMonitor.isLightEventAllowed(viewModel.lastTimestamp.value)
+            val isLightPromptEventAllowed = hoursAllowed && promptMonitor.isPromptEventAllowed(viewModel.lastTimestamp.value)
 
             if (hoursAllowed) {
                 val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value)
@@ -324,7 +349,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         if (binding.chipRem.isChecked) {
             val hoursAllowed = getPromptHoursAllowed(hour)
 
-            val isREMPromptEventAllowed = hoursAllowed && promptMonitor.isRemEventAllowed(viewModel.lastTimestamp.value)
+            val isREMPromptEventAllowed = hoursAllowed && promptMonitor.isPromptEventAllowed(viewModel.lastTimestamp.value)
 
             if (hoursAllowed) {
                 val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value)
@@ -335,12 +360,14 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             if (isREMPromptEventAllowed) {
                 startCountDownPromptTimer(EVENT_LABEL_REM)
             }
+
+            //each rem trigger event is evaluated to possibly set next allowed prompt window
+            promptMonitor.checkRemTriggerEvent(viewModel.lastTimestamp.value)
         }
     }
 
     private fun getPromptHoursAllowed(hour: Int): Boolean {
-        return hour in 1..2 || (hour in 3..5 && promptMonitor.isAwakeEventBeforePeriod(viewModel.lastTimestamp.value, 80))
-                || hour in 6..9
+        return (hour in 2..4 && promptMonitor.isAwakeEventBeforePeriod(viewModel.lastTimestamp.value, 60)) || hour in 5..9
     }
 
     private fun checkAndSubmitFollowUpPromptEvent() {
@@ -483,29 +510,46 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private fun playPrompts(eventLabel : String, hour: Int = -1, intensityLevel: Int = SoundPoolManager.DEFAULT_INTENSITY_LEVEL) {
         val soundList = mutableListOf<String>()
         var pMod = ""
+        var pType = ""
+        var pMessage = ""
+
+        var playCount = 1
+        val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
+
+        if (binding.chipSsild.isChecked) {
+            pType = "s"
+            pMessage = SSILD_MESSAGE
+        }
+        if (binding.chipMild.isChecked) {
+            pType = "m"
+            pMessage = MILD_MESSAGE
+        }
+        if (binding.chipWild.isChecked) {
+            pType = "w"
+            pMessage = WILD_MESSAGE
+        }
 
         if(eventLabel == EVENT_LABEL_LIGHT || eventLabel == EVENT_LABEL_REM || eventLabel == EVENT_LABEL_FOLLOW_UP) {
             pMod = "p"
+            playCount = promptMonitor.getPromptCountInPeriod(triggerDateTime)
+            if(playCount == 1 || playCount == 4) {
+                val promptMessage = if(playCount == 1) "first $REM_EVENT_MESSAGE" else "fourth $REM_EVENT_MESSAGE"
+                speakTheTime(promptMessage, pMessage)
+            }
         } else {
-            val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
-            updateEventList(EVENT_LABEL_AWAKE, triggerDateTime.toString())
+            //this can either be an auto awake event or an manual button event
+            pMod = if(eventLabel == EVENT_LABEL_AWAKE) "a" else ""
+            if(pMod.isEmpty()) {
+                //it's a manual event from watch so update the event list and read the time out
+                updateEventList(EVENT_LABEL_AWAKE, triggerDateTime.toString())
+                speakTheTime(MANUAL_PLAY_MESSAGE, pMessage)
+            }
         }
 
-        if (binding.chipSsild.isChecked) {
-            soundList.add("s$pMod")
-        }
-        if (binding.chipMild.isChecked) {
-            soundList.add("m$pMod")
-        }
-        if (binding.chipWild.isChecked) {
-            soundList.add("w$pMod")
-        }
-
-        var playCount = getPlayCount(hour)
+        soundList.add("$pType$pMod")
 
         //only allow this option via the prompt button
         if (eventLabel == EVENT_LABEL_BUTTON && binding.chipPod.isChecked) {
-
             if(binding.chipPod1.isChecked) {
                 playCount = 1
             } else if(binding.chipPod2.isChecked) {
@@ -527,10 +571,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
     private fun processEvents(eventMap: Map<String, String>) {
         val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
-        val hour = triggerDateTime.hour
 
         var soundList : MutableList<String> = emptyList<String>().toMutableList()
-        var playCount = getPlayCount(hour)
+        var playCount = 1
 
         if(eventMap.containsKey(POD_EVENT) && (eventMap[POD_EVENT] != null)) {
             updateEventList(EVENT_LABEL_AWAKE, triggerDateTime.toString())
@@ -551,8 +594,17 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
             soundList = eventMap[PLAY_EVENT]!!.split(",").toMutableList()
 
+            var promptMessage = MILD_MESSAGE
+            if(soundList.contains("s")) {
+                promptMessage = SSILD_MESSAGE
+            } else if(soundList.contains("w")) {
+                promptMessage = WILD_MESSAGE
+            }
+
+            speakTheTime(WATCH_EVENT_MESSAGE, promptMessage)
+
         } else if (eventMap.containsKey(SLEEP_EVENT)) {
-            //Log.d("PromptMonitor", "viewModel.lastTimestamp.value sleep event setting lastHigh = ${LocalDateTime.parse(viewModel.lastTimestamp.value)}")
+            //Log.d("PromptMonitor", "sleep event ${LocalDateTime.parse(viewModel.lastTimestamp.value)}")
             //stop any more prompts for a period of time
             lastActiveEventTimestamp = LocalDateTime.parse(viewModel.lastTimestamp.value)
 
@@ -566,6 +618,14 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             soundPoolManager.playSoundList(
                 soundList, mBgRawId, mBgLabel, EVENT_LABEL_WATCH, binding.playStatus, playCount)
         }
+    }
+
+    private fun speakTheTime(eventMessage : String, promptMessage: String = "") {
+        val currentTime = LocalTime.now().format(DateTimeFormatter.ofPattern("hh:mm a", Locale.ENGLISH))
+        val commenceMessage = if(promptMessage.isNotEmpty()) "Commencing $promptMessage soon." else ""
+        val fullMessage = "$eventMessage detected. $commenceMessage The time is $currentTime"
+        Log.d("SpeakTheTime", "${viewModel.lastTimestamp.value} tts $fullMessage")
+        textToSpeech.speak(fullMessage, TextToSpeech.QUEUE_FLUSH, null, null)
     }
 
     private fun stopSoundRoutine() {
@@ -599,13 +659,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 //capture in event list in the event list
                 updateEventList(eventLabel, triggerDateTime.toString())
 
-                //send a vibration event to the watch.  For now we'll lower non-rem events
-                var vibrationIntensityLevel = intensityLevel
-                if(eventLabel != EVENT_LABEL_REM) {
-                    vibrationIntensityLevel = 1
-                }
+                //send a vibration event to the watch
                 deviceDocumentRepository.postDevicePrompt("appdata",
-                    getDeviceDocument(eventLabel, true, vibrationIntensityLevel ))
+                    getDeviceDocument(eventLabel, true, intensityLevel ))
 
                 if(eventLabel != EVENT_LABEL_AWAKE) {
                     //give the watch a little time to pick up the vibration event
@@ -613,7 +669,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                     delay(timeMillis = SLEEP_EVENT_PROMPT_DELAY)
                 }
 
-                //Log.d("MainActivity", "play prompts")
+                Log.d("MainActivity", "${viewModel.lastTimestamp.value} play prompts intensityLevel = $intensityLevel")
                 playPrompts(eventLabel, hour, intensityLevel)
 
                 delay(timeMillis = 10000)
@@ -665,6 +721,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             lastPromptTimestamp,
             promptMonitor.coolDownEndDateTime.toString(),
             promptMonitor.isInCoolDownPeriod(triggerTimestamp),
+            promptMonitor.startPromptAllowPeriod.toString(),
+            promptMonitor.isInPromptWindow(triggerTimestamp),
             intensity,
             allowed,
             fileManager.getUsedFilesFromDirectory(WILD_FG_DIR).size,
@@ -711,6 +769,14 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             }
         })
         return broadcastReceiver
+    }
+
+    private fun getTextToSpeech() = TextToSpeech(applicationContext) { i ->
+        // if No error is found then only it will run
+        if (i != TextToSpeech.ERROR) {
+            // To Choose language of speech
+            textToSpeech.language = Locale.UK
+        }
     }
 
     private fun purgeOldRecords(dateTime : LocalDateTime) {
@@ -765,18 +831,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
 
         //Log.d("MainActivity", "bgChoice = $mBgRawId")
-    }
-
-    private fun getPlayCount(hour : Int) : Int {
-        if (hour < 4) {
-            return 3
-        } else if (hour < 6) {
-            return 2
-        } else if (hour < 9) {
-            return 1
-        }
-
-        return 4
     }
 
     override fun onNothingSelected(parent: AdapterView<*>?) {
