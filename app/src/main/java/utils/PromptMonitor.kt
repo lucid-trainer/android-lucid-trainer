@@ -25,7 +25,7 @@ class PromptMonitor {
     var startPromptAllowPeriod: LocalDateTime? = null
 
     companion object {
-        const val NEW_PROMPT_PERIOD_WAIT = 2L
+        const val NEW_PROMPT_PERIOD_WAIT = 90L
         const val PROMPT_PERIOD = 15L
         const val MAX_PROMPT_COOL_DOWN_PERIOD = 10L
         const val INTERRUPT_COOL_DOWN_PERIOD = 20L
@@ -116,7 +116,7 @@ class PromptMonitor {
 
         if( prevTriggerCnt > 0 &&
             (startPromptAllowPeriod == null || lastDateTime > startPromptAllowPeriod!!.plusMinutes(PROMPT_PERIOD))) {
-            startPromptAllowPeriod = lastDateTime.plusMinutes(NEW_PROMPT_PERIOD_WAIT)
+            startPromptAllowPeriod = lastDateTime.plusSeconds(NEW_PROMPT_PERIOD_WAIT)
         }
 
         //Log.d("PromptMonitor", "$lastTimestamp prevTriggerCnt = $prevTriggerCnt, startPromptAllowPeriod = $startPromptAllowPeriod")
@@ -223,10 +223,9 @@ class PromptMonitor {
 
     fun promptIntensityLevel(lastTimestamp: String?): Int {
         return when (LocalDateTime.parse(lastTimestamp).hour) {
-            5 -> 2
-            6 -> 1
+            5, 6 -> 1
             7, 8, 9 -> 0
-            else -> 3
+            else -> 2
         }
     }
 

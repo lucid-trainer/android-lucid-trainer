@@ -9,7 +9,7 @@ class PodSoundRoutine(override var playCount: Int, override var bgRawId: Int, ov
 ) : SoundRoutine {
 
     companion object {
-        const val ROOT_DIR = "other"
+        const val ROOT_DIR = "lt_sounds"
         const val POD_DIR = "podcasts"
     }
 

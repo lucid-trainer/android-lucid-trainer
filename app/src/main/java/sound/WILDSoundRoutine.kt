@@ -11,7 +11,7 @@ class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
     private val fileManager = FileManager.getInstance()!!
 
     companion object {
-        const val ROOT_DIR = "wild"
+        const val ROOT_DIR = "lt_sounds"
         const val FOREGROUND_DIR = "fg"
         const val ALT_BACKGROUND_DIR = "bg"
         const val PROMPT_DIR = "prompt"
@@ -22,7 +22,7 @@ class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
     override fun getStartSounds(): List<String> {
         val startSounds : MutableList<String> = emptyList<String>().toMutableList()
 
-        startSounds.add("$ROOT_DIR/$START_DIR/wild_start.ogg")
+        startSounds.add("$ROOT_DIR/$START_DIR/start.ogg")
 
         return startSounds
     }
@@ -78,7 +78,7 @@ class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
         var dir = "$ROOT_DIR/$CLIP_DIR"
 
         //start with a radio tuning sound
-        routine.add(6, Sound(0, 0, "$ROOT_DIR/start/wild_tune.ogg"))
+        routine.add(6, Sound(0, 0, "$ROOT_DIR/start/tune.ogg"))
 
         val clipFile = fileManager.getUnusedFilesFromDirectory(dir, 1).shuffled().last()
         routine.add(7, Sound(0, 20, "$dir/$clipFile", 1F))

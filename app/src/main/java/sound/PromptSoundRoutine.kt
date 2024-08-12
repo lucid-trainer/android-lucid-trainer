@@ -12,7 +12,7 @@ class PromptSoundRoutine(
     private val fileManager = FileManager.getInstance()!!
 
     companion object {
-        const val ROOT_DIR = "wild"
+        const val ROOT_DIR = "lt_sounds"
         const val START_DIR = "start"
         const val PROMPT_DIR = "prompt"
     }
@@ -30,18 +30,20 @@ class PromptSoundRoutine(
         val startDir = "$ROOT_DIR/$START_DIR"
         val dir = "$ROOT_DIR/$PROMPT_DIR"
 
-        val file = fileManager.getFilesFromDirectory(dir).shuffled().last()
+        val files = fileManager.getFilesFromDirectory(dir).shuffled().take(2)
 
         if(playCount == 1) {
-            routine.add(Sound(0, 0, "$startDir/ufo_prompt.ogg", 1.0F))
+            routine.add(Sound(0, 0, "$startDir/prompt_start.ogg", 1.0F))
         } else if(playCount == 2) {
-            routine.add(Sound(0, 0, "$startDir/ufo_prompt_short.ogg", 1.0F))
+            routine.add(Sound(0, 0, "$startDir/prompt_start_short.ogg", 1.0F))
         }
 
         if(playCount == 1 && fgLabel == "MILD") {
             routine.add(Sound(0, 0, "$startDir/mild_prompt.ogg", 1.1F))
         } else {
-            routine.add(Sound(0, 0, "$dir/$file", 1.1F))
+            for (file in files) {
+                routine.add(Sound(0, 20, "$dir/$file", 1.1F))
+            }
         }
 
         routine.add(Sound(0, 0, "$startDir/silence.ogg"))

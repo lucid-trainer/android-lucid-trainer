@@ -30,7 +30,7 @@ class SoundPoolManager {
 
     companion object {
 
-        const val ADJUST_BG_VOL_FACTOR = .6F
+        const val ADJUST_BG_VOL_FACTOR = .5F
         const val DEFAULT_INTENSITY_LEVEL = 2
 
         @Volatile

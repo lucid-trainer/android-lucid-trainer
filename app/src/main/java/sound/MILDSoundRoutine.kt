@@ -13,7 +13,7 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
     private val fileManager = FileManager.getInstance()!!
 
     companion object {
-        const val ROOT_DIR = "wild"
+        const val ROOT_DIR = "lt_sounds"
         const val FOREGROUND_DIR = "fg"
         const val ALT_BACKGROUND_DIR = "bg"
         const val PROMPT_DIR = "prompt"
@@ -24,8 +24,8 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()
 
         routine.add(Sound(R.raw.mild_intro, 0))
-        routine.add(Sound(R.raw.mild_dream_1, 90))
-        routine.add(Sound(R.raw.mild_replay, 90))
+        routine.add(Sound(R.raw.mild_dream_1, 70))
+        routine.add(Sound(R.raw.mild_replay, 70))
         routine.add(Sound(R.raw.mild_finish, 20))
 
         //add light wild routine (quiet, hard to hear sound to hopefully fall asleep to but no long main clip)
@@ -74,7 +74,7 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
     }
 
     private fun addWildStartSound(routine: MutableList<Sound>) {
-        routine.add(Sound(0, 20, "$ROOT_DIR/$START_DIR/wild_start.ogg"))
+        routine.add(Sound(0, 20, "$ROOT_DIR/$START_DIR/start.ogg"))
     }
 
     private fun addPromptSound(routine: MutableList<Sound>) {
