@@ -23,9 +23,9 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
     override fun getRoutine(): List<Sound> {
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()
 
-        routine.add(Sound(R.raw.mild_intro, 0))
-        routine.add(Sound(R.raw.mild_dream_1, 70))
-        routine.add(Sound(R.raw.mild_replay, 70))
+        routine.add(Sound(R.raw.mild_intro, 30))
+        routine.add(Sound(R.raw.mild_dream_1, 90))
+        routine.add(Sound(R.raw.mild_replay, 60))
         routine.add(Sound(R.raw.mild_finish, 20))
 
         //add light wild routine (quiet, hard to hear sound to hopefully fall asleep to but no long main clip)
@@ -60,7 +60,7 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
 
         val dir = "$ROOT_DIR/$FOREGROUND_DIR"
 
-        val limit = if(playCount > 1) 15 else 8
+        val limit = if(playCount > 1) 12 else 8
 
         val files = fileManager.getUnusedFilesFromDirectory(dir, limit).shuffled().slice(0 until limit)
 
@@ -83,8 +83,21 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
 
         val file = fileManager.getFilesFromDirectory(dir).shuffled().last()
 
-        val index = if(playCount > 2)  10 else 7
+        routine.add(6, Sound(0, 20, "$dir/$file"))
 
-        routine.add(index, Sound(0, 20, "$dir/$file"))
+        val interfile = "${WILDSoundRoutine.ROOT_DIR}/${WILDSoundRoutine.START_DIR}/prompt_intermit.ogg"
+
+        for(i in 5..routine.size) {
+            if(i % 3 == 0) {
+                routine.add(i-1, Sound(0, 20, "$interfile"))
+            }
+        }
+
+        //add a few to extend out at the end
+        val limit = if(playCount > 1) 4 else 3
+        for(i in 1..limit) {
+            val delayAfter = 40 + i*10
+            routine.add(Sound(0, delayAfter, "$interfile"))
+        }
     }
 }

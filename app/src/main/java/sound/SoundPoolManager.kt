@@ -129,7 +129,7 @@ class SoundPoolManager {
         //adjust the volumes based on background sound
         var (fgVolume, altBgVolume) = when (bgRawRes) {
             R.raw.green, R.raw.pink -> .52F to .48F
-            R.raw.boxfan, R.raw.metal_fan -> .42F to .4F
+            R.raw.boxfan, R.raw.metal_fan -> .41F to .37F
             R.raw.ac -> .35F to .3F
             R.raw.brown, R.raw.waves -> .12F to .1F
             else -> .45F to .5F
@@ -138,13 +138,13 @@ class SoundPoolManager {
         val soundRoutine = when (type) {
             "m" -> {
                 fgVolume *= .8F
-                altBgVolume *= .8F
+                altBgVolume *= .65F
                 MILDSoundRoutine(2, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
             }
 
             "ma" -> {
                 fgVolume *= .65F
-                altBgVolume *= .65F
+                altBgVolume *= .5F
                 MILDSoundRoutine(1, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
             }
 
@@ -152,11 +152,11 @@ class SoundPoolManager {
                 //adjust the volumes further based on intensity for prompts
                 //Log.d("DimVolume", "WILD prompt volumes at $fgVolume and $altBgVolume intensity $intensityLevel")
                 val adjustVal = when(intensityLevel) {
-                    0 -> .35F
-                    1 -> .65F
-                    2 -> 1F
-                    3-> 1.1F
-                    else -> 1.2F
+                    0 -> .45F
+                    1 -> .8F
+                    2 -> 1.1F
+                    3-> 1.2F
+                    else -> 1.3F
                 }
                 fgVolume *= adjustVal
                 altBgVolume *= adjustVal
@@ -258,7 +258,7 @@ class SoundPoolManager {
         }
     }
 
-    private suspend fun playAltBackgroundSound(soundRoutine: SoundRoutine, textView: TextView) {
+    private suspend fun playAltBackgroundSound(soundRoutine: SoundRoutine, textView: TextView, volumeAdj: Float = 1.0F) {
         val scope = CoroutineScope(Dispatchers.Default)
 
         playBackgroundSound(soundRoutine.bgRawId, soundRoutine.bgVolume, textView)
@@ -273,13 +273,15 @@ class SoundPoolManager {
                 val delayBetween = if(soundRoutine is PromptSoundRoutine) 15000L else 30000L
 
                 val startSounds = soundRoutine.getStartSounds()
-                if(startSounds.isNotEmpty()) {
+
+                //play the start sounds once and not on restart
+                if(volumeAdj == 1.0F && startSounds.isNotEmpty()) {
                     playAltSounds(startSounds, soundRoutine.altBgVolume, delayBetween)
                 }
 
                 val altBGSounds = soundRoutine.getAltBGSounds()
                 if(altBGSounds.isNotEmpty()) {
-                    val currVolume = soundRoutine.altBgVolume
+                    val currVolume = soundRoutine.altBgVolume * volumeAdj
 
                     do {
                         playAltSounds(altBGSounds, currVolume, delayBetween)
@@ -352,7 +354,7 @@ class SoundPoolManager {
                     }
 
                     //start any alternate background sounds and keep cycling through them until all are stopped
-                    if(soundRoutine is WILDSoundRoutine || soundRoutine is PromptSoundRoutine) {
+                    if(soundRoutine is WILDSoundRoutine || soundRoutine is MILDSoundRoutine) {
                         playAltBackgroundSound(soundRoutine, textView)
                     } else {
                         playBackgroundSound(soundRoutine.bgRawId, soundRoutine.bgVolume, textView)
@@ -370,7 +372,7 @@ class SoundPoolManager {
                     var currBgVolume = soundRoutine.bgVolume
 
                     for (sound in soundRoutine.getRoutine()) {
-                        val adjBgVolFactor = if(soundRoutine is PromptSoundRoutine) .35F else ADJUST_BG_VOL_FACTOR
+                        val adjBgVolFactor = if(soundRoutine is PromptSoundRoutine) .3F else ADJUST_BG_VOL_FACTOR
 
                         //check for volume adjust value on the clip
                         Log.d("DimVolume", "before FG volume $currVolume BG volume $currBgVolume")
@@ -379,17 +381,22 @@ class SoundPoolManager {
                             if(currBgVolume == soundRoutine.bgVolume) {
                                 currVolume *= sound.fileVolAdjust
                                 currBgVolume *= adjBgVolFactor
-                                stopPlayingBackground()
+                                stopPlayingBackground() // this will stop the alt background sounds as well to just focus on the fg clip
                                 playBackgroundSound(soundRoutine.bgRawId, currBgVolume, textView)
                                 adjustAltBGVol = true
                                 delay(timeMillis = 1000)
                             }
                         } else if(currBgVolume != soundRoutine.bgVolume){
                             //turn the white noise sound back to normal but play the rest of the clips at diminished volume
-                            currVolume = soundRoutine.fgVolume * .85F
+                            val volumeAdj = .75F
+                            currVolume = soundRoutine.fgVolume * volumeAdj
                             currBgVolume = soundRoutine.bgVolume
                             stopPlayingBackground()
                             playBackgroundSound(soundRoutine.bgRawId, currBgVolume, textView)
+                            if(soundRoutine is WILDSoundRoutine || soundRoutine is MILDSoundRoutine) {
+                                playAltBackgroundSound(soundRoutine, textView, volumeAdj)
+                            }
+
                             adjustAltBGVol = false
                             delay(timeMillis = 1000)
                         }

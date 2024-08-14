@@ -30,21 +30,10 @@ class PromptSoundRoutine(
         val startDir = "$ROOT_DIR/$START_DIR"
         val dir = "$ROOT_DIR/$PROMPT_DIR"
 
-        val files = fileManager.getFilesFromDirectory(dir).shuffled().take(2)
+        routine.add(Sound(0, 3, "$startDir/prompt_start_short.ogg", ))
+        routine.add(Sound(0, 3, "$startDir/prompt_intermit.ogg", ))
 
-        if(playCount == 1) {
-            routine.add(Sound(0, 0, "$startDir/prompt_start.ogg", 1.0F))
-        } else if(playCount == 2) {
-            routine.add(Sound(0, 0, "$startDir/prompt_start_short.ogg", 1.0F))
-        }
-
-        if(playCount == 1 && fgLabel == "MILD") {
-            routine.add(Sound(0, 0, "$startDir/mild_prompt.ogg", 1.1F))
-        } else {
-            for (file in files) {
-                routine.add(Sound(0, 20, "$dir/$file", 1.1F))
-            }
-        }
+        routine.add(Sound(0, 3, "$dir/prompt_$playCount.ogg", 1.1F))
 
         routine.add(Sound(0, 0, "$startDir/silence.ogg"))
 

@@ -1,5 +1,6 @@
 package sound
 
+import android.util.Log
 import utils.FileManager
 
 class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, override var endBgRawId: Int,
@@ -32,9 +33,9 @@ class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
 
         val dir = "/$ROOT_DIR/$ALT_BACKGROUND_DIR"
 
-        val files = fileManager.getFilesFromDirectory(dir).shuffled().slice(0..8)
+        val files = fileManager.getFilesFromDirectory(dir).shuffled().slice(0..9)
 
-        for (i in 0..8) {
+        for (i in 0..9) {
             altBGSounds.add("$ROOT_DIR/$ALT_BACKGROUND_DIR/${files[i]}")
         }
 
@@ -70,7 +71,24 @@ class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
         var dir = "$ROOT_DIR/$PROMPT_DIR"
 
         val file = fileManager.getFilesFromDirectory(dir).shuffled().last()
+        val interfile = "$ROOT_DIR/$START_DIR/prompt_intermit.ogg"
+
         routine.add(3, Sound(0, 20, "$dir/$file"))
+        Log.d("MainActivity", "add prompt file$dir/$file to routine")
+
+        for(i in 1..routine.size) {
+            if(i % 3 == 0) {
+                routine.add(i-1, Sound(0, 20, "$interfile"))
+                Log.d("MainActivity", "add $interfile to ${i-1} of routine")
+            }
+        }
+
+        //add a few to extend out at the end
+        for(i in 1..5) {
+            val delayAfter = 40 + i*10
+            routine.add(Sound(0, delayAfter, "$interfile"))
+            Log.d("MainActivity", "add $i $interfile to end of routine")
+        }
     }
 
     private fun addClipSound(routine: MutableList<Sound>) {

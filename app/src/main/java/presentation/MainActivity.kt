@@ -69,7 +69,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         const val EVENT_LABEL_LIGHT = "light_event"
         const val EVENT_LABEL_REM = "rem_event"
         const val EVENT_LABEL_FOLLOW_UP = "follow_up_event"
-        const val SLEEP_EVENT_PROMPT_DELAY = 15000L //3000L DEBUG VALUE
+        const val SLEEP_EVENT_PROMPT_DELAY = 10000L //3000L DEBUG VALUE
 
         const val WILD_FG_DIR = "$ROOT_DIR/$FOREGROUND_DIR"
         const val WILD_CLIP_DIR = "$ROOT_DIR/$CLIP_DIR"
@@ -241,7 +241,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
             lastActiveEventTimestamp = viewModel.lastActiveEventTimestamp
             val hour = LocalDateTime.parse(viewModel.lastTimestamp.value).hour
-            val hoursAllowed = hour in 2..8
+            val hoursAllowed = hour in 0..8
             if (hoursAllowed && !promptMonitor.isInHighActivityPeriod(viewModel.lastTimestamp.value)) {
                 //we'll read out the time for any new possible interrupt periods
                 speakTheTime(ACTIVE_EVENT_MESSAGE)
@@ -367,7 +367,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     }
 
     private fun getPromptHoursAllowed(hour: Int): Boolean {
-        return (hour in 2..4 && promptMonitor.isAwakeEventBeforePeriod(viewModel.lastTimestamp.value, 60)) || hour in 5..9
+        return (hour in 0..2 && promptMonitor.isAwakeEventBeforePeriod(viewModel.lastTimestamp.value, 20)) ||
+                (hour in 3..4 && promptMonitor.isAwakeEventBeforePeriod(viewModel.lastTimestamp.value, 60)) ||
+                hour in 5..9
     }
 
     private fun checkAndSubmitFollowUpPromptEvent() {
@@ -531,11 +533,23 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         if(eventLabel == EVENT_LABEL_LIGHT || eventLabel == EVENT_LABEL_REM || eventLabel == EVENT_LABEL_FOLLOW_UP) {
             pMod = "p"
-            playCount = promptMonitor.getPromptCountInPeriod(triggerDateTime)
-            if(playCount == 1 || playCount == 4) {
-                val promptMessage = if(playCount == 1) "first $REM_EVENT_MESSAGE" else "fourth $REM_EVENT_MESSAGE"
+
+            val promptCount = promptMonitor.getPromptCountInPeriod(triggerDateTime)
+            playCount = if(promptCount == 1) {
+                val promptMessage = "first $REM_EVENT_MESSAGE"
                 speakTheTime(promptMessage, pMessage)
+                when (hour) {
+                    6,7,8,9 -> 2
+                    else -> 1
+                }
+            } else {
+                when (hour) {
+                    6,7,8,9 -> 3
+                    else -> 2
+                }
             }
+
+
         } else {
             //this can either be an auto awake event or an manual button event
             pMod = if(eventLabel == EVENT_LABEL_AWAKE) "a" else ""

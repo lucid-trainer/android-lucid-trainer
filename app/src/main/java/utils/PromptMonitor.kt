@@ -25,15 +25,15 @@ class PromptMonitor {
     var startPromptAllowPeriod: LocalDateTime? = null
 
     companion object {
-        const val NEW_PROMPT_PERIOD_WAIT = 90L
+        const val NEW_PROMPT_PERIOD_WAIT_SECONDS = 150L
         const val PROMPT_PERIOD = 15L
-        const val MAX_PROMPT_COOL_DOWN_PERIOD = 10L
-        const val INTERRUPT_COOL_DOWN_PERIOD = 20L
+        const val MAX_PROMPT_COOL_DOWN_PERIOD = 12L
+        const val INTERRUPT_COOL_DOWN_PERIOD = 12L
         const val HIGH_ACTIVITY_COOL_DOWN_PERIOD = 10L
         const val SLEEP_COOL_DOWN_PERIOD = 60L
         const val IN_AWAKE_PERIOD = 6L
         const val BETWEEN_AWAKE_PERIOD = 45L
-        const val SECONDS_BETWEEN_PROMPTS = 120L
+        const val SECONDS_BETWEEN_PROMPTS = 150L
     }
 
     private val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
@@ -116,7 +116,7 @@ class PromptMonitor {
 
         if( prevTriggerCnt > 0 &&
             (startPromptAllowPeriod == null || lastDateTime > startPromptAllowPeriod!!.plusMinutes(PROMPT_PERIOD))) {
-            startPromptAllowPeriod = lastDateTime.plusSeconds(NEW_PROMPT_PERIOD_WAIT)
+            startPromptAllowPeriod = lastDateTime.plusSeconds(NEW_PROMPT_PERIOD_WAIT_SECONDS)
         }
 
         //Log.d("PromptMonitor", "$lastTimestamp prevTriggerCnt = $prevTriggerCnt, startPromptAllowPeriod = $startPromptAllowPeriod")
@@ -209,7 +209,7 @@ class PromptMonitor {
         val lastDateTime = LocalDateTime.parse(lastTimestamp)
         val hour = lastDateTime.hour
 
-        return hour < 7 && remAndLightEvents.isNotEmpty() && promptEventWaiting == null &&
+        return remAndLightEvents.isNotEmpty() && promptEventWaiting == null &&
                 !isInCoolDownPeriod(lastTimestamp) && !isInAwakePeriod(lastTimestamp) &&
                 (lastFollowupDateTime == null || remAndLightEvents.last() > lastFollowupDateTime) &&
                 lastDateTime > remAndLightEvents.last().plusSeconds(SECONDS_BETWEEN_PROMPTS) &&
@@ -223,7 +223,7 @@ class PromptMonitor {
 
     fun promptIntensityLevel(lastTimestamp: String?): Int {
         return when (LocalDateTime.parse(lastTimestamp).hour) {
-            5, 6 -> 1
+            0, 1, 5, 6 -> 1
             7, 8, 9 -> 0
             else -> 2
         }

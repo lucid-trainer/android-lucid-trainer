@@ -31,7 +31,7 @@ object EventMonitor {
                 workingReadingList.map { it -> it.heartRate }.takeLast(15).take(10).average()
             val recentHeartRate =  workingReadingList.map { it -> it.heartRate }.takeLast(5)
             val stepHrIncrease = recentHeartRate.filter { it > avgHeartRate + 1 }.size >= 2 &&
-                    recentHeartRate.any { it > avgHeartRate + 2 } && extendedDeepCnt > 0
+                    recentHeartRate.any { it > avgHeartRate + 2.25 } && extendedDeepCnt > 0
 
             //hrVar trigger
             val avgHeartVarRate =
@@ -39,8 +39,8 @@ object EventMonitor {
             val recentHeartRateVar =  workingReadingList.map { it -> it.heartRateVar }.takeLast(5)
             val currentMoveCnt = workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .05 }.size
             val stepHrVarIncrease = currentMoveCnt == 0  &&
-                    ((extendedDeepCnt > 0 && recentHeartRateVar.filter { it > avgHeartVarRate + .25 }.size >= 2) ||
-                            recentHeartRateVar.any {it > avgHeartVarRate + .5})
+                    ((extendedDeepCnt > 0 && recentHeartRateVar.filter { it > avgHeartVarRate + .35 }.size >= 2) ||
+                            recentHeartRateVar.any {it > avgHeartVarRate + .65})
 
             sleepStage = "LIGHT ASLEEP"
 
