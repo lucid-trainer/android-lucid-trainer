@@ -71,7 +71,7 @@ class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
         var dir = "$ROOT_DIR/$PROMPT_DIR"
 
         val file = fileManager.getFilesFromDirectory(dir).shuffled().last()
-        val interfile = "$ROOT_DIR/$START_DIR/prompt_intermit.ogg"
+        val interfile = "$ROOT_DIR/$START_DIR/intermit.ogg"
 
         routine.add(3, Sound(0, 20, "$dir/$file"))
         Log.d("MainActivity", "add prompt file$dir/$file to routine")

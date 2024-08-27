@@ -174,9 +174,9 @@ class PromptMonitor {
     }
 
     //if we detect a possible interrupt event we may want to do something with it even if no recent prompts
-    fun isInHighActivityPeriod(lastTimestamp: String?) : Boolean {
+    fun isInHighActivityPeriod(lastTimestamp: String?, coolDownPeriod: Long = HIGH_ACTIVITY_COOL_DOWN_PERIOD) : Boolean {
         return lastHighActivityEventDateTime != null && LocalDateTime.parse(lastTimestamp) <= lastHighActivityEventDateTime!!.plusMinutes(
-            HIGH_ACTIVITY_COOL_DOWN_PERIOD)
+            coolDownPeriod)
     }
 
     fun isAwakeEventBeforePeriod(lastTimestamp: String?, period: Long): Boolean {

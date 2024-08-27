@@ -23,8 +23,8 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
     override fun getRoutine(): List<Sound> {
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()
 
-        routine.add(Sound(R.raw.mild_intro, 30))
-        routine.add(Sound(R.raw.mild_dream_1, 90))
+        routine.add(Sound(R.raw.mild_intro, 20))
+        routine.add(Sound(R.raw.mild_dream_1, 100))
         routine.add(Sound(R.raw.mild_replay, 60))
         routine.add(Sound(R.raw.mild_finish, 20))
 
@@ -85,7 +85,7 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
 
         routine.add(6, Sound(0, 20, "$dir/$file"))
 
-        val interfile = "${WILDSoundRoutine.ROOT_DIR}/${WILDSoundRoutine.START_DIR}/prompt_intermit.ogg"
+        val interfile = "${WILDSoundRoutine.ROOT_DIR}/${WILDSoundRoutine.START_DIR}/intermit.ogg"
 
         for(i in 5..routine.size) {
             if(i % 3 == 0) {

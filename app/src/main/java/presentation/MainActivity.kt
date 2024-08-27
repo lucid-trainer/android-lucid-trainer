@@ -242,7 +242,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             lastActiveEventTimestamp = viewModel.lastActiveEventTimestamp
             val hour = LocalDateTime.parse(viewModel.lastTimestamp.value).hour
             val hoursAllowed = hour in 0..8
-            if (hoursAllowed && !promptMonitor.isInHighActivityPeriod(viewModel.lastTimestamp.value)) {
+            if (hoursAllowed && !promptMonitor.isInHighActivityPeriod(viewModel.lastTimestamp.value, 3L)) {
                 //we'll read out the time for any new possible interrupt periods
                 speakTheTime(ACTIVE_EVENT_MESSAGE)
             }
@@ -579,8 +579,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         //Log.d("MainActivity", "setting soundlist to=$soundList")
 
+        val promptCount = promptMonitor.getPromptCountInPeriod(triggerDateTime)
         soundPoolManager.playSoundList(
-            soundList, mBgRawId, mBgLabel, eventLabel, binding.playStatus, playCount, intensityLevel)
+            soundList, mBgRawId, mBgLabel, eventLabel, binding.playStatus, playCount, intensityLevel, promptCount)
     }
 
     private fun processEvents(eventMap: Map<String, String>) {
