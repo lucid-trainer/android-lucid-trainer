@@ -221,12 +221,14 @@ class PromptMonitor {
                 LocalDateTime.parse(lastTimestamp) <= lastAwakeDateTime!!.plusMinutes(IN_AWAKE_PERIOD)
     }
 
-    fun promptIntensityLevel(lastTimestamp: String?): Int {
-        return when (LocalDateTime.parse(lastTimestamp).hour) {
-            0, 1, 5, 6 -> 1
+    fun promptIntensityLevel(lastTimestamp: String?, promptCount: Int = 1): Int {
+        val baseIntensity = when (LocalDateTime.parse(lastTimestamp).hour) {
+            5, 6 -> 1
             7, 8, 9 -> 0
             else -> 2
         }
+
+        return if(promptCount >= 3 && baseIntensity > 0) baseIntensity + 1 else baseIntensity
     }
 
     fun getPromptCountInPeriod(lastDateTime: LocalDateTime) : Int {

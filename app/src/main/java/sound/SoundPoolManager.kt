@@ -153,11 +153,11 @@ class SoundPoolManager {
                 //Log.d("MainActivity", "WILD prompt volumes at $fgVolume and $altBgVolume intensity $intensityLevel")
                 //use intensity to calculate volume adjustments
                 val adjustVal = when(intensityLevel) {
-                    0 -> .5F
+                    0 -> .6F
                     1 -> .8F
-                    2 -> 1.1F
+                    2 -> 1F
                     3-> 1.2F
-                    else -> 1.3F
+                    else -> 1.4F
                 }
                 fgVolume *= adjustVal
                 altBgVolume *= adjustVal

@@ -331,8 +331,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             val isLightPromptEventAllowed = hoursAllowed && promptMonitor.isPromptEventAllowed(viewModel.lastTimestamp.value)
 
             if (hoursAllowed) {
-                val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value)
-                val document = getDeviceDocument(EVENT_LABEL_LIGHT, isLightPromptEventAllowed, intensityLevel)
+                val document = getDeviceDocument(EVENT_LABEL_LIGHT, isLightPromptEventAllowed)
                 logEvent(document)
             }
 
@@ -352,8 +351,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             val isREMPromptEventAllowed = hoursAllowed && promptMonitor.isPromptEventAllowed(viewModel.lastTimestamp.value)
 
             if (hoursAllowed) {
-                val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value)
-                val document = getDeviceDocument(EVENT_LABEL_REM, isREMPromptEventAllowed, intensityLevel)
+                val document = getDeviceDocument(EVENT_LABEL_REM, isREMPromptEventAllowed)
                 logEvent(document)
             }
 
@@ -378,10 +376,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         if (binding.chipRem.isChecked) {
             val isFollowUpPromptEventNeeded = promptMonitor.isFollowUpEventAllowed(viewModel.lastTimestamp.value)
 
-            val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value)
-
             if (isFollowUpPromptEventNeeded) {
-                val document = getDeviceDocument(EVENT_LABEL_FOLLOW_UP, true, intensityLevel)
+                val document = getDeviceDocument(EVENT_LABEL_FOLLOW_UP, true)
                 logEvent(document)
 
                 startCountDownPromptTimer(EVENT_LABEL_FOLLOW_UP)
@@ -509,7 +505,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         alert.show()
     }
 
-    private fun playPrompts(eventLabel : String, hour: Int = -1, intensityLevel: Int = SoundPoolManager.DEFAULT_INTENSITY_LEVEL) {
+    private fun playPrompts(eventLabel : String, hour: Int = -1) {
         val soundList = mutableListOf<String>()
         var pMod = ""
         var pType = ""
@@ -531,10 +527,11 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             pMessage = WILD_MESSAGE
         }
 
+        val promptCount = promptMonitor.getPromptCountInPeriod(LocalDateTime.parse(viewModel.lastTimestamp.value))
+
         if(eventLabel == EVENT_LABEL_LIGHT || eventLabel == EVENT_LABEL_REM || eventLabel == EVENT_LABEL_FOLLOW_UP) {
             pMod = "p"
 
-            val promptCount = promptMonitor.getPromptCountInPeriod(triggerDateTime)
             playCount = if(promptCount == 1) {
                 val promptMessage = "first $REM_EVENT_MESSAGE"
                 speakTheTime(promptMessage, pMessage)
@@ -544,12 +541,10 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 }
             } else {
                 when (hour) {
-                    6,7,8,9 -> 3
+                    6, 7, 8, 9 -> 3
                     else -> 2
                 }
             }
-
-
         } else {
             //this can either be an auto awake event or an manual button event
             pMod = if(eventLabel == EVENT_LABEL_AWAKE) "a" else ""
@@ -578,8 +573,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
 
         //Log.d("MainActivity", "setting soundlist to=$soundList")
+        val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value, promptCount)
 
-        val promptCount = promptMonitor.getPromptCountInPeriod(triggerDateTime)
         soundPoolManager.playSoundList(
             soundList, mBgRawId, mBgLabel, eventLabel, binding.playStatus, playCount, intensityLevel, promptCount)
     }
@@ -668,15 +663,12 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
                 val hour = triggerDateTime.hour
 
-                //determines the level of vibration from watch and volume level of sound prompt
-                val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value)
-
                 //capture in event list in the event list
                 updateEventList(eventLabel, triggerDateTime.toString())
 
                 //send a vibration event to the watch
                 deviceDocumentRepository.postDevicePrompt("appdata",
-                    getDeviceDocument(eventLabel, true, intensityLevel ))
+                    getDeviceDocument(eventLabel, true))
 
                 if(eventLabel != EVENT_LABEL_AWAKE) {
                     //give the watch a little time to pick up the vibration event
@@ -684,8 +676,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                     delay(timeMillis = SLEEP_EVENT_PROMPT_DELAY)
                 }
 
-                Log.d("MainActivity", "${viewModel.lastTimestamp.value} play prompts intensityLevel = $intensityLevel")
-                playPrompts(eventLabel, hour, intensityLevel)
+                playPrompts(eventLabel, hour)
 
                 delay(timeMillis = 10000)
 
@@ -701,7 +692,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         promptMonitor.promptEventWaiting = null
 
-        val document = getDeviceDocument("cancel from: $eventLabel", false, 0 )
+        val document = getDeviceDocument("cancel from: $eventLabel", false )
         logEvent(document)
 
         if(apJob != null && apJob!!.isActive) {
@@ -718,7 +709,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         soundPoolManager.stopPlayingAltBackground()
     }
 
-    private fun getDeviceDocument(type: String, allowed: Boolean, intensity: Int = 1) : DeviceDocument {
+    private fun getDeviceDocument(type: String, allowed: Boolean) : DeviceDocument {
         val triggerTimestamp =
             if (viewModel.lastTimestamp.value != null) viewModel.lastTimestamp.value!! else ""
 
@@ -727,6 +718,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         //add any additional debug logging here
         val debugLog = ""
+
+        val promptCount = promptMonitor.getPromptCountInPeriod(LocalDateTime.parse(viewModel.lastTimestamp.value))
+        val intensity = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value, promptCount)
 
         return  DeviceDocument(
             LocalDateTime.now().toString(),

@@ -44,12 +44,12 @@ class PromptSoundRoutine(
 
     private fun getVolIncr(promptCount: Int): Float {
         return when(promptCount) {
-            0 -> .8F
-            1 -> 1.2F
-            2 -> 1.6F
-            3 -> 2F
-            4 -> 2.4F
-            else -> 2.8F
+            0 -> .6F
+            1 -> .9F
+            2 -> 1.2F
+            3 -> 1.5F
+            4 -> 1.85F
+            else -> 2.5F
         }
     }
 }
