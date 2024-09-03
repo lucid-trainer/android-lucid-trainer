@@ -7,6 +7,28 @@ object EventMonitor {
     fun getSleepStage(workingReadingList:  ArrayList<Reading>) : String {
 
         var sleepStage = ""
+        var hour = workingReadingList.last().dateTime?.hour
+
+        val stepHrVal = when(hour) {
+            0,1 -> 2.75
+            2,3,4 -> 2.25
+            5 -> 1.75
+            else -> 1.25
+        }
+
+        val stepHrVarLow = when(hour) {
+            0,1 -> .45
+            2,3,4 -> .35
+            5 -> .25
+            else -> .15
+        }
+
+        val stepHrVarHigh = when(hour) {
+            0,1 -> .75
+            2,3,4 -> .65
+            5 -> .45
+            else -> .25
+        }
 
         if (workingReadingList.size >= 15) {
             ///activity metrics
@@ -31,7 +53,7 @@ object EventMonitor {
                 workingReadingList.map { it -> it.heartRate }.takeLast(15).take(10).average()
             val recentHeartRate =  workingReadingList.map { it -> it.heartRate }.takeLast(5)
             val stepHrIncrease = recentHeartRate.filter { it > avgHeartRate + 1 }.size >= 2 &&
-                    recentHeartRate.any { it > avgHeartRate + 2.25 } && extendedDeepCnt > 0
+                    recentHeartRate.any { it > avgHeartRate + stepHrVal } && extendedDeepCnt > 0
 
             //hrVar trigger
             val avgHeartVarRate =
@@ -39,8 +61,8 @@ object EventMonitor {
             val recentHeartRateVar =  workingReadingList.map { it -> it.heartRateVar }.takeLast(5)
             val currentMoveCnt = workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .05 }.size
             val stepHrVarIncrease = currentMoveCnt == 0  &&
-                    ((extendedDeepCnt > 0 && recentHeartRateVar.filter { it > avgHeartVarRate + .35 }.size >= 2) ||
-                            recentHeartRateVar.any {it > avgHeartVarRate + .65})
+                    ((extendedDeepCnt > 0 && recentHeartRateVar.filter { it > avgHeartVarRate + stepHrVarLow }.size >= 2) ||
+                            recentHeartRateVar.any {it > avgHeartVarRate + stepHrVarHigh})
 
             sleepStage = "LIGHT ASLEEP"
 

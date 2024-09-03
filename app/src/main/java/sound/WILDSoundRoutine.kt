@@ -57,7 +57,9 @@ class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
     private fun addForegroundSounds(routine: MutableList<Sound>) {
         var dir = "$ROOT_DIR/$FOREGROUND_DIR"
 
-        val files = fileManager.getUnusedFilesFromDirectory(dir, 15).shuffled().slice(0..14)
+        val limit = if(playCount > 1) 15 else 9
+
+        val files = fileManager.getUnusedFilesFromDirectory(dir, limit).shuffled().slice(0 until limit)
 
         for (file in files) {
             routine.add(Sound(0, 20, "$dir/$file"))
@@ -84,7 +86,8 @@ class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
         }
 
         //add a few to extend out at the end
-        for(i in 1..5) {
+        val limit = if(playCount > 1) 5 else 3
+        for(i in 1..limit) {
             val delayAfter = 40 + i*10
             routine.add(Sound(0, delayAfter, "$interfile"))
             Log.d("MainActivity", "add $i $interfile to end of routine")

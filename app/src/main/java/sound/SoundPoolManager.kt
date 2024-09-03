@@ -129,7 +129,7 @@ class SoundPoolManager {
         //set the initial volumes based on background sound
         var (fgVolume, altBgVolume) = when (bgRawRes) {
             R.raw.green, R.raw.pink -> .52F to .48F
-            R.raw.boxfan, R.raw.metal_fan -> .45F to .41F
+            R.raw.boxfan, R.raw.metal_fan -> .4F to .36F
             R.raw.ac -> .35F to .3F
             R.raw.brown, R.raw.waves -> .12F to .1F
             else -> .45F to .5F
@@ -147,6 +147,12 @@ class SoundPoolManager {
                 fgVolume *= .8F
                 altBgVolume *= .7F
                 MILDSoundRoutine(1, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
+            }
+
+            "wa" -> {
+                fgVolume *= .8F
+                altBgVolume *= .7F
+                WILDSoundRoutine(1, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
             }
 
             "wp", "mp" -> {
@@ -167,7 +173,8 @@ class SoundPoolManager {
                 PromptSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel, fgLabel, promptCount)
             }
 
-            else -> WILDSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
+            //default is "w", a manual WILD sound routine
+            else -> WILDSoundRoutine(2, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
         }
 
         return soundRoutine

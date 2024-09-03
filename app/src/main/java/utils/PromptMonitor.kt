@@ -207,7 +207,6 @@ class PromptMonitor {
         //This allows for padding with one or more follow-up events in a cycle of prompts
         val remAndLightEvents = (remEventList + lightEventList).sorted()
         val lastDateTime = LocalDateTime.parse(lastTimestamp)
-        val hour = lastDateTime.hour
 
         return remAndLightEvents.isNotEmpty() && promptEventWaiting == null &&
                 !isInCoolDownPeriod(lastTimestamp) && !isInAwakePeriod(lastTimestamp) &&
@@ -228,7 +227,11 @@ class PromptMonitor {
             else -> 2
         }
 
-        return if(promptCount >= 3 && baseIntensity > 0) baseIntensity + 1 else baseIntensity
+        return when(promptCount) {
+            3, 4 -> baseIntensity + 1
+            5 -> baseIntensity + 2
+            else -> baseIntensity + 0
+        }
     }
 
     fun getPromptCountInPeriod(lastDateTime: LocalDateTime) : Int {
