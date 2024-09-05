@@ -30,7 +30,7 @@ class PromptMonitor {
         const val MAX_PROMPT_COOL_DOWN_PERIOD = 12L
         const val INTERRUPT_COOL_DOWN_PERIOD = 12L
         const val HIGH_ACTIVITY_COOL_DOWN_PERIOD = 10L
-        const val SLEEP_COOL_DOWN_PERIOD = 60L
+        const val SLEEP_COOL_DOWN_PERIOD = 40L
         const val IN_AWAKE_PERIOD = 6L
         const val BETWEEN_AWAKE_PERIOD = 45L
         const val SECONDS_BETWEEN_PROMPTS = 150L
@@ -112,14 +112,12 @@ class PromptMonitor {
     fun checkRemTriggerEvent(lastTimestamp: String?) {
         //if we have a Rem trigger event we'll check if we should start a new prompting window
         val lastDateTime = LocalDateTime.parse(lastTimestamp)
-        val prevTriggerCnt = remEventTriggerList.filter { it < lastDateTime.minusMinutes(1) && it > lastDateTime.minusMinutes(10) }.size
 
-        if( prevTriggerCnt > 0 &&
-            (startPromptAllowPeriod == null || lastDateTime > startPromptAllowPeriod!!.plusMinutes(PROMPT_PERIOD))) {
+        if( startPromptAllowPeriod == null || lastDateTime > startPromptAllowPeriod!!.plusMinutes(PROMPT_PERIOD)) {
             startPromptAllowPeriod = lastDateTime.plusSeconds(NEW_PROMPT_PERIOD_WAIT_SECONDS)
         }
 
-        //Log.d("PromptMonitor", "$lastTimestamp prevTriggerCnt = $prevTriggerCnt, startPromptAllowPeriod = $startPromptAllowPeriod")
+        //Log.d("PromptMonitor", "$lastTimestamp startPromptAllowPeriod = $startPromptAllowPeriod")
         remEventTriggerList.add(lastDateTime)
     }
 
@@ -230,6 +228,7 @@ class PromptMonitor {
         return when(promptCount) {
             3, 4 -> baseIntensity + 1
             5 -> baseIntensity + 2
+            6 -> baseIntensity + 3
             else -> baseIntensity + 0
         }
     }

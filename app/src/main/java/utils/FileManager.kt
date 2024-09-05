@@ -6,6 +6,9 @@ import android.os.Environment
 import android.util.Log
 import com.olekdia.androidcommon.extensions.defaultSharedPreferences
 import java.io.File
+import kotlin.io.path.Path
+import kotlin.io.path.listDirectoryEntries
+import kotlin.io.path.name
 
 class FileManager(val sharedPreferences : SharedPreferences) {
 
@@ -112,6 +115,20 @@ class FileManager(val sharedPreferences : SharedPreferences) {
         }
 
         return filesList
+    }
+
+    private fun getAllDirectoriesFromPath(dir: String) : List<String> {
+
+        val dirList = mutableListOf<String>()
+        val dirs = Path(ex.path + "/$dir").listDirectoryEntries()
+
+        if(dir != null && dirs.isNotEmpty()) {
+            for (i in dirs.indices) {
+                dirList.add(dirs[i].name)
+            }
+        }
+
+        return dirList
     }
 
     fun getFilePath(fileName : String): String? {

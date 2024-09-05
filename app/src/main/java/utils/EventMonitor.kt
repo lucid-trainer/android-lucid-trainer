@@ -11,23 +11,23 @@ object EventMonitor {
 
         val stepHrVal = when(hour) {
             0,1 -> 2.75
-            2,3,4 -> 2.25
-            5 -> 1.75
-            else -> 1.25
+            2,3 -> 2.25
+            4,5 -> 1.75
+            else -> 2.5
         }
 
         val stepHrVarLow = when(hour) {
             0,1 -> .45
-            2,3,4 -> .35
-            5 -> .25
-            else -> .15
+            2,3 -> .35
+            4,5 -> .25
+            else -> .4
         }
 
         val stepHrVarHigh = when(hour) {
             0,1 -> .75
-            2,3,4 -> .65
-            5 -> .45
-            else -> .25
+            2,3 -> .65
+            4,5 -> .45
+            else -> .7
         }
 
         if (workingReadingList.size >= 15) {

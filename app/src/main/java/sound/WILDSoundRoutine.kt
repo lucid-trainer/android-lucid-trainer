@@ -57,7 +57,7 @@ class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
     private fun addForegroundSounds(routine: MutableList<Sound>) {
         var dir = "$ROOT_DIR/$FOREGROUND_DIR"
 
-        val limit = if(playCount > 1) 15 else 9
+        val limit = if(playCount > 1) 12 else 8
 
         val files = fileManager.getUnusedFilesFromDirectory(dir, limit).shuffled().slice(0 until limit)
 
@@ -73,25 +73,17 @@ class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
         var dir = "$ROOT_DIR/$PROMPT_DIR"
 
         val file = fileManager.getFilesFromDirectory(dir).shuffled().last()
-        val interfile = "$ROOT_DIR/$START_DIR/intermit.ogg"
+//        val interfile = "$ROOT_DIR/$START_DIR/intermit.ogg"
 
         routine.add(3, Sound(0, 20, "$dir/$file"))
         Log.d("MainActivity", "add prompt file$dir/$file to routine")
 
-        for(i in 1..routine.size) {
-            if(i % 3 == 0) {
-                routine.add(i-1, Sound(0, 20, "$interfile"))
-                Log.d("MainActivity", "add $interfile to ${i-1} of routine")
-            }
-        }
-
-        //add a few to extend out at the end
-        val limit = if(playCount > 1) 5 else 3
-        for(i in 1..limit) {
-            val delayAfter = 40 + i*10
-            routine.add(Sound(0, delayAfter, "$interfile"))
-            Log.d("MainActivity", "add $i $interfile to end of routine")
-        }
+//        for(i in 1..routine.size) {
+//            if(i % 3 == 0) {
+//                routine.add(i-1, Sound(0, 20, "$interfile"))
+//                Log.d("MainActivity", "add $interfile to ${i-1} of routine")
+//            }
+//        }
     }
 
     private fun addClipSound(routine: MutableList<Sound>) {

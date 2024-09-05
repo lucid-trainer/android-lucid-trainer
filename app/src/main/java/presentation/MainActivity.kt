@@ -70,6 +70,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         const val EVENT_LABEL_REM = "rem_event"
         const val EVENT_LABEL_FOLLOW_UP = "follow_up_event"
         const val SLEEP_EVENT_PROMPT_DELAY = 10000L //3000L DEBUG VALUE
+        const val RESET_VOL = 9
+
 
         const val WILD_FG_DIR = "$ROOT_DIR/$FOREGROUND_DIR"
         const val WILD_CLIP_DIR = "$ROOT_DIR/$CLIP_DIR"
@@ -93,7 +95,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private var  lastEventTimestamp = ""
     private var lastActiveEventTimestamp: LocalDateTime? = null
     private var apJob: Job? = null
-    private var isBTDisconnected: Boolean = false
 
     //monitor event sleep stage estimate for prompts
     private val promptMonitor : PromptMonitor = PromptMonitor()
@@ -132,13 +133,15 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         this.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
 
         // use a broadcast receiver to stop any playback when bluetooth is disconnected
-        val broadcastReceiver: BroadcastReceiver = getBroadcastReceiver()
 
         val filter = IntentFilter().apply {
+            addAction(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
             addAction(BluetoothDevice.ACTION_ACL_CONNECTED)
-            addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED)
         }
-        this.registerReceiver(broadcastReceiver, filter)
+
+        val myNoisyAudioStreamReceiver = getSpeakerEnabledReceiver()
+
+        registerReceiver(myNoisyAudioStreamReceiver, filter)
 
         // clear any old data
         purgeOldRecords(viewModel.startingDateTime)
@@ -305,9 +308,10 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
         val hour = triggerDateTime.hour
+        val minute = triggerDateTime.minute
 
         if (binding.chipAwake.isChecked) {
-            val hoursAllowed = hour in 2..6
+            val hoursAllowed = hour in 2..5 || (hour == 6 && minute < 30)
             val isAwakeEventAllowed = hoursAllowed && promptMonitor.isAwakeEventAllowed(viewModel.lastTimestamp.value)
 
             if (hoursAllowed) {
@@ -467,6 +471,13 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             }
         })
 
+        binding.btnDefaultVol.setOnClickListener {
+            binding.seekBar.progress = RESET_VOL
+            binding.chipLow.isChecked = true
+            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC,RESET_VOL,0)
+        }
+
+
         val podCount = fileManager.getFilesFromDirectory(PodSoundRoutine.ROOT_DIR+"/"+PodSoundRoutine.POD_DIR).size
         binding.chipPod.isVisible = podCount > 0
 
@@ -481,6 +492,19 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 binding.chipGroupPod.isVisible = false
                 binding.textPodLbl.isVisible = false
             }
+        }
+
+        binding.chipGroupVol.setOnCheckedStateChangeListener { _, _ ->
+            if (binding.chipLow.isChecked) {
+                soundPoolManager.setAllVolAdj(0.65F)
+            } else if (binding.chipMid.isChecked) {
+                soundPoolManager.setAllVolAdj(0.85F)
+            } else if (binding.chipHigh.isChecked) {
+                soundPoolManager.setAllVolAdj(1.0F)
+            } else {
+                soundPoolManager.setAllVolAdj(0.85F)
+            }
+            soundPoolManager.stopPlayingAll(binding.playStatus)
         }
     }
 
@@ -534,7 +558,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
             playCount = if(promptCount == 1) {
                 val promptMessage = "first $REM_EVENT_MESSAGE"
-                speakTheTime(promptMessage, pMessage)
+                speakTheTime(promptMessage, pMessage, 0.4F)
                 when (hour) {
                     6,7,8,9 -> 2
                     else -> 1
@@ -630,12 +654,15 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
     }
 
-    private fun speakTheTime(eventMessage : String, promptMessage: String = "") {
+    private fun speakTheTime(eventMessage : String, promptMessage: String = "", volume: Float = 0.6F) {
         val currentTime = LocalTime.now().format(DateTimeFormatter.ofPattern("hh:mm a", Locale.ENGLISH))
         val commenceMessage = if(promptMessage.isNotEmpty()) "Commencing $promptMessage soon." else ""
         val fullMessage = "$eventMessage detected. $commenceMessage The time is $currentTime"
         Log.d("SpeakTheTime", "${viewModel.lastTimestamp.value} tts $fullMessage")
-        textToSpeech.speak(fullMessage, TextToSpeech.QUEUE_FLUSH, null, null)
+        val params = Bundle()
+        params.putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, volume);
+
+        textToSpeech.speak(fullMessage, TextToSpeech.QUEUE_FLUSH, params, null)
     }
 
     private fun stopSoundRoutine() {
@@ -754,26 +781,23 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
     }
 
-    private fun getBroadcastReceiver(): BroadcastReceiver {
+    private fun getSpeakerEnabledReceiver(): BroadcastReceiver {
+        //stop playing if headphones disconnected, automatically start playing if connected
         val broadcastReceiver: BroadcastReceiver = (object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                val scope = CoroutineScope(Dispatchers.Default)
-                when (intent?.action) {
-                    BluetoothDevice.ACTION_ACL_CONNECTED -> {
-                        isBTDisconnected = false
-                        //Log.d("MainActivity","bluetooth connected")
-                    }
+            override fun onReceive(context: Context, intent: Intent) {
+                if (intent.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) {
+                    soundPoolManager.stopPlayingAll(binding.playStatus)
+                }
 
-                    BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
-                        scope.launch {
-                            //Log.d("MainActivity","bluetooth disconnected")
-                            isBTDisconnected = true
-                            delay(6000)
-                            if (isBTDisconnected) {
-                                soundPoolManager.stopPlayingAll(binding.playStatus)
-                            }
-                        }
+                if(intent.action == BluetoothDevice.ACTION_ACL_CONNECTED) {
+                    if (mBgRawId == -1) {
+                        mBgLabel = "Fan"
+                        mBgRawId = R.raw.boxfan
+                        binding.bgNoiseSpin.setSelection(1)
                     }
+                    soundPoolManager.stopPlayingBackground()
+                    binding.playStatus.text = "Playing $mBgLabel"
+                    soundPoolManager.playBackgroundSound(mBgRawId, 1F, binding.playStatus)
                 }
             }
         })
