@@ -269,11 +269,10 @@
 
     <TextView
         android:id="@+id/textView"
-        android:layout_width="49dp"
-        android:layout_height="22dp"
-        android:layout_marginStart="92dp"
+        android:layout_width="52dp"
+        android:layout_height="37dp"
         android:layout_marginBottom="60dp"
-        android:text="Volume"
+        android:text="Device Volume"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/sleep_stage_texview"
@@ -283,12 +282,62 @@
         android:id="@+id/seekBar"
         android:layout_width="190dp"
         android:layout_height="24dp"
+        android:layout_marginStart="0dp"
         android:layout_marginBottom="60dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.3"
+        app:layout_constraintEnd_toStartOf="@+id/chipGroupVol"
         app:layout_constraintStart_toEndOf="@+id/textView"
         app:layout_constraintTop_toBottomOf="@+id/sleep_stage_texview"
+        app:layout_constraintVertical_bias="1.0" />
+
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/chipGroupVol"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="50dp"
+        android:layout_marginEnd="40dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/btn_default_vol"
+        app:layout_constraintTop_toBottomOf="@id/sleep_stage_texview"
+        app:layout_constraintVertical_bias="1.0"
+        app:singleSelection="true">
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chip_low"
+            style="@style/Widget.MaterialComponents.Chip.Choice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="LOW"
+            android:textSize="10sp" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chip_mid"
+            style="@style/Widget.MaterialComponents.Chip.Choice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="MID"
+            android:textSize="10sp" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chip_high"
+            style="@style/Widget.MaterialComponents.Chip.Choice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="HIGH"
+            android:textSize="10sp" />
+
+    </com.google.android.material.chip.ChipGroup>
+
+    <Button
+        android:id="@+id/btn_default_vol"
+        android:layout_width="100dp"
+        android:layout_height="48dp"
+        android:layout_marginBottom="50dp"
+        android:text="default"
+        android:textSize="11sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/timestamp_lbl_textview"
         app:layout_constraintVertical_bias="1.0" />
 
     <LinearLayout

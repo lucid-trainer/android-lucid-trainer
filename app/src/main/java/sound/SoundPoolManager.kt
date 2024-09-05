@@ -27,6 +27,7 @@ class SoundPoolManager {
     private var bgJob: Job? = null
     private var altBgJob: Job? = null
     private var altBgId = -1
+    private var allVolAdj = 0.85F
 
     companion object {
 
@@ -76,6 +77,10 @@ class SoundPoolManager {
         })
 
         fileManager = FileManager.getInstance()!!
+    }
+
+    fun setAllVolAdj(allVolAdj : Float) {
+        this.allVolAdj = allVolAdj
     }
 
     fun playSoundList(soundList : List<String>, endBgRawRes : Int, endBgLabel : String, eventLabel: String,
@@ -129,29 +134,31 @@ class SoundPoolManager {
         //set the initial volumes based on background sound
         var (fgVolume, altBgVolume) = when (bgRawRes) {
             R.raw.green, R.raw.pink -> .52F to .48F
-            R.raw.boxfan, R.raw.metal_fan -> .4F to .36F
+            R.raw.boxfan, R.raw.metal_fan -> .33F to .3F
             R.raw.ac -> .35F to .3F
             R.raw.brown, R.raw.waves -> .12F to .1F
             else -> .45F to .5F
         }
 
+        //add the low/mid/high adjustment
+        fgVolume *= allVolAdj
+        altBgVolume *= allVolAdj
+
         //get the appropriate sound routine, adjusting volumes further depending on type
         val soundRoutine = when (type) {
             "m" -> {
-                fgVolume *= .9F
-                altBgVolume *= .8F
                 MILDSoundRoutine(2, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
             }
 
             "ma" -> {
                 fgVolume *= .8F
-                altBgVolume *= .7F
+                altBgVolume *= .8F
                 MILDSoundRoutine(1, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
             }
 
             "wa" -> {
                 fgVolume *= .8F
-                altBgVolume *= .7F
+                altBgVolume *= .8F
                 WILDSoundRoutine(1, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
             }
 
@@ -159,10 +166,10 @@ class SoundPoolManager {
                 //Log.d("MainActivity", "WILD prompt volumes at $fgVolume and $altBgVolume intensity $intensityLevel")
                 //use intensity to calculate volume adjustments
                 val adjustVal = when(intensityLevel) {
-                    0 -> .6F
-                    1 -> .8F
-                    2 -> 1F
-                    3-> 1.2F
+                    0 -> .3F
+                    1 -> .6F
+                    2 -> .9F
+                    3-> 1.1F
                     else -> 1.4F
                 }
                 fgVolume *= adjustVal
@@ -238,7 +245,11 @@ class SoundPoolManager {
         val scope = CoroutineScope(Dispatchers.Default)
         isBGSoundStopped = false
 
-        //Log.d("MainActivity", "checking bgJob=$bgJob")
+        //adjust the volume a bit based on low/mid/high/none adjustment setting
+        //this makes a small adjustment around the less granular standard device volume control
+        val adjVol = volume * allVolAdj
+
+        Log.d("MainActivity", "playing bg at vol $adjVol")
 
         if (bgJob == null || !mSoundPoolCompat.isPlaying(mBgId)) {
             bgJob = scope.launch {
@@ -258,7 +269,7 @@ class SoundPoolManager {
                     delay(timeMillis = 500)
                 }
 
-                mSoundPoolCompat.play(mBgId, volume, volume, -1, 1f)
+                mSoundPoolCompat.play(mBgId, adjVol, adjVol, -1, 1f)
 
             }
         } else {
@@ -383,7 +394,7 @@ class SoundPoolManager {
                     var currBgVolume = soundRoutine.bgVolume
 
                     for (sound in soundRoutine.getRoutine()) {
-                        val adjBgVolFactor = if(soundRoutine is PromptSoundRoutine) .3F else ADJUST_BG_VOL_FACTOR
+                        val adjBgVolFactor = if(soundRoutine is PromptSoundRoutine) .5F else ADJUST_BG_VOL_FACTOR
 
                         //Check for volume adjust values on the sound. The override value is always used if set, for special logic such as in a prompt routine where
                         //we want to increase the volume for one particular clip as count in a prompt session increases. If no override value, then we might have a clip
