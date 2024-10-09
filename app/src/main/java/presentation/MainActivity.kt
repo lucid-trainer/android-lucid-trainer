@@ -45,6 +45,7 @@ import utils.FileManager
 import utils.PromptMonitor
 import viewmodel.DocumentViewModel
 import viewmodel.DocumentViewModelFactory
+import java.time.DayOfWeek
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -244,7 +245,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
             lastActiveEventTimestamp = viewModel.lastActiveEventTimestamp
             val hour = LocalDateTime.parse(viewModel.lastTimestamp.value).hour
-            val hoursAllowed = hour in 0..8
+            val hoursAllowed = hour in 22..23 || hour in 0..7
             if (hoursAllowed && !promptMonitor.isInHighActivityPeriod(viewModel.lastTimestamp.value, 3L)) {
                 //we'll read out the time for any new possible interrupt periods
                 speakTheTime(ACTIVE_EVENT_MESSAGE)
@@ -308,10 +309,11 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
         val hour = triggerDateTime.hour
-        val minute = triggerDateTime.minute
+        val day = triggerDateTime.dayOfWeek
+        val limit = if(day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) 6 else 5
 
         if (binding.chipAwake.isChecked) {
-            val hoursAllowed = hour in 2..5 || (hour == 6 && minute < 30)
+            val hoursAllowed = hour in 1..limit
             val isAwakeEventAllowed = hoursAllowed && promptMonitor.isAwakeEventAllowed(viewModel.lastTimestamp.value)
 
             if (hoursAllowed) {
@@ -327,10 +329,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
     private fun checkAndSubmitLightPromptEvent() {
         val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
-        val hour = triggerDateTime.hour
 
         if (binding.chipRem.isChecked) {
-            val hoursAllowed = getPromptHoursAllowed(hour)
+            val hoursAllowed = getPromptHoursAllowed(triggerDateTime)
 
             val isLightPromptEventAllowed = hoursAllowed && promptMonitor.isPromptEventAllowed(viewModel.lastTimestamp.value)
 
@@ -347,10 +348,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
     private fun checkAndSubmitREMPromptEvent() {
         val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
-        val hour = triggerDateTime.hour
 
         if (binding.chipRem.isChecked) {
-            val hoursAllowed = getPromptHoursAllowed(hour)
+            val hoursAllowed = getPromptHoursAllowed(triggerDateTime)
 
             val isREMPromptEventAllowed = hoursAllowed && promptMonitor.isPromptEventAllowed(viewModel.lastTimestamp.value)
 
@@ -368,10 +368,13 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
     }
 
-    private fun getPromptHoursAllowed(hour: Int): Boolean {
-        return (hour in 0..2 && promptMonitor.isAwakeEventBeforePeriod(viewModel.lastTimestamp.value, 20)) ||
-                (hour in 3..4 && promptMonitor.isAwakeEventBeforePeriod(viewModel.lastTimestamp.value, 60)) ||
-                hour in 5..9
+    private fun getPromptHoursAllowed(triggerDateTime: LocalDateTime): Boolean {
+        val hour = triggerDateTime.hour
+        val day = triggerDateTime.dayOfWeek
+        val limit = if(day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) 6 else 5
+
+        return (hour in 1..3 && promptMonitor.isAwakeEventBeforePeriod(viewModel.lastTimestamp.value, 20)) ||
+                (hour in 4..limit && promptMonitor.isAwakeEventBeforePeriod(viewModel.lastTimestamp.value, 40))
     }
 
     private fun checkAndSubmitFollowUpPromptEvent() {

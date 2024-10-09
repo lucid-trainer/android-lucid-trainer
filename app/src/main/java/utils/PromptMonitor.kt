@@ -220,15 +220,14 @@ class PromptMonitor {
 
     fun promptIntensityLevel(lastTimestamp: String?, promptCount: Int = 1): Int {
         val baseIntensity = when (LocalDateTime.parse(lastTimestamp).hour) {
-            5, 6 -> 1
-            7, 8, 9 -> 0
+            5 -> 1
+            6 -> 0
             else -> 2
         }
 
         return when(promptCount) {
             3, 4 -> baseIntensity + 1
             5 -> baseIntensity + 2
-            6 -> baseIntensity + 3
             else -> baseIntensity + 0
         }
     }
@@ -243,9 +242,9 @@ class PromptMonitor {
         val hour = lastDateTime.hour
         var maxPromptCount = 5
 
-        if(hour == 6) {
+        if(hour == 5) {
             maxPromptCount = 4
-        } else if (hour > 6) {
+        } else if (hour > 5) {
             maxPromptCount = 3
         }
 
