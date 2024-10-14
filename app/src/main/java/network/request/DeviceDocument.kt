@@ -14,7 +14,5 @@ data class DeviceDocument (
     val isInPromptWindow: Boolean,
     val intensity: Int,
     val prompt_allowed: Boolean,
-    val fgFilesUsed: Int,
-    val mainFilesUsed: Int,
     val debugLog: String
 )

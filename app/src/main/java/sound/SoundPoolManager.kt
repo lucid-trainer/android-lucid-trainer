@@ -31,8 +31,11 @@ class SoundPoolManager {
 
     companion object {
 
-        const val ADJUST_BG_VOL_FACTOR = .5F
+        const val ADJUST_BG_VOL_FACTOR = .55F
         const val DEFAULT_INTENSITY_LEVEL = 2
+        const val ROOT_SOUNDS_DIR = "lt_sounds"
+        const val THEMES_DIR = "themes"
+        const val AUTO_THEME = "auto_theme"
 
         @Volatile
         private var INSTANCE: SoundPoolManager? = null
@@ -134,7 +137,7 @@ class SoundPoolManager {
         //set the initial volumes based on background sound
         var (fgVolume, altBgVolume) = when (bgRawRes) {
             R.raw.green, R.raw.pink -> .52F to .48F
-            R.raw.boxfan, R.raw.metal_fan -> .375F to .32F
+            R.raw.boxfan, R.raw.metal_fan -> .37F to .32F
             R.raw.ac -> .35F to .3F
             R.raw.brown, R.raw.waves -> .12F to .1F
             else -> .45F to .5F
@@ -144,49 +147,54 @@ class SoundPoolManager {
         fgVolume *= allVolAdj
         altBgVolume *= allVolAdj
 
+        val manualTheme = fileManager.getAllDirectoriesFromPath("$ROOT_SOUNDS_DIR/$THEMES_DIR").filter {!it.startsWith("auto")}.shuffled().last()
+
         //get the appropriate sound routine, adjusting volumes further depending on type
         val soundRoutine = when (type) {
             "m" -> {
                 fgVolume *= .9F
                 altBgVolume *= .9F
-                MILDSoundRoutine(2, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
+                MILDSoundRoutine(2, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel, manualTheme )
             }
 
             "ma" -> {
-                fgVolume *= .8F
-                altBgVolume *= .8F
-                MILDSoundRoutine(1, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
+                fgVolume *= .75F
+                altBgVolume *= .7F
+
+                MILDSoundRoutine(1, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel,  endBgLabel, AUTO_THEME)
             }
 
             "wa" -> {
-                fgVolume *= .8F
-                altBgVolume *= .8F
-                WILDSoundRoutine(1, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
+                fgVolume *= .75F
+                altBgVolume *= .7F
+                WILDSoundRoutine(1, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel, AUTO_THEME)
             }
 
             "wp", "mp" -> {
-                //Log.d("MainActivity", "WILD prompt volumes at $fgVolume and $altBgVolume intensity $intensityLevel")
                 //use intensity to calculate volume adjustments
                 val adjustVal = when(intensityLevel) {
-                    0 -> .3F
-                    1 -> .5F
-                    2 -> .7F
-                    3-> .9F
-                    else -> 1.2F
+                    0 -> .5F
+                    1 -> .8F
+                    2 -> 1.1F
+                    3-> 1.4F
+                    4-> 1.7F
+                    else -> 2F
                 }
                 fgVolume *= adjustVal
                 altBgVolume *= adjustVal
 
+                //Log.d("MainActivity", "WILD prompt volumes at $fgVolume and $altBgVolume intensity $intensityLevel promptCount $promptCount")
+
                 val fgLabel = if(type == "wp") "WILD" else "MILD"
 
-                PromptSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel, fgLabel, promptCount)
+                PromptSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel, AUTO_THEME, fgLabel, promptCount)
             }
 
             //default is "w", a manual WILD sound routine
             else -> {
                 fgVolume *= .9F
                 altBgVolume *= .9F
-                WILDSoundRoutine(2, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel)
+                WILDSoundRoutine(2, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel, manualTheme)
             }
         }
 
@@ -199,7 +207,7 @@ class SoundPoolManager {
 
         val (fgVolume, bgVolume) = when (bgRawRes) {
             R.raw.green, R.raw.pink -> .3F to .075F
-            R.raw.boxfan, R.raw.metal_fan, R.raw.ac -> .25F to .1F
+            R.raw.boxfan, R.raw.metal_fan, R.raw.ac -> .28F to .135F
             else -> .15F to .2F
         }
 
@@ -293,7 +301,7 @@ class SoundPoolManager {
 
         if (altBgJob == null || !mSoundPoolCompat.isPlaying(altBgId)) {
             altBgJob = scope.launch {
-                delay(timeMillis = 1000)
+                delay(timeMillis = 10000)
 
                 val delayBetween = if(soundRoutine is PromptSoundRoutine) 15000L else 30000L
 
@@ -400,8 +408,6 @@ class SoundPoolManager {
                     var currBgVolume = soundRoutine.bgVolume
 
                     for (sound in soundRoutine.getRoutine()) {
-                        val adjBgVolFactor = if(soundRoutine is PromptSoundRoutine) .5F else ADJUST_BG_VOL_FACTOR
-
                         //Check for volume adjust values on the sound. The override value is always used if set, for special logic such as in a prompt routine where
                         //we want to increase the volume for one particular clip as count in a prompt session increases. If no override value, then we might have a clip
                         //with the regular adjust value set. In this case we want to both diminish the background sound and increase the foreground sound. Finally, if
@@ -415,7 +421,7 @@ class SoundPoolManager {
                         } else if(sound.fileVolAdjust != 0F) {
                             if(currBgVolume == soundRoutine.bgVolume) {
                                 currVolume *= sound.fileVolAdjust
-                                currBgVolume *= adjBgVolFactor
+                                currBgVolume *= ADJUST_BG_VOL_FACTOR
                                 stopPlayingBackground() // this will stop the alt background sounds as well to just focus on the fg clip
                                 playBackgroundSound(soundRoutine.bgRawId, currBgVolume, textView)
                                 adjustAltBGVol = true

@@ -5,7 +5,7 @@ import android.util.Log
 class PodSoundRoutine(override var playCount: Int, override var bgRawId: Int, override var endBgRawId: Int,
                       override var bgVolume: Float, override var altBgVolume: Float, override var fgVolume: Float,
                       override val eventLabel : String, override var bgLabel : String, override var endBgLabel : String,
-                      override val fgLabel : String = "POD",
+                      override val theme: String = "", override val fgLabel : String = "POD",
 ) : SoundRoutine {
 
     companion object {

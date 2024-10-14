@@ -6,14 +6,10 @@ class PromptSoundRoutine(
     override var playCount: Int, override var bgRawId: Int, override var endBgRawId: Int,
     override var bgVolume: Float, override var altBgVolume: Float, override var fgVolume: Float,
     override val eventLabel: String, override var bgLabel: String, override var endBgLabel: String,
-    override val fgLabel: String = "PROMPT", private val promptCount: Int = 1
+    override val theme: String, override val fgLabel: String = "PROMPT", private val promptCount: Int = 1
 ) : SoundRoutine {
 
-    companion object {
-        const val ROOT_DIR = "lt_sounds"
-        const val START_DIR = "start"
-        const val PROMPT_DIR = "prompt"
-    }
+    private val fileManager = FileManager.getInstance()!!
 
     override fun getStartSounds(): List<String> {
         return emptyList()
@@ -25,19 +21,17 @@ class PromptSoundRoutine(
 
     override fun getRoutine(): List<Sound> {
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()
-        val startDir = "$ROOT_DIR/$START_DIR"
-        val dir = "$ROOT_DIR/$PROMPT_DIR"
+        val promptDir = "$ROOT_DIR/$PROMPT_DIR"
 
-        routine.add(Sound(0, 3, "$startDir/prompt_start_short.ogg", ))
+        routine.add(Sound(0, 3, "$promptDir/start.ogg", ))
 
-        //this clip will play a little louder as the count increases in a prompt session
-        val promptInterFile = "$startDir/prompt_intermit.ogg"
+        val promptInterFile = "$promptDir/intermit.ogg"
         routine.add(Sound(0, 3, promptInterFile, 0F, getVolIncr(promptCount)))
 
-        val promptFile = "$dir/prompt_$playCount.ogg"
-        routine.add(Sound(0, 3, promptFile, getVolIncr(promptCount)))
+        val promptFile = fileManager.getFilesFromDirectory(promptDir).filter{it.startsWith("prompt")}.shuffled().last()
+        routine.add(Sound(0, 3, "$promptDir/$promptFile", getVolIncr(promptCount)))
 
-        routine.add(Sound(0, 0, "$startDir/silence.ogg"))
+        routine.add(Sound(0, 0, "$promptDir/silence.ogg"))
 
         return routine
     }
@@ -48,8 +42,8 @@ class PromptSoundRoutine(
             1 -> .9F
             2 -> 1.2F
             3 -> 1.5F
-            4 -> 1.85F
-            else -> 2.5F
+            4 -> 1.8F
+            else -> 2F
         }
     }
 }

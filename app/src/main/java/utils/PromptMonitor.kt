@@ -113,7 +113,7 @@ class PromptMonitor {
         //if we have a Rem trigger event we'll check if we should start a new prompting window
         val lastDateTime = LocalDateTime.parse(lastTimestamp)
 
-        if( startPromptAllowPeriod == null || lastDateTime > startPromptAllowPeriod!!.plusMinutes(PROMPT_PERIOD)) {
+        if( startPromptAllowPeriod == null || lastDateTime > startPromptAllowPeriod!!.plusSeconds(NEW_PROMPT_PERIOD_WAIT_SECONDS)) {
             startPromptAllowPeriod = lastDateTime.plusSeconds(NEW_PROMPT_PERIOD_WAIT_SECONDS)
         }
 
@@ -182,15 +182,22 @@ class PromptMonitor {
             .plusMinutes(period))
     }
 
+    private fun isRecentPromptEvent(lastTimestamp: String?): Boolean {
+        return allPromptEvents.isNotEmpty() && LocalDateTime.parse(lastTimestamp) <= allPromptEvents.last().plusSeconds(SECONDS_BETWEEN_PROMPTS)
+    }
+
+    private fun isRecentAwakeEvent(lastTimestamp: String?): Boolean {
+        return awakeEventList.isNotEmpty() && LocalDateTime.parse(lastTimestamp) <= awakeEventList.last().plusMinutes(BETWEEN_AWAKE_PERIOD)
+    }
+
     fun isAwakeEventAllowed(lastTimestamp: String?): Boolean {
-        return !isInSleepButtonPeriod(lastTimestamp) && (awakeEventList.isEmpty() || LocalDateTime.parse(lastTimestamp) >= awakeEventList.last()
-                    .plusMinutes(BETWEEN_AWAKE_PERIOD))
+        return !isInSleepButtonPeriod(lastTimestamp) && !isRecentPromptEvent(lastTimestamp) && !isRecentAwakeEvent(lastTimestamp)
     }
 
     fun isPromptEventAllowed(lastTimestamp: String?): Boolean {
         //Log.d("PromptMonitor", "$lastTimestamp isInPromptWindow = ${isInPromptWindow(lastTimestamp)}")
         val isAllowed = promptEventWaiting == null && isInPromptWindow(lastTimestamp) && !isInAwakePeriod(lastTimestamp) && !isInCoolDownPeriod(lastTimestamp) &&
-                (allPromptEvents.isEmpty() || LocalDateTime.parse(lastTimestamp) >= allPromptEvents.last().plusSeconds(SECONDS_BETWEEN_PROMPTS))
+                !isRecentPromptEvent(lastTimestamp)
 
         if(isAllowed) {
             //extend the prompt window
@@ -220,15 +227,17 @@ class PromptMonitor {
 
     fun promptIntensityLevel(lastTimestamp: String?, promptCount: Int = 1): Int {
         val baseIntensity = when (LocalDateTime.parse(lastTimestamp).hour) {
-            5 -> 1
-            6 -> 0
-            else -> 2
+            6 -> -1
+            else -> 0
         }
 
         return when(promptCount) {
-            3, 4 -> baseIntensity + 1
-            5 -> baseIntensity + 2
-            else -> baseIntensity + 0
+            1 -> 0
+            2 -> baseIntensity + 1
+            3 -> baseIntensity + 2
+            4 -> baseIntensity + 3
+            5, 6 -> baseIntensity + 4
+            else -> 0
         }
     }
 

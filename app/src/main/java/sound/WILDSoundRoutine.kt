@@ -6,24 +6,15 @@ import utils.FileManager
 class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, override var endBgRawId: Int,
                        override var bgVolume: Float, override var altBgVolume: Float, override var fgVolume: Float,
                        override val eventLabel : String, override var bgLabel : String, override var endBgLabel : String,
-                       override val fgLabel : String = "WILD",
+                       override var theme: String, override val fgLabel : String = "WILD"
 ) : SoundRoutine {
 
     private val fileManager = FileManager.getInstance()!!
 
-    companion object {
-        const val ROOT_DIR = "lt_sounds"
-        const val FOREGROUND_DIR = "fg"
-        const val ALT_BACKGROUND_DIR = "bg"
-        const val PROMPT_DIR = "prompt"
-        const val START_DIR = "start"
-        const val CLIP_DIR = "main"
-    }
-
     override fun getStartSounds(): List<String> {
         val startSounds : MutableList<String> = emptyList<String>().toMutableList()
 
-        startSounds.add("$ROOT_DIR/$START_DIR/start.ogg")
+        startSounds.add("$ROOT_DIR/$THEMES_DIR/$theme/$START_DIR/start.ogg")
 
         return startSounds
     }
@@ -31,12 +22,15 @@ class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
     override fun getAltBGSounds(): List<String> {
         var altBGSounds : MutableList<String> = emptyList<String>().toMutableList()
 
-        val dir = "/$ROOT_DIR/$ALT_BACKGROUND_DIR"
+        val dir = "/$ROOT_DIR/$THEMES_DIR/$theme/$ALT_BACKGROUND_DIR"
+
+        Log.d("MainActivity", "bg dir = $dir")
 
         val files = fileManager.getFilesFromDirectory(dir).shuffled().slice(0..9)
-
+        Log.d("MainActivity", "bg files = $files")
         for (i in 0..9) {
-            altBGSounds.add("$ROOT_DIR/$ALT_BACKGROUND_DIR/${files[i]}")
+            Log.d("MainActivity", "add file $ROOT_DIR/$THEMES_DIR/$theme/$ALT_BACKGROUND_DIR/${files[i]}")
+            altBGSounds.add("$ROOT_DIR/$THEMES_DIR/$theme/$ALT_BACKGROUND_DIR/${files[i]}")
         }
 
         return altBGSounds
@@ -55,7 +49,7 @@ class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
     }
 
     private fun addForegroundSounds(routine: MutableList<Sound>) {
-        var dir = "$ROOT_DIR/$FOREGROUND_DIR"
+        var dir = "$ROOT_DIR/$THEMES_DIR/$theme/$FOREGROUND_DIR"
 
         val limit = if(playCount > 1) 12 else 8
 
@@ -72,31 +66,22 @@ class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
         //add a prompt near start of the the routine
         var dir = "$ROOT_DIR/$PROMPT_DIR"
 
-        val file = fileManager.getFilesFromDirectory(dir).shuffled().last()
-//        val interfile = "$ROOT_DIR/$START_DIR/intermit.ogg"
+        val file = fileManager.getFilesFromDirectory(dir).filter{it.startsWith("prompt")}.shuffled().last()
 
         routine.add(3, Sound(0, 20, "$dir/$file"))
-        Log.d("MainActivity", "add prompt file$dir/$file to routine")
-
-//        for(i in 1..routine.size) {
-//            if(i % 3 == 0) {
-//                routine.add(i-1, Sound(0, 20, "$interfile"))
-//                Log.d("MainActivity", "add $interfile to ${i-1} of routine")
-//            }
-//        }
     }
 
     private fun addClipSound(routine: MutableList<Sound>) {
         //add a longer more distinct main sound clip towards the end and adjust volume on it
-        var dir = "$ROOT_DIR/$CLIP_DIR"
+        var startDir = "$ROOT_DIR/$THEMES_DIR/$theme"
 
         //start with a radio tuning sound
-        routine.add(6, Sound(0, 0, "$ROOT_DIR/start/tune.ogg"))
+        routine.add(6, Sound(0, 0, "$startDir/start/tune.ogg"))
 
-        val clipFile = fileManager.getUnusedFilesFromDirectory(dir, 1).shuffled().last()
-        routine.add(7, Sound(0, 20, "$dir/$clipFile", 1F))
+        val clipFile = fileManager.getUnusedFilesFromDirectory("$startDir/$CLIP_DIR", 1).shuffled().last()
+        routine.add(7, Sound(0, 20, "$startDir/$CLIP_DIR/$clipFile", .8F))
 
-        fileManager.addFileUsed(dir, clipFile)
+        fileManager.addFileUsed("$startDir/$CLIP_DIR", clipFile)
     }
 
 }

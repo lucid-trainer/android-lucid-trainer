@@ -71,6 +71,7 @@ class FileManager(val sharedPreferences : SharedPreferences) {
     fun addFileUsed(dir: String, file: String) {
         val files = listOf(file)
         addFilesUsed(dir, files)
+        Log.d("FileManager", "add files used $dir $file $files")
     }
 
     fun resetFilesUsed(vararg dirs: String) {
@@ -117,7 +118,7 @@ class FileManager(val sharedPreferences : SharedPreferences) {
         return filesList
     }
 
-    private fun getAllDirectoriesFromPath(dir: String) : List<String> {
+    fun getAllDirectoriesFromPath(dir: String) : List<String> {
 
         val dirList = mutableListOf<String>()
         val dirs = Path(ex.path + "/$dir").listDirectoryEntries()
@@ -133,11 +134,15 @@ class FileManager(val sharedPreferences : SharedPreferences) {
 
     fun getFilePath(fileName : String): String? {
 
-        val fileLocation = fileName.split("/")
+        val fileLocation = fileName.substringBeforeLast("/")
+        val fileNameOnly = fileName.substringAfterLast("/")
+
+
+        Log.d("MainActivity", "File Manager $fileName: $fileLocation")
 
         val file = File(
-            File(ex.path + "/" + fileLocation[0] + "/" + fileLocation[1] + "/"),
-            fileLocation[2])
+            File(ex.path + "/" + fileLocation + "/"),
+            fileNameOnly)
 
         return if (file.exists()) {
             file.path

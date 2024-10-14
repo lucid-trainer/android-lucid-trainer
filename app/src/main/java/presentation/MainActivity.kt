@@ -37,9 +37,6 @@ import network.request.DeviceDocument
 import repository.DeviceDocumentsRepository
 import sound.PodSoundRoutine
 import sound.SoundPoolManager
-import sound.WILDSoundRoutine.Companion.CLIP_DIR
-import sound.WILDSoundRoutine.Companion.FOREGROUND_DIR
-import sound.WILDSoundRoutine.Companion.ROOT_DIR
 import utils.AppConfig
 import utils.FileManager
 import utils.PromptMonitor
@@ -73,18 +70,23 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         const val SLEEP_EVENT_PROMPT_DELAY = 10000L //3000L DEBUG VALUE
         const val RESET_VOL = 9
 
-
-        const val WILD_FG_DIR = "$ROOT_DIR/$FOREGROUND_DIR"
-        const val WILD_CLIP_DIR = "$ROOT_DIR/$CLIP_DIR"
+        const val ROOT_DIR = "lt_sounds"
+        const val THEMES_DIR = "themes"
+        const val FOREGROUND_DIR = "fg"
+        const val CLIP_DIR = "clip"
 
         const val MANUAL_PLAY_MESSAGE = "Manual play"
         const val ACTIVE_EVENT_MESSAGE = "Elevated movement"
-        const val REM_EVENT_MESSAGE = "Rem event"
         const val WATCH_EVENT_MESSAGE = "Watch event"
 
         const val WILD_MESSAGE = "wild"
         const val MILD_MESSAGE = "mild"
         const val SSILD_MESSAGE = "s s i l d"
+
+        val filter = IntentFilter().apply {
+            addAction(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
+            addAction(BluetoothDevice.ACTION_ACL_CONNECTED)
+        }
     }
 
     //set up the AudioManager and SoundPool
@@ -99,6 +101,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
     //monitor event sleep stage estimate for prompts
     private val promptMonitor : PromptMonitor = PromptMonitor()
+
+    private val myNoisyAudioStreamReceiver = getSpeakerEnabledReceiver()
 
     private var maxVolume = 0
     private var mBgRawId = -1
@@ -134,14 +138,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         this.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
 
         // use a broadcast receiver to stop any playback when bluetooth is disconnected
-
-        val filter = IntentFilter().apply {
-            addAction(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
-            addAction(BluetoothDevice.ACTION_ACL_CONNECTED)
-        }
-
-        val myNoisyAudioStreamReceiver = getSpeakerEnabledReceiver()
-
         registerReceiver(myNoisyAudioStreamReceiver, filter)
 
         // clear any old data
@@ -236,6 +232,11 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
             }
         }
+    }
+
+    private fun resetNoisyReceiver() {
+        unregisterReceiver(myNoisyAudioStreamReceiver)
+        registerReceiver(myNoisyAudioStreamReceiver, filter)
     }
 
     private fun handleHighActivityEvent() {
@@ -351,30 +352,39 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         if (binding.chipRem.isChecked) {
             val hoursAllowed = getPromptHoursAllowed(triggerDateTime)
+            val logAllowed = getPromptLogHoursAllowed(triggerDateTime)
 
             val isREMPromptEventAllowed = hoursAllowed && promptMonitor.isPromptEventAllowed(viewModel.lastTimestamp.value)
 
-            if (hoursAllowed) {
+            if (logAllowed) {
                 val document = getDeviceDocument(EVENT_LABEL_REM, isREMPromptEventAllowed)
                 logEvent(document)
             }
 
             if (isREMPromptEventAllowed) {
                 startCountDownPromptTimer(EVENT_LABEL_REM)
+            } else {
+                //each rem trigger event that doesn't result in prompt is evaluated to possibly set next allowed prompt window
+                promptMonitor.checkRemTriggerEvent(viewModel.lastTimestamp.value)
             }
-
-            //each rem trigger event is evaluated to possibly set next allowed prompt window
-            promptMonitor.checkRemTriggerEvent(viewModel.lastTimestamp.value)
         }
     }
 
-    private fun getPromptHoursAllowed(triggerDateTime: LocalDateTime): Boolean {
+    private fun getPromptHoursAllowed(triggerDateTime: LocalDateTime, logOnly: Boolean = false): Boolean {
         val hour = triggerDateTime.hour
         val day = triggerDateTime.dayOfWeek
         val limit = if(day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) 6 else 5
 
-        return (hour in 1..3 && promptMonitor.isAwakeEventBeforePeriod(viewModel.lastTimestamp.value, 20)) ||
-                (hour in 4..limit && promptMonitor.isAwakeEventBeforePeriod(viewModel.lastTimestamp.value, 40))
+        return if(logOnly) {
+            hour in 1..limit
+        } else {
+            (hour in 1..3 && promptMonitor.isAwakeEventBeforePeriod(viewModel.lastTimestamp.value, 20)) ||
+                    (hour in 4..limit && promptMonitor.isAwakeEventBeforePeriod(viewModel.lastTimestamp.value, 30))
+        }
+    }
+
+    private fun getPromptLogHoursAllowed(triggerDateTime: LocalDateTime): Boolean {
+        return getPromptHoursAllowed(triggerDateTime, true)
     }
 
     private fun checkAndSubmitFollowUpPromptEvent() {
@@ -412,6 +422,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         binding.btnNoise.setOnClickListener {
             if (mBgRawId != -1) {
+                resetNoisyReceiver()
                 soundPoolManager.stopPlayingBackground()
                 binding.playStatus.text = "Playing $mBgLabel"
                 soundPoolManager.playBackgroundSound(mBgRawId, 1F, binding.playStatus)
@@ -426,6 +437,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 val text = "You need to choose a sound routine"
                 Toast.makeText(application, text, Toast.LENGTH_LONG).show()
             } else {
+                resetNoisyReceiver()
                 playPrompts(EVENT_LABEL_BUTTON)
             }
         }
@@ -435,7 +447,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
 
         binding.btnReset.setOnClickListener {
-            confirmAndReset()
+            confirmAndResetUsedFiles()
         }
 
         binding.btnClearDb.setOnClickListener {
@@ -476,7 +488,11 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         binding.btnDefaultVol.setOnClickListener {
             binding.seekBar.progress = RESET_VOL
+            binding.bgNoiseSpin.setSelection(1)
             binding.chipLow.isChecked = true
+            binding.chipMild.isChecked = true
+            binding.chipRem.isChecked = true
+            binding.chipAwake.isChecked = true
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC,RESET_VOL,0)
         }
 
@@ -511,19 +527,27 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
     }
 
-    private fun confirmAndReset() {
+    private fun confirmAndResetUsedFiles() {
         val builder = AlertDialog.Builder(this)
 
-        val fgSize = fileManager.getUsedFilesFromDirectory(WILD_FG_DIR).size
-        val clipSize = fileManager.getUsedFilesFromDirectory(WILD_CLIP_DIR).size
-
-        builder.setMessage("Are you sure you want to reset used files ($fgSize fgs, $clipSize clips?)")
+        builder.setMessage("Are you sure you want to reset all used files ")
             .setCancelable(false)
             .setPositiveButton("Yes") { dialog, id ->
-                fileManager.resetFilesUsed(
-                    "$ROOT_DIR/$FOREGROUND_DIR",
-                    "$ROOT_DIR/$CLIP_DIR"
-                )
+                run {
+                    val themes = fileManager.getAllDirectoriesFromPath("$ROOT_DIR/$THEMES_DIR")
+                    for(theme in themes) {
+                        val fgSize = fileManager.getUsedFilesFromDirectory(
+                            "$ROOT_DIR/$THEMES_DIR/$theme/$FOREGROUND_DIR").size
+                        val clipSize = fileManager.getUsedFilesFromDirectory(
+                            "$ROOT_DIR/$THEMES_DIR/$theme/$CLIP_DIR").size
+                        Log.d("MainActivity", "clearing unused fg= $fgSize clip= $clipSize")
+
+                        fileManager.resetFilesUsed(
+                            "$ROOT_DIR/$THEMES_DIR/$theme/$FOREGROUND_DIR",
+                            "$ROOT_DIR/$THEMES_DIR/$theme/$CLIP_DIR"
+                        )
+                    }
+                }
             }
             .setNegativeButton("No") { dialog, id ->
                 dialog.dismiss()
@@ -560,8 +584,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             pMod = "p"
 
             playCount = if(promptCount == 1) {
-                val promptMessage = "first $REM_EVENT_MESSAGE"
-                speakTheTime(promptMessage, pMessage, 0.4F)
                 when (hour) {
                     6,7,8,9 -> 2
                     else -> 1
@@ -599,9 +621,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             soundList.add("p")
         }
 
-        //Log.d("MainActivity", "setting soundlist to=$soundList")
         val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value, promptCount)
-
+        resetNoisyReceiver()
         soundPoolManager.playSoundList(
             soundList, mBgRawId, mBgLabel, eventLabel, binding.playStatus, playCount, intensityLevel, promptCount)
     }
@@ -652,6 +673,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         if(soundList.isNotEmpty()) {
             soundPoolManager.stopPlayingForeground()
             soundPoolManager.stopPlayingBackground()
+
+            resetNoisyReceiver()
+
             soundPoolManager.playSoundList(
                 soundList, mBgRawId, mBgLabel, EVENT_LABEL_WATCH, binding.playStatus, playCount)
         }
@@ -764,8 +788,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             promptMonitor.isInPromptWindow(triggerTimestamp),
             intensity,
             allowed,
-            fileManager.getUsedFilesFromDirectory(WILD_FG_DIR).size,
-            fileManager.getUsedFilesFromDirectory(WILD_CLIP_DIR).size,
             debugLog
         )
     }
