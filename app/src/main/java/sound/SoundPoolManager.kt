@@ -32,7 +32,6 @@ class SoundPoolManager {
     companion object {
 
         const val ADJUST_BG_VOL_FACTOR = .55F
-        const val DEFAULT_INTENSITY_LEVEL = 2
         const val ROOT_SOUNDS_DIR = "lt_sounds"
         const val THEMES_DIR = "themes"
         const val AUTO_THEME = "auto_theme"
@@ -87,7 +86,7 @@ class SoundPoolManager {
     }
 
     fun playSoundList(soundList : List<String>, endBgRawRes : Int, endBgLabel : String, eventLabel: String,
-        textView : TextView, playCnt: Int, intensityLevel: Int = DEFAULT_INTENSITY_LEVEL, promptCount : Int = 1) {
+        textView : TextView, playCnt: Int, promptCount : Int = 1) {
 
         //default
         var bgRawRes = if(endBgRawRes > 0) {
@@ -117,7 +116,7 @@ class SoundPoolManager {
 
                 else -> {
                     if(soundType.isNotEmpty()) {
-                        val soundRoutine = getSoundRoutine(bgRawRes, playCnt, endBgRawRes, eventLabel, bgLabel, endBgLabel, intensityLevel, soundType, promptCount)
+                        val soundRoutine = getSoundRoutine(bgRawRes, playCnt, endBgRawRes, eventLabel, bgLabel, endBgLabel, soundType, promptCount)
                         soundRoutines.add(soundRoutine)
                     }
                 }
@@ -132,12 +131,12 @@ class SoundPoolManager {
     }
 
     private fun getSoundRoutine(bgRawRes: Int, playCnt: Int, endBgRawRes: Int, eventLabel: String, bgLabel: String,
-             endBgLabel: String, intensityLevel: Int, type: String, promptCount: Int = 1) : SoundRoutine {
+             endBgLabel: String, type: String, promptCount: Int = 1) : SoundRoutine {
 
         //set the initial volumes based on background sound
         var (fgVolume, altBgVolume) = when (bgRawRes) {
             R.raw.green, R.raw.pink -> .52F to .48F
-            R.raw.boxfan, R.raw.metal_fan -> .37F to .32F
+            R.raw.boxfan, R.raw.metal_fan -> .38F to .335F
             R.raw.ac -> .35F to .3F
             R.raw.brown, R.raw.waves -> .12F to .1F
             else -> .45F to .5F
@@ -171,20 +170,6 @@ class SoundPoolManager {
             }
 
             "wp", "mp" -> {
-                //use intensity to calculate volume adjustments
-                val adjustVal = when(intensityLevel) {
-                    0 -> .5F
-                    1 -> .8F
-                    2 -> 1.1F
-                    3-> 1.4F
-                    4-> 1.7F
-                    else -> 2F
-                }
-                fgVolume *= adjustVal
-                altBgVolume *= adjustVal
-
-                //Log.d("MainActivity", "WILD prompt volumes at $fgVolume and $altBgVolume intensity $intensityLevel promptCount $promptCount")
-
                 val fgLabel = if(type == "wp") "WILD" else "MILD"
 
                 PromptSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel, AUTO_THEME, fgLabel, promptCount)

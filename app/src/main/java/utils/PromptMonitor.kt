@@ -225,18 +225,10 @@ class PromptMonitor {
                 LocalDateTime.parse(lastTimestamp) <= lastAwakeDateTime!!.plusMinutes(IN_AWAKE_PERIOD)
     }
 
-    fun promptIntensityLevel(lastTimestamp: String?, promptCount: Int = 1): Int {
-        val baseIntensity = when (LocalDateTime.parse(lastTimestamp).hour) {
-            6 -> -1
-            else -> 0
-        }
-
+    fun promptIntensityLevel(promptCount: Int = 1): Int {
         return when(promptCount) {
-            1 -> 0
-            2 -> baseIntensity + 1
-            3 -> baseIntensity + 2
-            4 -> baseIntensity + 3
-            5, 6 -> baseIntensity + 4
+            3, 4 -> 1
+            5, 6 -> 2
             else -> 0
         }
     }

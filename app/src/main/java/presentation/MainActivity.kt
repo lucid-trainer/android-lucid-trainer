@@ -11,6 +11,7 @@ import android.graphics.Color
 import android.media.AudioManager
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
+import android.speech.tts.Voice
 import android.util.Log
 import android.view.View
 import android.widget.AdapterView
@@ -361,7 +362,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 logEvent(document)
             }
 
-            if (isREMPromptEventAllowed) {
+            if (hoursAllowed && isREMPromptEventAllowed) {
                 startCountDownPromptTimer(EVENT_LABEL_REM)
             } else {
                 //each rem trigger event that doesn't result in prompt is evaluated to possibly set next allowed prompt window
@@ -621,10 +622,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             soundList.add("p")
         }
 
-        val intensityLevel = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value, promptCount)
         resetNoisyReceiver()
         soundPoolManager.playSoundList(
-            soundList, mBgRawId, mBgLabel, eventLabel, binding.playStatus, playCount, intensityLevel, promptCount)
+            soundList, mBgRawId, mBgLabel, eventLabel, binding.playStatus, playCount, promptCount)
     }
 
     private fun processEvents(eventMap: Map<String, String>) {
@@ -774,7 +774,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         val debugLog = ""
 
         val promptCount = promptMonitor.getPromptCountInPeriod(LocalDateTime.parse(viewModel.lastTimestamp.value))
-        val intensity = promptMonitor.promptIntensityLevel(viewModel.lastTimestamp.value, promptCount)
+        val intensity = promptMonitor.promptIntensityLevel(promptCount)
 
         return  DeviceDocument(
             LocalDateTime.now().toString(),
@@ -786,6 +786,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             promptMonitor.isInCoolDownPeriod(triggerTimestamp),
             promptMonitor.startPromptAllowPeriod.toString(),
             promptMonitor.isInPromptWindow(triggerTimestamp),
+            promptCount,
             intensity,
             allowed,
             debugLog
@@ -832,8 +833,16 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private fun getTextToSpeech() = TextToSpeech(applicationContext) { i ->
         // if No error is found then only it will run
         if (i != TextToSpeech.ERROR) {
-            // To Choose language of speech
-            textToSpeech.language = Locale.UK
+            textToSpeech.language = Locale.US
+            val voices: Set<Voice> = textToSpeech.voices
+            val voiceList: List<Voice> = ArrayList(voices)
+
+            for(voice in voiceList) {
+                if(voice.name.equals("en-US-Standard-G")) {
+                    textToSpeech.voice = voice
+                }
+            }
+
         }
     }
 
