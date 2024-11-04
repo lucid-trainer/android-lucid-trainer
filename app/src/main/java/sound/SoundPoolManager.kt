@@ -136,7 +136,7 @@ class SoundPoolManager {
         //set the initial volumes based on background sound
         var (fgVolume, altBgVolume) = when (bgRawRes) {
             R.raw.green, R.raw.pink -> .52F to .48F
-            R.raw.boxfan, R.raw.metal_fan -> .38F to .335F
+            R.raw.boxfan, R.raw.metal_fan -> .37F to .33F
             R.raw.ac -> .35F to .3F
             R.raw.brown, R.raw.waves -> .12F to .1F
             else -> .45F to .5F
@@ -157,22 +157,22 @@ class SoundPoolManager {
             }
 
             "ma" -> {
-                fgVolume *= .75F
-                altBgVolume *= .7F
+                fgVolume *= .65F
+                altBgVolume *= .6F
 
                 MILDSoundRoutine(1, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel,  endBgLabel, AUTO_THEME)
             }
 
             "wa" -> {
-                fgVolume *= .75F
-                altBgVolume *= .7F
+                fgVolume *= .65F
+                altBgVolume *= .6F
                 WILDSoundRoutine(1, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel, AUTO_THEME)
             }
 
             "wp", "mp" -> {
                 val fgLabel = if(type == "wp") "WILD" else "MILD"
 
-                PromptSoundRoutine(playCnt, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel, AUTO_THEME, fgLabel, promptCount)
+                PromptSoundRoutine(1, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel, AUTO_THEME, fgLabel, promptCount)
             }
 
             //default is "w", a manual WILD sound routine
@@ -191,8 +191,7 @@ class SoundPoolManager {
                                        endBgLabel: String): SoundRoutine {
 
         val (fgVolume, bgVolume) = when (bgRawRes) {
-            R.raw.green, R.raw.pink -> .3F to .075F
-            R.raw.boxfan, R.raw.metal_fan, R.raw.ac -> .28F to .135F
+            R.raw.green, R.raw.pink, R.raw.boxfan, R.raw.metal_fan, R.raw.ac -> .38F to .5F
             else -> .15F to .2F
         }
 

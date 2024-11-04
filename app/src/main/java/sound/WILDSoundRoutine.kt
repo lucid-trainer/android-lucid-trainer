@@ -51,7 +51,7 @@ class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
     private fun addForegroundSounds(routine: MutableList<Sound>) {
         var dir = "$ROOT_DIR/$THEMES_DIR/$theme/$FOREGROUND_DIR"
 
-        val limit = if(playCount > 1) 12 else 8
+        val limit = if(playCount > 1) 9 else 6
 
         val files = fileManager.getUnusedFilesFromDirectory(dir, limit).shuffled().slice(0 until limit)
 

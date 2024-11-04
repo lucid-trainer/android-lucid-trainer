@@ -19,6 +19,7 @@ class PromptMonitor {
     var lastSleepButtonDateTime: LocalDateTime? = null
     var lastHighActivityEventDateTime: LocalDateTime? = null
     var coolDownEndDateTime : LocalDateTime? = null
+    var lastFirstPromptDateTime : LocalDateTime? = null
 
     private var remEventTriggerList: MutableList<LocalDateTime> =
         emptyList<LocalDateTime>().toMutableList()
@@ -26,13 +27,13 @@ class PromptMonitor {
 
     companion object {
         const val NEW_PROMPT_PERIOD_WAIT_SECONDS = 150L
-        const val PROMPT_PERIOD = 15L
+        const val PROMPT_PERIOD = 20L
         const val MAX_PROMPT_COOL_DOWN_PERIOD = 12L
         const val INTERRUPT_COOL_DOWN_PERIOD = 12L
         const val HIGH_ACTIVITY_COOL_DOWN_PERIOD = 10L
         const val SLEEP_COOL_DOWN_PERIOD = 40L
         const val IN_AWAKE_PERIOD = 6L
-        const val BETWEEN_AWAKE_PERIOD = 45L
+        const val BETWEEN_AWAKE_PERIOD = 70L
         const val SECONDS_BETWEEN_PROMPTS = 150L
     }
 
@@ -227,26 +228,33 @@ class PromptMonitor {
 
     fun promptIntensityLevel(promptCount: Int = 1): Int {
         return when(promptCount) {
-            3, 4 -> 1
-            5, 6 -> 2
+            3 -> 1
             else -> 0
         }
     }
 
     fun getPromptCountInPeriod(lastDateTime: LocalDateTime) : Int {
-        //Log.d("MainActivity", "$lastDateTime promptCnt = " +
-        //        "${allPromptEvents.filter { it > lastDateTime.minusMinutes(PROMPT_PERIOD) }.size}")
-        return allPromptEvents.filter { it > lastDateTime.minusMinutes(PROMPT_PERIOD) }.size
+        val inPromptChain = lastFirstPromptDateTime != null &&
+                lastFirstPromptDateTime!! > lastDateTime.minusMinutes(PROMPT_PERIOD)
+
+        //Log.d("MainActivity", "$lastDateTime inPromptChain = $inPromptChain list size = ${allPromptEvents.size}")
+//        if(lastFirstPromptDateTime != null) {
+//            Log.d("MainActivity", "count = ${allPromptEvents.filter { it > lastFirstPromptDateTime }.size}")
+//        }
+
+        return if(inPromptChain) {
+            allPromptEvents.filter { it > lastFirstPromptDateTime }.size + 1
+        } else {
+            1
+        }
     }
 
     private fun getMaxPromptCountPerPeriod(lastDateTime: LocalDateTime): Int {
         val hour = lastDateTime.hour
-        var maxPromptCount = 5
+        var maxPromptCount = 6
 
-        if(hour == 5) {
-            maxPromptCount = 4
-        } else if (hour > 5) {
-            maxPromptCount = 3
+        if (hour > 5) {
+            maxPromptCount = 5
         }
 
         return maxPromptCount

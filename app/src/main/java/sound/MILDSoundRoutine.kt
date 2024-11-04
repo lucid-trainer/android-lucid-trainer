@@ -15,16 +15,16 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
     override fun getRoutine(): List<Sound> {
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()
 
-        routine.add(Sound(R.raw.mild_intro, 20))
-        routine.add(Sound(R.raw.mild_dream_1, 60))
-        routine.add(Sound(R.raw.mild_replay, 60))
-        routine.add(Sound(R.raw.mild_finish, 20))
+        routine.add(Sound(R.raw.mild_intro, 100))
+        routine.add(Sound(R.raw.mild_finish, 70))
 
         addStartSound(routine)
 
         addForegroundSounds(routine)
 
-        addPromptSound(routine)
+        if(playCount > 1) {
+            addPromptSound(routine)
+        }
 
         return routine
     }
@@ -51,7 +51,7 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
 
         val dir = "$ROOT_DIR/$THEMES_DIR/$theme/$FOREGROUND_DIR"
 
-        val limit = if(playCount > 1) 12 else 8
+        val limit = if(playCount > 1) 9 else 6
 
         val files = fileManager.getUnusedFilesFromDirectory(dir, limit).shuffled().slice(0 until limit)
 

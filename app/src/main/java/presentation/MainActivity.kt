@@ -490,7 +490,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         binding.btnDefaultVol.setOnClickListener {
             binding.seekBar.progress = RESET_VOL
             binding.bgNoiseSpin.setSelection(1)
-            binding.chipLow.isChecked = true
+            binding.chipMid.isChecked = true
             binding.chipMild.isChecked = true
             binding.chipRem.isChecked = true
             binding.chipAwake.isChecked = true
@@ -557,7 +557,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         alert.show()
     }
 
-    private fun playPrompts(eventLabel : String, hour: Int = -1) {
+    private fun playPrompts(eventLabel : String, promptCount: Int = 0) {
         val soundList = mutableListOf<String>()
         var pMod = ""
         var pType = ""
@@ -579,22 +579,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             pMessage = WILD_MESSAGE
         }
 
-        val promptCount = promptMonitor.getPromptCountInPeriod(LocalDateTime.parse(viewModel.lastTimestamp.value))
-
         if(eventLabel == EVENT_LABEL_LIGHT || eventLabel == EVENT_LABEL_REM || eventLabel == EVENT_LABEL_FOLLOW_UP) {
             pMod = "p"
-
-            playCount = if(promptCount == 1) {
-                when (hour) {
-                    6,7,8,9 -> 2
-                    else -> 1
-                }
-            } else {
-                when (hour) {
-                    6, 7, 8, 9 -> 3
-                    else -> 2
-                }
-            }
         } else {
             //this can either be an auto awake event or an manual button event
             pMod = if(eventLabel == EVENT_LABEL_AWAKE) "a" else ""
@@ -681,7 +667,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
     }
 
-    private fun speakTheTime(eventMessage : String, promptMessage: String = "", volume: Float = 0.6F) {
+    private fun speakTheTime(eventMessage : String, promptMessage: String = "", volume: Float = 0.5F) {
         val currentTime = LocalTime.now().format(DateTimeFormatter.ofPattern("hh:mm a", Locale.ENGLISH))
         val commenceMessage = if(promptMessage.isNotEmpty()) "Commencing $promptMessage soon." else ""
         val fullMessage = "$eventMessage detected. $commenceMessage The time is $currentTime"
@@ -715,14 +701,19 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             apJob = scope.launch {
                 promptMonitor.promptEventWaiting = eventLabel
                 val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
-                val hour = triggerDateTime.hour
 
                 //capture in event list in the event list
                 updateEventList(eventLabel, triggerDateTime.toString())
 
+                //get the current prompt count for rem associated prompt events
+                var promptCount = 0
+                if (eventLabel == EVENT_LABEL_LIGHT || eventLabel == EVENT_LABEL_REM || eventLabel == EVENT_LABEL_FOLLOW_UP) {
+                    promptCount = getPromptCountAndIncrement()
+                }
+
                 //send a vibration event to the watch
                 deviceDocumentRepository.postDevicePrompt("appdata",
-                    getDeviceDocument(eventLabel, true))
+                    getDeviceDocument(eventLabel, true, promptCount))
 
                 if(eventLabel != EVENT_LABEL_AWAKE) {
                     //give the watch a little time to pick up the vibration event
@@ -730,7 +721,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                     delay(timeMillis = SLEEP_EVENT_PROMPT_DELAY)
                 }
 
-                playPrompts(eventLabel, hour)
+                playPrompts(eventLabel, promptCount)
 
                 delay(timeMillis = 10000)
 
@@ -738,6 +729,16 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 promptMonitor.promptEventWaiting = null
             }
         }
+    }
+
+    private fun getPromptCountAndIncrement(): Int {
+        val lastDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
+        val promptCount = promptMonitor.getPromptCountInPeriod(lastDateTime)
+        if (promptCount == 1) {
+            promptMonitor.lastFirstPromptDateTime = lastDateTime
+            //Log.d("MainActivity", "setting lastFirstPrompt ${promptMonitor.lastFirstPromptDateTime}")
+        }
+        return promptCount
     }
 
     private fun cancelStartCountDownPrompt(eventLabel: String) {
@@ -763,17 +764,13 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         soundPoolManager.stopPlayingAltBackground()
     }
 
-    private fun getDeviceDocument(type: String, allowed: Boolean) : DeviceDocument {
+    private fun getDeviceDocument(type: String, allowed: Boolean, promptCount: Int = 0) : DeviceDocument {
         val triggerTimestamp =
             if (viewModel.lastTimestamp.value != null) viewModel.lastTimestamp.value!! else ""
-
-        val lastPromptTimestamp = if(promptMonitor.allPromptEvents.isEmpty()) ""
-            else promptMonitor.allPromptEvents.last().toString()
 
         //add any additional debug logging here
         val debugLog = ""
 
-        val promptCount = promptMonitor.getPromptCountInPeriod(LocalDateTime.parse(viewModel.lastTimestamp.value))
         val intensity = promptMonitor.promptIntensityLevel(promptCount)
 
         return  DeviceDocument(
@@ -781,7 +778,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             triggerTimestamp,
             type,
             promptMonitor.lastAwakeDateTime.toString(),
-            lastPromptTimestamp,
+            promptMonitor.lastFirstPromptDateTime.toString(),
             promptMonitor.coolDownEndDateTime.toString(),
             promptMonitor.isInCoolDownPeriod(triggerTimestamp),
             promptMonitor.startPromptAllowPeriod.toString(),
@@ -843,6 +840,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 }
             }
 
+            textToSpeech.setSpeechRate(.8F)
         }
     }
 
