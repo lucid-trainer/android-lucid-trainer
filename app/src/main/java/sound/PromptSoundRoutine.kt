@@ -30,7 +30,7 @@ class PromptSoundRoutine(
 
         if(promptCount == 2) {
             val promptInterFile = "$promptDir/intermit.ogg"
-            routine.add(Sound(0, 3, promptInterFile, 0F, fileVolAdjOverride))
+            routine.add(Sound(0, 3, promptInterFile, 0F, fileVolAdjOverride+.06F))
         }
 
         val promptFile = fileManager.getFilesFromDirectory(promptDir).filter{it.startsWith("prompt")}.shuffled().last()
@@ -45,10 +45,10 @@ class PromptSoundRoutine(
         return when(promptCount) {
             1 -> .35F
             2 -> .5F
-            3 -> .75F
+            3 -> .7F
             4 -> .6F
             5 -> .45F
-            else -> .3F
+            else -> .35F
         }
     }
 }

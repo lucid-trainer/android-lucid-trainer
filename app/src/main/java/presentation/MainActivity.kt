@@ -380,7 +380,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             hour in 1..limit
         } else {
             (hour in 1..3 && promptMonitor.isAwakeEventBeforePeriod(viewModel.lastTimestamp.value, 20)) ||
-                    (hour in 4..limit && promptMonitor.isAwakeEventBeforePeriod(viewModel.lastTimestamp.value, 30))
+                    (hour in 4..limit && promptMonitor.isAwakeEventBeforePeriod(viewModel.lastTimestamp.value, 10))
         }
     }
 

@@ -7,6 +7,7 @@ const val ALT_BACKGROUND_DIR = "bg"
 const val PROMPT_DIR = "prompt"
 const val START_DIR = "start"
 const val CLIP_DIR = "clip"
+const val MILD_DIR = "mild"
 
 interface SoundRoutine {
     var playCount : Int

@@ -15,8 +15,9 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
     override fun getRoutine(): List<Sound> {
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()
 
-        routine.add(Sound(R.raw.mild_intro, 100))
-        routine.add(Sound(R.raw.mild_finish, 70))
+        val mildDir = "$ROOT_DIR/$MILD_DIR"
+        routine.add(Sound(0, 30, "$mildDir/first_instruction.ogg", 0F, 1.5F))
+        routine.add(Sound(0, 30, "$mildDir/second_instruction.ogg", 0F, 1.5F))
 
         addStartSound(routine)
 
@@ -25,6 +26,8 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
         if(playCount > 1) {
             addPromptSound(routine)
         }
+
+        addClipSound(routine)
 
         return routine
     }
@@ -74,6 +77,19 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
 
         val file = fileManager.getFilesFromDirectory(dir).filter{it.startsWith("prompt")}.shuffled().last()
 
-        routine.add(6, Sound(0, 20, "$dir/$file"))
+        routine.add(4, Sound(0, 20, "$dir/$file"))
+    }
+
+    private fun addClipSound(routine: MutableList<Sound>) {
+        //add a longer more distinct main sound clip towards the end and adjust volume on it
+        var startDir = "$ROOT_DIR/$THEMES_DIR/$theme"
+
+        //start with a radio tuning sound
+        routine.add(6, Sound(0, 0, "$startDir/start/tune.ogg"))
+
+        val clipFile = fileManager.getUnusedFilesFromDirectory("$startDir/$CLIP_DIR", 1).shuffled().last()
+        routine.add(7, Sound(0, 20, "$startDir/$CLIP_DIR/$clipFile", .8F))
+
+        fileManager.addFileUsed("$startDir/$CLIP_DIR", clipFile)
     }
 }

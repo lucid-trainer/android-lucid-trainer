@@ -157,15 +157,15 @@ class SoundPoolManager {
             }
 
             "ma" -> {
-                fgVolume *= .65F
-                altBgVolume *= .6F
+                fgVolume *= .6F
+                altBgVolume *= .5F
 
                 MILDSoundRoutine(1, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel,  endBgLabel, AUTO_THEME)
             }
 
             "wa" -> {
-                fgVolume *= .65F
-                altBgVolume *= .6F
+                fgVolume *= .6F
+                altBgVolume *= .5F
                 WILDSoundRoutine(1, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel, AUTO_THEME)
             }
 
