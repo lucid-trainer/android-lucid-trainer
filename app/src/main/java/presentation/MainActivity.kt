@@ -219,7 +219,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                             binding.readingTextview.text = reading
                             binding.sleepStageTexview.text = sleepStage
 
-                            viewModel.eventMap.value?.let { events -> processEvents(events) }
+                            viewModel.eventMap.value?.let { events -> playPromptsFromWatchUI(events) }
                             lastEventTimestamp = viewModel.lastTimestamp.value.toString()
                         }
                     }
@@ -330,14 +330,13 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     }
 
     private fun checkAndSubmitLightPromptEvent() {
-        val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
-
         if (binding.chipRem.isChecked) {
-            val hoursAllowed = getPromptHoursAllowed(triggerDateTime)
+            val hoursAllowed = promptMonitor.getPromptHoursAllowed(viewModel.lastTimestamp.value)
+            val logAllowed = getPromptLogHoursAllowed(viewModel.lastTimestamp.value)
 
             val isLightPromptEventAllowed = hoursAllowed && promptMonitor.isPromptEventAllowed(viewModel.lastTimestamp.value)
 
-            if (hoursAllowed) {
+            if (logAllowed) {
                 val document = getDeviceDocument(EVENT_LABEL_LIGHT, isLightPromptEventAllowed)
                 logEvent(document)
             }
@@ -349,11 +348,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     }
 
     private fun checkAndSubmitREMPromptEvent() {
-        val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
-
         if (binding.chipRem.isChecked) {
-            val hoursAllowed = getPromptHoursAllowed(triggerDateTime)
-            val logAllowed = getPromptLogHoursAllowed(triggerDateTime)
+            val hoursAllowed = promptMonitor.getPromptHoursAllowed(viewModel.lastTimestamp.value)
+            val logAllowed = getPromptLogHoursAllowed(viewModel.lastTimestamp.value)
 
             val isREMPromptEventAllowed = hoursAllowed && promptMonitor.isPromptEventAllowed(viewModel.lastTimestamp.value)
 
@@ -362,7 +359,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 logEvent(document)
             }
 
-            if (hoursAllowed && isREMPromptEventAllowed) {
+            if (isREMPromptEventAllowed) {
                 startCountDownPromptTimer(EVENT_LABEL_REM)
             } else {
                 //each rem trigger event that doesn't result in prompt is evaluated to possibly set next allowed prompt window
@@ -371,21 +368,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
     }
 
-    private fun getPromptHoursAllowed(triggerDateTime: LocalDateTime, logOnly: Boolean = false): Boolean {
-        val hour = triggerDateTime.hour
-        val day = triggerDateTime.dayOfWeek
-        val limit = if(day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) 6 else 5
-
-        return if(logOnly) {
-            hour in 1..limit
-        } else {
-            (hour in 1..3 && promptMonitor.isAwakeEventBeforePeriod(viewModel.lastTimestamp.value, 20)) ||
-                    (hour in 4..limit && promptMonitor.isAwakeEventBeforePeriod(viewModel.lastTimestamp.value, 10))
-        }
-    }
-
-    private fun getPromptLogHoursAllowed(triggerDateTime: LocalDateTime): Boolean {
-        return getPromptHoursAllowed(triggerDateTime, true)
+    private fun getPromptLogHoursAllowed(lastTimestamp: String?): Boolean {
+        return promptMonitor.getPromptHoursAllowed(lastTimestamp, true)
     }
 
     private fun checkAndSubmitFollowUpPromptEvent() {
@@ -439,7 +423,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 Toast.makeText(application, text, Toast.LENGTH_LONG).show()
             } else {
                 resetNoisyReceiver()
-                playPrompts(EVENT_LABEL_BUTTON)
+                playPromptsFromEventsOrUI(EVENT_LABEL_BUTTON)
             }
         }
 
@@ -541,7 +525,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                             "$ROOT_DIR/$THEMES_DIR/$theme/$FOREGROUND_DIR").size
                         val clipSize = fileManager.getUsedFilesFromDirectory(
                             "$ROOT_DIR/$THEMES_DIR/$theme/$CLIP_DIR").size
-                        Log.d("MainActivity", "clearing unused fg= $fgSize clip= $clipSize")
+                        Log.d("MainActivity", "clearing used fg= $fgSize clip= $clipSize")
 
                         fileManager.resetFilesUsed(
                             "$ROOT_DIR/$THEMES_DIR/$theme/$FOREGROUND_DIR",
@@ -556,15 +540,20 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         val alert = builder.create()
         alert.show()
     }
-
-    private fun playPrompts(eventLabel : String, promptCount: Int = 0) {
+   /*
+      Handles playing of prompt routines triggered from the app, either from events triggered by raw watch data or
+      from UI events (button presses)
+    */
+    private fun playPromptsFromEventsOrUI(eventLabel : String, promptCount: Int = 0) {
         val soundList = mutableListOf<String>()
         var pMod = ""
         var pType = ""
         var pMessage = ""
 
-        var playCount = 1
         val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
+
+        //default for auto prompts is a moderate length routine
+        var playCount = 2
 
         if (binding.chipSsild.isChecked) {
             pType = "s"
@@ -576,6 +565,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
         if (binding.chipWild.isChecked) {
             pType = "w"
+
+            //manual wilds should be longer
+            playCount = 3
             pMessage = WILD_MESSAGE
         }
 
@@ -588,6 +580,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 //it's a manual event from watch so update the event list and read the time out
                 updateEventList(EVENT_LABEL_AWAKE, triggerDateTime.toString())
                 speakTheTime(MANUAL_PLAY_MESSAGE, pMessage)
+            } else {
+                //it's an auto play event so we want a minimal sound routine
+                playCount = 1
             }
         }
 
@@ -613,11 +608,14 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             soundList, mBgRawId, mBgLabel, eventLabel, binding.playStatus, playCount, promptCount)
     }
 
-    private fun processEvents(eventMap: Map<String, String>) {
+    /*
+      These are events passed from the watch to play a prompt routine, podcast or set a sleep period
+     */
+    private fun playPromptsFromWatchUI(eventMap: Map<String, String>) {
         val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
 
         var soundList : MutableList<String> = emptyList<String>().toMutableList()
-        var playCount = 1
+        var playCount = 2
 
         if(eventMap.containsKey(POD_EVENT) && (eventMap[POD_EVENT] != null)) {
             updateEventList(EVENT_LABEL_AWAKE, triggerDateTime.toString())
@@ -642,6 +640,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             if(soundList.contains("s")) {
                 promptMessage = SSILD_MESSAGE
             } else if(soundList.contains("w")) {
+                //wilds initiated from watch should be longer
+                playCount = 3
                 promptMessage = WILD_MESSAGE
             }
 
@@ -653,12 +653,12 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             lastActiveEventTimestamp = LocalDateTime.parse(viewModel.lastTimestamp.value)
 
             cancelStartCountDownPrompt(SLEEP_EVENT)
-            checkShouldStartInterruptCoolDown(true)
         }
 
         if(soundList.isNotEmpty()) {
             soundPoolManager.stopPlayingForeground()
             soundPoolManager.stopPlayingBackground()
+            checkShouldStartInterruptCoolDown(true)
 
             resetNoisyReceiver()
 
@@ -721,7 +721,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                     delay(timeMillis = SLEEP_EVENT_PROMPT_DELAY)
                 }
 
-                playPrompts(eventLabel, promptCount)
+                playPromptsFromEventsOrUI(eventLabel, promptCount)
 
                 delay(timeMillis = 10000)
 

@@ -10,23 +10,17 @@ object EventMonitor {
         var hour = workingReadingList.last().dateTime?.hour
 
         val stepHrVal = when(hour) {
-            0,1 -> 2.75
-            2,3 -> 2.25
-            4,5 -> 1.75
-            else -> 2.5
+            1,2,3 -> 2.75
+            else -> 2.25
         }
 
         val stepHrVarLow = when(hour) {
-            0,1 -> .45
-            2,3 -> .35
-            4,5 -> .25
+            1,2,3 -> .45
             else -> .4
         }
 
         val stepHrVarHigh = when(hour) {
-            0,1 -> .75
-            2,3 -> .65
-            4,5 -> .45
+            1,2,3 -> .75
             else -> .7
         }
 
@@ -37,14 +31,14 @@ object EventMonitor {
             val activeCnt =
                 workingReadingList.map { it -> it.accelMovement }.takeLast(5).filter { it > .2 }.size
             val restlessCnt =
-                workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .11 }.size
+                workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .15 }.size
             val deepCnt =
                 workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .01 }.size
             val lightCnt =
-                workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .02 && it <= .11}.size
+                workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .02 && it <= .15}.size
 
             val recentMove =
-                workingReadingList.map { it -> it.accelMovement }.takeLast(10).filter { it > .11 }.size
+                workingReadingList.map { it -> it.accelMovement }.takeLast(10).filter { it > .15 }.size
             val extendedDeepCnt =
                 workingReadingList.map { it -> it.accelMovement }.takeLast(36).filter { it > .02 }.size
 

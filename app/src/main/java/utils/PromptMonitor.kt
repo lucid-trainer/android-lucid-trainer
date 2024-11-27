@@ -1,6 +1,7 @@
 package utils
 
 import android.util.Log
+import java.time.DayOfWeek
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -27,11 +28,11 @@ class PromptMonitor {
 
     companion object {
         const val NEW_PROMPT_PERIOD_WAIT_SECONDS = 150L
-        const val PROMPT_PERIOD = 20L
+        const val PROMPT_PERIOD = 15L
         const val MAX_PROMPT_COOL_DOWN_PERIOD = 12L
-        const val INTERRUPT_COOL_DOWN_PERIOD = 12L
+        const val INTERRUPT_COOL_DOWN_PERIOD = 10L
         const val HIGH_ACTIVITY_COOL_DOWN_PERIOD = 10L
-        const val SLEEP_COOL_DOWN_PERIOD = 40L
+        const val SLEEP_COOL_DOWN_PERIOD = 50L
         const val IN_AWAKE_PERIOD = 6L
         const val BETWEEN_AWAKE_PERIOD = 50L
         const val SECONDS_BETWEEN_PROMPTS = 150L
@@ -193,6 +194,24 @@ class PromptMonitor {
 
     fun isAwakeEventAllowed(lastTimestamp: String?): Boolean {
         return !isInSleepButtonPeriod(lastTimestamp) && !isRecentPromptEvent(lastTimestamp) && !isRecentAwakeEvent(lastTimestamp)
+    }
+
+    fun getPromptHoursAllowed(lastTimestamp: String?, logOnly: Boolean = false): Boolean {
+        val triggerDateTime = LocalDateTime.parse(lastTimestamp)
+        val hour = triggerDateTime.hour
+        val day = triggerDateTime.dayOfWeek
+        val hourLimit = if(day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) 6 else 5
+
+        val allowedFirstPartOfNight = hour in 1..3
+                && isAwakeEventBeforePeriod(lastTimestamp, 20)
+        val allowedSecondPartOfNight = hour in 4 .. hourLimit
+                && isAwakeEventBeforePeriod(lastTimestamp, 10)
+
+        return if(logOnly) {
+            hour in 0..hourLimit
+        } else {
+            allowedFirstPartOfNight || allowedSecondPartOfNight
+        }
     }
 
     fun isPromptEventAllowed(lastTimestamp: String?): Boolean {

@@ -28,4 +28,15 @@ interface SoundRoutine {
     fun overrideBG() : Boolean {
       return bgRawId != endBgRawId
     }
+
+    fun getVolAdjust(fileCount: Int): Float {
+        return when {
+            fileCount <= 4 -> 1F
+            fileCount <= 8 -> .85F
+            fileCount <= 12 -> .7F
+            fileCount <= 16 -> .55F
+            fileCount <= 20 -> .45F
+            else -> .35F
+        }
+    }
 }
