@@ -79,6 +79,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         const val MANUAL_PLAY_MESSAGE = "Manual play"
         const val ACTIVE_EVENT_MESSAGE = "Elevated movement"
         const val WATCH_EVENT_MESSAGE = "Watch event"
+        const val ALARM_EVENT_MESSAGE = "Alarm event"
 
         const val WILD_MESSAGE = "wild"
         const val MILD_MESSAGE = "mild"
@@ -192,6 +193,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                     Status.SUCCESS -> {
                         binding.progressBar.isVisible = false
 
+                        //check for alarm events
+                        handleAlarmEvent()
+
                         if(lastEventTimestamp != viewModel.lastTimestamp.value) {
                             val dateFormat = DateTimeFormatter.ofPattern("M/dd/yyyy hh:mm:ss")
                             val displayDate = LocalDateTime.parse(viewModel.lastTimestamp.value)
@@ -219,7 +223,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                             binding.readingTextview.text = reading
                             binding.sleepStageTexview.text = sleepStage
 
-                            viewModel.eventMap.value?.let { events -> playPromptsFromWatchUI(events) }
+                            if(viewModel.eventMap.value?.isNotEmpty()!!) {
+                                viewModel.eventMap.value?.let { events -> playPromptsFromWatchUI(events) }
+                            }
                             lastEventTimestamp = viewModel.lastTimestamp.value.toString()
                         }
                     }
@@ -254,6 +260,21 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             }
 
             checkShouldStartInterruptCoolDown()
+        }
+    }
+
+    private fun handleAlarmEvent() {
+        val hour = LocalDateTime.parse(viewModel.lastTimestamp.value).hour
+        val minute = LocalDateTime.parse(viewModel.lastTimestamp.value).minute
+        val day = LocalDateTime.parse(viewModel.lastTimestamp.value).dayOfWeek
+        val alarmHour = if(day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) 8 else 7
+        val minuteArray = intArrayOf(2,7,12)
+
+        //Log.d("MainActivity","${viewModel.lastTimestamp.value} hour=$hour minute=$minute alarmHour=$alarmHour")
+
+        if(hour == alarmHour && minute in minuteArray) {
+            speakTheTime(ALARM_EVENT_MESSAGE)
+            //Log.d("MainActivity","speaking the hour")
         }
     }
 
@@ -311,11 +332,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
         val hour = triggerDateTime.hour
-        val day = triggerDateTime.dayOfWeek
-        val limit = if(day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) 6 else 5
 
         if (binding.chipAwake.isChecked) {
-            val hoursAllowed = hour in 1..limit
+            val hoursAllowed = hour in 1..5
             val isAwakeEventAllowed = hoursAllowed && promptMonitor.isAwakeEventAllowed(viewModel.lastTimestamp.value)
 
             if (hoursAllowed) {
@@ -324,6 +343,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             }
 
             if (isAwakeEventAllowed) {
+                Log.d("MainActivity", "calling prompt with awake label");
                 startCountDownPromptTimer(EVENT_LABEL_AWAKE)
             }
         }
@@ -477,7 +497,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             binding.chipMid.isChecked = true
             binding.chipMild.isChecked = true
             binding.chipRem.isChecked = true
-            binding.chipAwake.isChecked = true
+            binding.chipAwake.isChecked = false
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC,RESET_VOL,0)
         }
 
@@ -586,6 +606,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             }
         }
 
+       Log.d("MainActivity", "called wth eventLabel = $eventLabel");
+
         soundList.add("$pType$pMod")
 
         //only allow this option via the prompt button
@@ -612,6 +634,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
       These are events passed from the watch to play a prompt routine, podcast or set a sleep period
      */
     private fun playPromptsFromWatchUI(eventMap: Map<String, String>) {
+        Log.d("MainActivity", "called Watch method with eventMap " + eventMap.keys)
+
         val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
 
         var soundList : MutableList<String> = emptyList<String>().toMutableList()
@@ -634,7 +658,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 //Log.d("MainActivity", "sending awake event to device repository for play event")
             }
 
-            soundList = eventMap[PLAY_EVENT]!!.split(",").toMutableList()
+            //get the prompt to play. This will usually be just one. For mild, play the auto version when triggered from watch
+            val playEvent = eventMap[PLAY_EVENT]!!.replace("m", "ma").replace("w", "wa")
+            soundList = playEvent.split(",").toMutableList()
 
             var promptMessage = MILD_MESSAGE
             if(soundList.contains("s")) {
@@ -689,6 +715,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private fun startCountDownPromptTimer(eventLabel : String) {
         //avoid stepping on a waiting or running job
         val isRunning = promptMonitor.promptEventWaiting != null
+
+        Log.d("MainActivity", "called with event $eventLabel");
 
         if(isRunning) {
             Log.d("MainActivity", "returning, promptEventWaiting = $promptMonitor.promptEventWaiting")

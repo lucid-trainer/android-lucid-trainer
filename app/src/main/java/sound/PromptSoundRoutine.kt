@@ -24,16 +24,11 @@ class PromptSoundRoutine(
         val promptDir = "$ROOT_DIR/$PROMPT_DIR"
         val fileVolAdjOverride = getVolIncr(promptCount)
 
-        if(promptCount <= 2) {
-            routine.add(Sound(0, 3, "$promptDir/start.ogg", 0F, fileVolAdjOverride))
+        if(promptCount == 3) {
+            routine.add(Sound(0, 3, "$promptDir/prompt.ogg", 0F, fileVolAdjOverride))
         }
 
-        if(promptCount == 2) {
-            val promptInterFile = "$promptDir/intermit.ogg"
-            routine.add(Sound(0, 3, promptInterFile, 0F, fileVolAdjOverride+.06F))
-        }
-
-        val promptFile = fileManager.getFilesFromDirectory(promptDir).filter{it.startsWith("prompt")}.shuffled().last()
+        val promptFile = fileManager.getFilesFromDirectory(promptDir).filter{it.startsWith("prompt_")}.shuffled().last()
         routine.add(Sound(0, 3, "$promptDir/$promptFile", 0F, fileVolAdjOverride))
 
         routine.add(Sound(0, 0, "$promptDir/silence.ogg"))
@@ -43,12 +38,12 @@ class PromptSoundRoutine(
 
     private fun getVolIncr(promptCount: Int): Float {
         return when(promptCount) {
-            1 -> .5F
-            2 -> .7F
-            3 -> .9F
-            4 -> .7F
-            5 -> .5F
-            else -> .4F
+            1 -> .60F
+            2 -> .70F
+            3 -> .80F
+            4 -> .70F
+            5 -> .6F
+            else -> .70F
         }
     }
 }

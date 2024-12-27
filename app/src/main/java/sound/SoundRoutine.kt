@@ -3,6 +3,7 @@ package sound
 const val ROOT_DIR = "lt_sounds"
 const val THEMES_DIR = "themes"
 const val FOREGROUND_DIR = "fg"
+const val ALT_FOREGROUND_DIR = "fg2"
 const val ALT_BACKGROUND_DIR = "bg"
 const val PROMPT_DIR = "prompt"
 const val START_DIR = "start"
@@ -31,12 +32,15 @@ interface SoundRoutine {
 
     fun getVolAdjust(fileCount: Int): Float {
         return when {
-            fileCount <= 4 -> 1F
-            fileCount <= 8 -> .85F
-            fileCount <= 12 -> .7F
-            fileCount <= 16 -> .55F
-            fileCount <= 20 -> .45F
-            else -> .35F
+            fileCount <= 3 -> 1F
+            fileCount <= 6 -> .9F
+            fileCount <= 8 -> .8F
+            fileCount <= 10 -> .7F
+            fileCount <= 12 -> .6F
+            fileCount <= 14 -> .5F
+            fileCount <= 16 -> .4F
+            fileCount <= 18 -> .3F
+            else -> .2F
         }
     }
 }

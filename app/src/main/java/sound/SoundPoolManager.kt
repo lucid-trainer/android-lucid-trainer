@@ -32,10 +32,10 @@ class SoundPoolManager {
 
     companion object {
 
-        const val ADJUST_BG_VOL_FACTOR = .55F
+        const val ADJUST_BG_VOL_FACTOR = .4F
         const val ROOT_SOUNDS_DIR = "lt_sounds"
         const val THEMES_DIR = "themes"
-        const val AUTO_THEME = "auto_theme"
+        const val MILD_THEME = "mild_theme"
 
         @Volatile
         private var INSTANCE: SoundPoolManager? = null
@@ -148,32 +148,30 @@ class SoundPoolManager {
         fgVolume *= allVolAdj
         altBgVolume *= allVolAdj
 
-        val manualTheme = fileManager.getAllDirectoriesFromPath("$ROOT_SOUNDS_DIR/$THEMES_DIR").filter {!it.startsWith("auto")}.shuffled().last()
+        val manualTheme = fileManager.getAllDirectoriesFromPath("$ROOT_SOUNDS_DIR/$THEMES_DIR").filter {!it.equals(MILD_THEME)}.shuffled().last()
 
         //get the appropriate sound routine, adjusting volumes further depending on type
         val soundRoutine = when (type) {
             "m" -> {
                 fgVolume *= .9F
-                altBgVolume *= .85F
-                MILDSoundRoutine(playCount, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel, manualTheme )
+                altBgVolume *= .8F
+                MILDSoundRoutine(playCount, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel, MILD_THEME )
             }
 
             "ma" -> {
-                fgVolume *= .65F
-                altBgVolume *= .55F
+                fgVolume *= .725F
+                altBgVolume *= .625F
 
-                MILDSoundRoutine(1, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel,  endBgLabel, AUTO_THEME)
+                MILDSoundRoutine(1, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel,  endBgLabel, MILD_THEME)
             }
 
             "wa" -> {
-                fgVolume *= .65F
-                altBgVolume *= .55F
-                WILDSoundRoutine(1, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel, AUTO_THEME)
+                WILDSoundRoutine(1, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel, manualTheme)
             }
 
             "wp", "mp" -> {
                 val fgLabel = if(type == "wp") "WILD" else "MILD"
-                PromptSoundRoutine(1, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel, AUTO_THEME, fgLabel, promptCount)
+                PromptSoundRoutine(1, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel, MILD_THEME, fgLabel, promptCount)
             }
 
             //default is "w", a manual WILD sound routine

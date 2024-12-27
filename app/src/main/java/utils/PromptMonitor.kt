@@ -202,7 +202,7 @@ class PromptMonitor {
         val day = triggerDateTime.dayOfWeek
         val hourLimit = if(day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) 6 else 5
 
-        val allowedFirstPartOfNight = hour in 1..3
+        val allowedFirstPartOfNight = hour in 2..3
                 && isAwakeEventBeforePeriod(lastTimestamp, 20)
         val allowedSecondPartOfNight = hour in 4 .. hourLimit
                 && isAwakeEventBeforePeriod(lastTimestamp, 10)
@@ -247,7 +247,8 @@ class PromptMonitor {
 
     fun promptIntensityLevel(promptCount: Int = 1): Int {
         return when(promptCount) {
-            3 -> 1
+            2 -> 1
+            3 -> 2
             else -> 0
         }
     }
@@ -255,11 +256,6 @@ class PromptMonitor {
     fun getPromptCountInPeriod(lastDateTime: LocalDateTime) : Int {
         val inPromptChain = lastFirstPromptDateTime != null &&
                 lastFirstPromptDateTime!! > lastDateTime.minusMinutes(PROMPT_PERIOD)
-
-        //Log.d("MainActivity", "$lastDateTime inPromptChain = $inPromptChain list size = ${allPromptEvents.size}")
-//        if(lastFirstPromptDateTime != null) {
-//            Log.d("MainActivity", "count = ${allPromptEvents.filter { it > lastFirstPromptDateTime }.size}")
-//        }
 
         return if(inPromptChain) {
             allPromptEvents.filter { it > lastFirstPromptDateTime }.size + 1
@@ -273,7 +269,7 @@ class PromptMonitor {
         var maxPromptCount = 6
 
         if (hour > 5) {
-            maxPromptCount = 5
+            maxPromptCount = 4
         }
 
         return maxPromptCount
