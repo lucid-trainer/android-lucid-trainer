@@ -17,8 +17,7 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()
 
         val mildDir = "$ROOT_DIR/$MILD_DIR"
-        routine.add(Sound(0, 30, "$mildDir/first_instruction.ogg", 0F, 1.25F))
-        routine.add(Sound(0, 30, "$mildDir/second_instruction.ogg", 0F, 1.25F))
+        routine.add(Sound(0, 90, "$mildDir/instruction.ogg", 0F, 1.6F))
         Log.d("MainActivity", "mildDir=$mildDir, count = ${fileManager.getFilesFromDirectory(mildDir).size} ")
 
         addRoutineForegroundSounds(routine)
@@ -49,16 +48,11 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
     private fun addRoutineForegroundSounds(routine: MutableList<Sound>) {
 
         val dir = "$ROOT_DIR/$THEMES_DIR/$theme/$FOREGROUND_DIR"
-        val files = fileManager.getFilesFromDirectory(dir).sorted().take(2)
+        val file = fileManager.getFilesFromDirectory(dir).shuffled().first()
 
         //Log.d("WildRoutine", "used fg ${FileMonitor.getUnusedFilesFromDirectory(dir, 8).size}")
 
-        for (file in files) {
-            routine.add(Sound(0, 20, "$dir/$file", 0F))
-        }
-
-
-        fileManager.addFilesUsed(dir, files)
+        routine.add(Sound(0, 20, "$dir/$file", 0F))
     }
 
     private fun addRelaxForegroundSounds(routine: MutableList<Sound>) {

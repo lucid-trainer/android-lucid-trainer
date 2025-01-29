@@ -79,7 +79,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         const val MANUAL_PLAY_MESSAGE = "Manual play"
         const val ACTIVE_EVENT_MESSAGE = "Elevated movement"
         const val WATCH_EVENT_MESSAGE = "Watch event"
-        const val ALARM_EVENT_MESSAGE = "Alarm event"
+        const val ALARM_EVENT_MESSAGE = "Alarm"
 
         const val WILD_MESSAGE = "wild"
         const val MILD_MESSAGE = "mild"
@@ -99,6 +99,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
     private var  lastEventTimestamp = ""
     private var lastActiveEventTimestamp: LocalDateTime? = null
+    private var lastAlarmEvent : Int? = null
     private var apJob: Job? = null
 
     //monitor event sleep stage estimate for prompts
@@ -264,15 +265,18 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     }
 
     private fun handleAlarmEvent() {
-        val hour = LocalDateTime.parse(viewModel.lastTimestamp.value).hour
-        val minute = LocalDateTime.parse(viewModel.lastTimestamp.value).minute
-        val day = LocalDateTime.parse(viewModel.lastTimestamp.value).dayOfWeek
-        val alarmHour = if(day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) 8 else 7
-        val minuteArray = intArrayOf(2,7,12)
+        val current = LocalDateTime.now()
+        val hour = current.hour
+        val minute = current.minute
+        val day = current.dayOfWeek
+        val isWeekend = day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY
+        val hourArray = if(isWeekend) intArrayOf(7,8) else intArrayOf(6,7)
+        val minuteArray = if(isWeekend) intArrayOf(5, 10, 50, 55) else intArrayOf(5,10,30,45,50,55)
 
         //Log.d("MainActivity","${viewModel.lastTimestamp.value} hour=$hour minute=$minute alarmHour=$alarmHour")
 
-        if(hour == alarmHour && minute in minuteArray) {
+        if(hour in hourArray && minute in minuteArray && (lastAlarmEvent == null || lastAlarmEvent!! < minute)) {
+            lastAlarmEvent = minute
             speakTheTime(ALARM_EVENT_MESSAGE)
             //Log.d("MainActivity","speaking the hour")
         }
@@ -696,7 +700,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private fun speakTheTime(eventMessage : String, promptMessage: String = "", volume: Float = 0.5F) {
         val currentTime = LocalTime.now().format(DateTimeFormatter.ofPattern("hh:mm a", Locale.ENGLISH))
         val commenceMessage = if(promptMessage.isNotEmpty()) "Commencing $promptMessage soon." else ""
-        val fullMessage = "$eventMessage detected. $commenceMessage The time is $currentTime"
+        val fullMessage = if(eventMessage == ALARM_EVENT_MESSAGE) "It's $currentTime" else
+            "$eventMessage detected. $commenceMessage The time is $currentTime"
         Log.d("SpeakTheTime", "${viewModel.lastTimestamp.value} tts $fullMessage")
         val params = Bundle()
         params.putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, volume);
