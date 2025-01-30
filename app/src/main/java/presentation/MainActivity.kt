@@ -41,6 +41,7 @@ import sound.SoundPoolManager
 import utils.AppConfig
 import utils.FileManager
 import utils.PromptMonitor
+import utils.SpeechManager
 import viewmodel.DocumentViewModel
 import viewmodel.DocumentViewModelFactory
 import java.time.DayOfWeek
@@ -91,15 +92,14 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
     }
 
-    //set up the AudioManager and SoundPool
+    //set up the manager services
     private lateinit var audioManager: AudioManager
     private lateinit var soundPoolManager: SoundPoolManager
     private lateinit var fileManager: FileManager
-    private lateinit var textToSpeech: TextToSpeech
+    private lateinit var speechManager: SpeechManager
 
     private var  lastEventTimestamp = ""
     private var lastActiveEventTimestamp: LocalDateTime? = null
-    private var lastAlarmEvent : Int? = null
     private var apJob: Job? = null
 
     //monitor event sleep stage estimate for prompts
@@ -125,10 +125,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        //init the FileManager instance before the SoundManager
         fileManager = FileManager.getInstance(applicationContext)
 
-        textToSpeech = getTextToSpeech()
+        speechManager = SpeechManager.getInstance(applicationContext)
 
         setupSound()
 
@@ -195,7 +194,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                         binding.progressBar.isVisible = false
 
                         //check for alarm events
-                        handleAlarmEvent()
+                        if(promptMonitor.isAlarmEventTime()) {
+                            handleAlarmEvent()
+                        }
 
                         if(lastEventTimestamp != viewModel.lastTimestamp.value) {
                             val dateFormat = DateTimeFormatter.ofPattern("M/dd/yyyy hh:mm:ss")
@@ -257,7 +258,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             val hoursAllowed = hour in 22..23 || hour in 0..7
             if (hoursAllowed && !promptMonitor.isInHighActivityPeriod(viewModel.lastTimestamp.value, 3L)) {
                 //we'll read out the time for any new possible interrupt periods
-                speakTheTime(ACTIVE_EVENT_MESSAGE)
+                speechManager.speakTheTime(ACTIVE_EVENT_MESSAGE)
             }
 
             checkShouldStartInterruptCoolDown()
@@ -265,21 +266,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     }
 
     private fun handleAlarmEvent() {
-        val current = LocalDateTime.now()
-        val hour = current.hour
-        val minute = current.minute
-        val day = current.dayOfWeek
-        val isWeekend = day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY
-        val hourArray = if(isWeekend) intArrayOf(7,8) else intArrayOf(6,7)
-        val minuteArray = if(isWeekend) intArrayOf(5, 10, 50, 55) else intArrayOf(5,10,30,45,50,55)
-
-        //Log.d("MainActivity","${viewModel.lastTimestamp.value} hour=$hour minute=$minute alarmHour=$alarmHour")
-
-        if(hour in hourArray && minute in minuteArray && (lastAlarmEvent == null || lastAlarmEvent!! < minute)) {
-            lastAlarmEvent = minute
-            speakTheTime(ALARM_EVENT_MESSAGE)
-            //Log.d("MainActivity","speaking the hour")
-        }
+        speechManager.speakTheTime(ALARM_EVENT_MESSAGE, "", true)
     }
 
     private fun checkShouldStartInterruptCoolDown(isStartButton : Boolean = false) {
@@ -603,7 +590,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             if(pMod.isEmpty()) {
                 //it's a manual event from watch so update the event list and read the time out
                 updateEventList(EVENT_LABEL_AWAKE, triggerDateTime.toString())
-                speakTheTime(MANUAL_PLAY_MESSAGE, pMessage)
+                speechManager.speakTheTime(MANUAL_PLAY_MESSAGE, pMessage)
             } else {
                 //it's an auto play event so we want a minimal sound routine
                 playCount = 1
@@ -675,7 +662,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 promptMessage = WILD_MESSAGE
             }
 
-            speakTheTime(WATCH_EVENT_MESSAGE, promptMessage)
+            speechManager.speakTheTime(WATCH_EVENT_MESSAGE, promptMessage)
 
         } else if (eventMap.containsKey(SLEEP_EVENT)) {
             //Log.d("PromptMonitor", "sleep event ${LocalDateTime.parse(viewModel.lastTimestamp.value)}")
@@ -695,18 +682,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             soundPoolManager.playSoundList(
                 soundList, mBgRawId, mBgLabel, EVENT_LABEL_WATCH, binding.playStatus, playCount)
         }
-    }
-
-    private fun speakTheTime(eventMessage : String, promptMessage: String = "", volume: Float = 0.5F) {
-        val currentTime = LocalTime.now().format(DateTimeFormatter.ofPattern("hh:mm a", Locale.ENGLISH))
-        val commenceMessage = if(promptMessage.isNotEmpty()) "Commencing $promptMessage soon." else ""
-        val fullMessage = if(eventMessage == ALARM_EVENT_MESSAGE) "It's $currentTime" else
-            "$eventMessage detected. $commenceMessage The time is $currentTime"
-        Log.d("SpeakTheTime", "${viewModel.lastTimestamp.value} tts $fullMessage")
-        val params = Bundle()
-        params.putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, volume);
-
-        textToSpeech.speak(fullMessage, TextToSpeech.QUEUE_FLUSH, params, null)
     }
 
     private fun stopSoundRoutine() {
@@ -858,23 +833,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             }
         })
         return broadcastReceiver
-    }
-
-    private fun getTextToSpeech() = TextToSpeech(applicationContext) { i ->
-        // if No error is found then only it will run
-        if (i != TextToSpeech.ERROR) {
-            textToSpeech.language = Locale.US
-            val voices: Set<Voice> = textToSpeech.voices
-            val voiceList: List<Voice> = ArrayList(voices)
-
-            for(voice in voiceList) {
-                if(voice.name.equals("en-US-Standard-G")) {
-                    textToSpeech.voice = voice
-                }
-            }
-
-            textToSpeech.setSpeechRate(.8F)
-        }
     }
 
     private fun purgeOldRecords(dateTime : LocalDateTime) {

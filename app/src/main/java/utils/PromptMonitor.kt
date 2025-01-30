@@ -21,6 +21,7 @@ class PromptMonitor {
     var lastHighActivityEventDateTime: LocalDateTime? = null
     var coolDownEndDateTime : LocalDateTime? = null
     var lastFirstPromptDateTime : LocalDateTime? = null
+    var lastAlarmEvent : Int? = null
 
     private var remEventTriggerList: MutableList<LocalDateTime> =
         emptyList<LocalDateTime>().toMutableList()
@@ -243,6 +244,26 @@ class PromptMonitor {
     private fun isInAwakePeriod(lastTimestamp: String?) : Boolean {
         return lastAwakeDateTime != null &&
                 LocalDateTime.parse(lastTimestamp) <= lastAwakeDateTime!!.plusMinutes(IN_AWAKE_PERIOD)
+    }
+
+    fun isAlarmEventTime(): Boolean {
+        val current = LocalDateTime.now()
+        val hour = current.hour
+        val minute = current.minute
+        val day = current.dayOfWeek
+        val isWeekend = day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY
+        val hourArray = if(isWeekend) intArrayOf(7,8) else intArrayOf(6,7)
+        val minuteArray = if(isWeekend) intArrayOf(5, 10, 50, 55) else intArrayOf(5,10,30,45,50,55)
+
+        //Log.d("MainActivity","${viewModel.lastTimestamp.value} hour=$hour minute=$minute alarmHour=$alarmHour")
+
+        val isAlarmTime = (hour in hourArray && minute in minuteArray && (lastAlarmEvent == null || lastAlarmEvent!! < minute))
+
+        if(isAlarmTime) {
+            lastAlarmEvent = minute
+        }
+
+        return isAlarmTime
     }
 
     fun promptIntensityLevel(promptCount: Int = 1): Int {
