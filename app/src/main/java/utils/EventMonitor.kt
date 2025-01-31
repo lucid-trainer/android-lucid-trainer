@@ -79,8 +79,20 @@ object EventMonitor {
         return sleepStage;
     }
 
-    fun getActiveEvent(workingReadingList:  ArrayList<Reading>) : Boolean {
-        return (workingReadingList.size >= 1 &&
-                workingReadingList.map { it -> it.accelMovement }.last() > .1)
+    fun getLastActivity(workingReadingList:  ArrayList<Reading>) : String {
+        var lastActivity = "NONE"
+
+        if(workingReadingList.size >= 1) {
+            val lastActivityReading = workingReadingList.map { it -> it.accelMovement }.last()
+            if(lastActivityReading > .325) {
+                lastActivity = "HIGH"
+            } else if (lastActivityReading > .2) {
+                lastActivity = "MEDIUM"
+            } else if (lastActivityReading > .1) {
+                lastActivity = "LIGHT"
+            }
+        }
+
+        return lastActivity
     }
 }

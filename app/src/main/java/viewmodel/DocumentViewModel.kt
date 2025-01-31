@@ -45,6 +45,8 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
 
     var lastActiveEventTimestamp : LocalDateTime? = null
 
+    var lastActivityValue : String? = null
+
     //the last document stored in the database
     private val lastReading = dao.getLatest()
 
@@ -116,8 +118,10 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
                                     lastAwakeTimestamp = reading.dateTime
                                 }
 
-                                //track an elevated increase in movement that can indicate a signal from user
-                                if(EventMonitor.getActiveEvent(workingReadingList)) {
+                                //track the current level of movement
+                                lastActivityValue = EventMonitor.getLastActivity(workingReadingList)
+
+                                if(lastActivityValue != "NONE") {
                                     lastActiveEventTimestamp = reading.dateTime
                                 }
                             }

@@ -59,7 +59,7 @@ class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
             else -> 6
         }
 
-        Log.d("MainActivity", "WILD fg limit = $limit")
+        Log.d("MainActivity", "WILD fg limit = $limit for $playCount")
 
         val files = fileManager.getUnusedFilesFromDirectory(dir, limit).shuffled().slice(0 until limit)
 
@@ -90,7 +90,5 @@ class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
         var dir = "$ROOT_DIR/$PROMPT_DIR"
         routine.add(4, Sound(0, 20, "$dir/prompt.ogg"))
     }
-
-
 
 }

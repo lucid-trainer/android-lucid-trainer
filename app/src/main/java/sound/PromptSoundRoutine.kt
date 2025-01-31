@@ -22,14 +22,23 @@ class PromptSoundRoutine(
     override fun getRoutine(): List<Sound> {
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()
         val promptDir = "$ROOT_DIR/$PROMPT_DIR"
-        val fileVolAdjOverride = getVolIncr(promptCount)
+        val fileVolAdj = getVolIncr(promptCount)
 
-        if(promptCount == 3) {
-            routine.add(Sound(0, 3, "$promptDir/prompt.ogg", 0F, fileVolAdjOverride))
+        if(playCount == 1) {
+            routine.add(Sound(0, 5, "$promptDir/name.ogg", fileVolAdj))
         }
 
-        val promptFile = fileManager.getFilesFromDirectory(promptDir).filter{it.startsWith("prompt_")}.shuffled().last()
-        routine.add(Sound(0, 3, "$promptDir/$promptFile", 0F, fileVolAdjOverride))
+        if(playCount <= 2) {
+            val promptFile =
+                fileManager.getFilesFromDirectory(promptDir).filter { it.startsWith("random_") }
+                    .shuffled().last()
+
+            routine.add(Sound(0, 2, "$promptDir/$promptFile", fileVolAdj))
+        }
+
+        routine.add(Sound(0, 0, "$promptDir/silence.ogg"))  //need this to reset background vol
+
+        routine.add(Sound(0, 0, "$promptDir/ambient.ogg", 0F, fileVolAdj))
 
         routine.add(Sound(0, 0, "$promptDir/silence.ogg"))
 
@@ -37,13 +46,14 @@ class PromptSoundRoutine(
     }
 
     private fun getVolIncr(promptCount: Int): Float {
-        return when(promptCount) {
-            1 -> .60F
-            2 -> .70F
-            3 -> .80F
-            4 -> .70F
-            5 -> .6F
-            else -> .70F
-        }
+        return .5F
+    }
+
+    override fun getSpeechEventsTrigger(): Int {
+        return if(playCount == 1) 1 else 0
+    }
+
+    override fun getSpeechEventsCount(): Int {
+        return 1
     }
 }

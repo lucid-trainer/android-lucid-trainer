@@ -5,15 +5,19 @@ import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.speech.tts.Voice
 import android.util.Log
-import presentation.MainActivity
+import sound.Sound
+import sound.SoundPoolManager
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 class SpeechManager() {
     private lateinit var textToSpeech: TextToSpeech
+    private var soundRoutineEvents: ArrayDeque<Int> = ArrayDeque()
 
     companion object {
+        const val MINUTES_BETWEEN_ROUTINE_EVENTS = 2
 
         @Volatile
         private var INSTANCE: SpeechManager? = null
@@ -23,7 +27,7 @@ class SpeechManager() {
                 var instance = INSTANCE
                 if (instance == null) {
                     instance = SpeechManager()
-                    instance.initTextToSpeech(context)
+                    instance.initTextToSpeechInstance(context)
                     INSTANCE = instance
                 }
                 return instance
@@ -34,6 +38,10 @@ class SpeechManager() {
             return INSTANCE
         }
 
+    }
+
+    private fun initTextToSpeechInstance(context: Context) {
+        textToSpeech = initTextToSpeech(context)
     }
 
     private fun initTextToSpeech(context: Context) = TextToSpeech(context) { i ->
@@ -49,16 +57,41 @@ class SpeechManager() {
                 }
             }
 
-            textToSpeech.setSpeechRate(.8F)
+            textToSpeech.setSpeechRate(.7F)
+            textToSpeech.setPitch(1.1F)
         }
     }
 
-    public fun speakTheTime(eventMessage : String, promptMessage: String = "", isShortPrompt: Boolean = false, volume: Float = 0.5F) {
+    fun setSoundRoutineEvents(speechEventsCount: Int) {
+        soundRoutineEvents.clear()
+
+        var eventMinute = LocalDateTime.now().minute
+        for (i in 1..speechEventsCount) {
+            eventMinute += MINUTES_BETWEEN_ROUTINE_EVENTS
+            soundRoutineEvents.add(eventMinute)
+        }
+    }
+
+    fun handleSoundRoutineEvents() {
+        if(soundRoutineEvents.isNotEmpty()){
+            var eventMinute = soundRoutineEvents.first()
+            if(LocalDateTime.now().minute == eventMinute) {
+                speakTheTime()
+                soundRoutineEvents.removeFirst()
+            }
+        }
+    }
+
+    fun speakTheTime() {
+        speakTheTimeWithMessage("", "", true)
+    }
+
+    fun speakTheTimeWithMessage(eventMessage : String, promptMessage: String = "", isShortPrompt: Boolean = false, volume: Float = 0.5F) {
         val currentTime = LocalTime.now().format(DateTimeFormatter.ofPattern("hh:mm a", Locale.ENGLISH))
         val commenceMessage = if(promptMessage.isNotEmpty()) "Commencing $promptMessage soon." else ""
         val fullMessage = if(isShortPrompt) "It's $currentTime" else
             "$eventMessage detected. $commenceMessage The time is $currentTime"
-        Log.d("SpeechManager", "${currentTime} tts $fullMessage")
+        Log.d("MainActivity", "Speaking ${currentTime} tts $fullMessage")
         val params = Bundle()
         params.putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, volume);
 

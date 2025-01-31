@@ -18,25 +18,25 @@ class PromptMonitor {
     var lastAwakeDateTime : LocalDateTime? = null
     var lastFollowupDateTime : LocalDateTime? = null
     var lastSleepButtonDateTime: LocalDateTime? = null
-    var lastHighActivityEventDateTime: LocalDateTime? = null
+    var lastActivityEventDateTime: LocalDateTime? = null
     var coolDownEndDateTime : LocalDateTime? = null
     var lastFirstPromptDateTime : LocalDateTime? = null
-    var lastAlarmEvent : Int? = null
+    var lastAlarmEvent : Pair<Int, Int>? = null
 
     private var remEventTriggerList: MutableList<LocalDateTime> =
         emptyList<LocalDateTime>().toMutableList()
     var startPromptAllowPeriod: LocalDateTime? = null
 
     companion object {
-        const val NEW_PROMPT_PERIOD_WAIT_SECONDS = 150L
-        const val PROMPT_PERIOD = 15L
+        const val NEW_PROMPT_PERIOD_WAIT_SECONDS = 45L
+        const val PROMPT_PERIOD = 35L
         const val MAX_PROMPT_COOL_DOWN_PERIOD = 12L
         const val INTERRUPT_COOL_DOWN_PERIOD = 10L
-        const val HIGH_ACTIVITY_COOL_DOWN_PERIOD = 10L
+        const val ACTIVITY_COOL_DOWN_PERIOD = 10L
         const val SLEEP_COOL_DOWN_PERIOD = 50L
         const val IN_AWAKE_PERIOD = 6L
-        const val BETWEEN_AWAKE_PERIOD = 50L
-        const val SECONDS_BETWEEN_PROMPTS = 150L
+        const val BETWEEN_AWAKE_PERIOD = 70L
+        const val SECONDS_BETWEEN_PROMPTS = 90L
     }
 
     private val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
@@ -51,9 +51,10 @@ class PromptMonitor {
         promptEventWaiting = null
         lastAwakeDateTime = null
         lastFollowupDateTime = null
-        lastHighActivityEventDateTime = null
+        lastActivityEventDateTime = null
         coolDownEndDateTime = null
         startPromptAllowPeriod = null
+        lastAlarmEvent = null
     }
 
     fun getEventsDisplay(): String {
@@ -141,7 +142,7 @@ class PromptMonitor {
         //Check if we've had an interrupt from the watch device via high movement or the Sleep button and disable prompts for a time if so
         var updatedAllCoolDown = false
         val lastDateTime = LocalDateTime.parse(lastTimestamp)
-        lastHighActivityEventDateTime = lastDateTime
+        lastActivityEventDateTime = lastDateTime
 
         if(isSleepButton) {
             //just set we use the sleep button
@@ -174,9 +175,8 @@ class PromptMonitor {
             SLEEP_COOL_DOWN_PERIOD)
     }
 
-    //if we detect a possible interrupt event we may want to do something with it even if no recent prompts
-    fun isInHighActivityPeriod(lastTimestamp: String?, coolDownPeriod: Long = HIGH_ACTIVITY_COOL_DOWN_PERIOD) : Boolean {
-        return lastHighActivityEventDateTime != null && LocalDateTime.parse(lastTimestamp) <= lastHighActivityEventDateTime!!.plusMinutes(
+    fun isInActivityPeriod(lastTimestamp: String?, coolDownPeriod: Long = ACTIVITY_COOL_DOWN_PERIOD) : Boolean {
+        return lastActivityEventDateTime != null && LocalDateTime.parse(lastTimestamp) <= lastActivityEventDateTime!!.plusMinutes(
             coolDownPeriod)
     }
 
@@ -247,20 +247,30 @@ class PromptMonitor {
     }
 
     fun isAlarmEventTime(): Boolean {
+        var isAlarmTime = false
+
         val current = LocalDateTime.now()
         val hour = current.hour
         val minute = current.minute
+
         val day = current.dayOfWeek
         val isWeekend = day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY
-        val hourArray = if(isWeekend) intArrayOf(7,8) else intArrayOf(6,7)
-        val minuteArray = if(isWeekend) intArrayOf(5, 10, 50, 55) else intArrayOf(5,10,30,45,50,55)
+        val isMondayWednesday = day == DayOfWeek.MONDAY || day == DayOfWeek.WEDNESDAY
+
+        var alarmTimes = if(isWeekend) arrayListOf(Pair(7,5), Pair(7,10), Pair(7,55), Pair(8,5), Pair(8,10) )
+            else if(isMondayWednesday) arrayListOf(Pair(6,20), Pair(6,25), Pair(6,30))
+            else arrayListOf(Pair(6,45), Pair(6,50), Pair(6,55), Pair(7,5), Pair(7,10))
 
         //Log.d("MainActivity","${viewModel.lastTimestamp.value} hour=$hour minute=$minute alarmHour=$alarmHour")
 
-        val isAlarmTime = (hour in hourArray && minute in minuteArray && (lastAlarmEvent == null || lastAlarmEvent!! < minute))
 
-        if(isAlarmTime) {
-            lastAlarmEvent = minute
+        for(alarmTime in alarmTimes) {
+            val (first, second) = alarmTime
+            if(first == hour && second == minute && (lastAlarmEvent == null || lastAlarmEvent!! != alarmTime)) {
+                lastAlarmEvent = alarmTime
+                isAlarmTime = true
+                break
+            }
         }
 
         return isAlarmTime

@@ -17,12 +17,11 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()
 
         val mildDir = "$ROOT_DIR/$MILD_DIR"
-        routine.add(Sound(0, 90, "$mildDir/instruction.ogg", 0F, 1.6F))
+        routine.add(Sound(0, 70, "$mildDir/instruction.ogg", 0F, 1.6F))
         Log.d("MainActivity", "mildDir=$mildDir, count = ${fileManager.getFilesFromDirectory(mildDir).size} ")
 
-        addRoutineForegroundSounds(routine)
         addStartSound(routine)
-        addRelaxForegroundSounds(routine)
+        addForegroundSounds(routine)
 
         return routine
     }
@@ -45,22 +44,23 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
         return altBGSounds
     }
 
-    private fun addRoutineForegroundSounds(routine: MutableList<Sound>) {
-
-        val dir = "$ROOT_DIR/$THEMES_DIR/$theme/$FOREGROUND_DIR"
-        val file = fileManager.getFilesFromDirectory(dir).shuffled().first()
-
-        //Log.d("WildRoutine", "used fg ${FileMonitor.getUnusedFilesFromDirectory(dir, 8).size}")
-
-        routine.add(Sound(0, 20, "$dir/$file", 0F))
+    override fun getSpeechEventsTrigger(): Int {
+        return when(playCount) {
+            1 -> 3
+            else -> 6
+        }
     }
 
-    private fun addRelaxForegroundSounds(routine: MutableList<Sound>) {
-        var dir = "$ROOT_DIR/$THEMES_DIR/$theme/$ALT_FOREGROUND_DIR"
+    override fun getSpeechEventsCount(): Int {
+        return 3
+    }
+
+    private fun addForegroundSounds(routine: MutableList<Sound>) {
+        var dir = "$ROOT_DIR/$THEMES_DIR/$theme/$FOREGROUND_DIR"
 
         val limit = when(playCount) {
-            1 -> 12
-            else -> 15
+            1 -> 6
+            else -> 10
         }
 
         //Log.d("MainActivity", "altfg dir=$dir, count = ${fileManager.getFilesFromDirectory(dir).size} ")
@@ -83,12 +83,12 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
 
     override fun getVolAdjust(fileCount: Int): Float {
         return when {
-            fileCount <= 1 -> .8F
-            fileCount <= 3 -> .7F
-            fileCount <= 5 -> .6F
-            fileCount <= 8 -> .5F
-            fileCount <= 10 -> .4F
-            else -> .3F
+            fileCount <= 1 -> 1F
+            fileCount <= 3 -> .9F
+            fileCount <= 5 -> .8F
+            fileCount <= 8 -> .7F
+            fileCount <= 10 -> .6F
+            else -> .5F
         }
     }
 

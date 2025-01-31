@@ -3,7 +3,6 @@ package sound
 const val ROOT_DIR = "lt_sounds"
 const val THEMES_DIR = "themes"
 const val FOREGROUND_DIR = "fg"
-const val ALT_FOREGROUND_DIR = "fg2"
 const val ALT_BACKGROUND_DIR = "bg"
 const val PROMPT_DIR = "prompt"
 const val START_DIR = "start"
@@ -24,6 +23,8 @@ interface SoundRoutine {
     val theme: String
     fun getStartSounds(): List<String>
     fun getAltBGSounds() : List<String>
+    fun getSpeechEventsTrigger() : Int = 0
+    fun getSpeechEventsCount() : Int = 0
     fun getRoutine() : List<Sound>
 
     fun overrideBG() : Boolean {

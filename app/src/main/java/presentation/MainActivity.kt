@@ -10,8 +10,6 @@ import android.content.pm.ActivityInfo
 import android.graphics.Color
 import android.media.AudioManager
 import android.os.Bundle
-import android.speech.tts.TextToSpeech
-import android.speech.tts.Voice
 import android.util.Log
 import android.view.View
 import android.widget.AdapterView
@@ -44,11 +42,8 @@ import utils.PromptMonitor
 import utils.SpeechManager
 import viewmodel.DocumentViewModel
 import viewmodel.DocumentViewModelFactory
-import java.time.DayOfWeek
 import java.time.LocalDateTime
-import java.time.LocalTime
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 
 class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
@@ -80,7 +75,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         const val MANUAL_PLAY_MESSAGE = "Manual play"
         const val ACTIVE_EVENT_MESSAGE = "Elevated movement"
         const val WATCH_EVENT_MESSAGE = "Watch event"
-        const val ALARM_EVENT_MESSAGE = "Alarm"
 
         const val WILD_MESSAGE = "wild"
         const val MILD_MESSAGE = "mild"
@@ -193,10 +187,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                     Status.SUCCESS -> {
                         binding.progressBar.isVisible = false
 
-                        //check for alarm events
-                        if(promptMonitor.isAlarmEventTime()) {
-                            handleAlarmEvent()
-                        }
+                        //check for speech events initiated by alarms or sound routines
+                        handleSpeechEvents()
 
                         if(lastEventTimestamp != viewModel.lastTimestamp.value) {
                             val dateFormat = DateTimeFormatter.ofPattern("M/dd/yyyy hh:mm:ss")
@@ -209,7 +201,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                             }
 
                             //get any recent high active event and interrupt any prompts if found running
-                            handleHighActivityEvent()
+                            handleActivityEvent()
 
                             var reading = viewModel.lastReadingString.value
 
@@ -248,25 +240,35 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         registerReceiver(myNoisyAudioStreamReceiver, filter)
     }
 
-    private fun handleHighActivityEvent() {
+    private fun handleActivityEvent() {
         if (viewModel.lastActiveEventTimestamp != null && (lastActiveEventTimestamp == null || (
                     viewModel.lastActiveEventTimestamp!! > lastActiveEventTimestamp))
         ) {
 
             lastActiveEventTimestamp = viewModel.lastActiveEventTimestamp
             val hour = LocalDateTime.parse(viewModel.lastTimestamp.value).hour
-            val hoursAllowed = hour in 22..23 || hour in 0..7
-            if (hoursAllowed && !promptMonitor.isInHighActivityPeriod(viewModel.lastTimestamp.value, 3L)) {
-                //we'll read out the time for any new possible interrupt periods
-                speechManager.speakTheTime(ACTIVE_EVENT_MESSAGE)
+            val hoursAllowed = hour in 22..23 || hour in 0..8
+            val lastActivityValue = viewModel.lastActivityValue
+            val isInActivityPeriod = promptMonitor.isInActivityPeriod(viewModel.lastTimestamp.value, 3L)
+
+            if (lastActivityValue != "NONE" && hoursAllowed && !isInActivityPeriod) {
+                //we'll read out the time for any elevated activity
+                speechManager.speakTheTimeWithMessage(ACTIVE_EVENT_MESSAGE)
             }
 
-            checkShouldStartInterruptCoolDown()
+            //we'll set a cooldown period to interrupt prompting if the activity is high enough
+            if(lastActivityValue == "MEDIUM" || lastActivityValue == "HIGH") {
+                checkShouldStartInterruptCoolDown()
+            }
         }
     }
 
-    private fun handleAlarmEvent() {
-        speechManager.speakTheTime(ALARM_EVENT_MESSAGE, "", true)
+    private fun handleSpeechEvents() {
+        if(promptMonitor.isAlarmEventTime()) {
+            speechManager.speakTheTime()
+        }
+
+        speechManager.handleSoundRoutineEvents()
     }
 
     private fun checkShouldStartInterruptCoolDown(isStartButton : Boolean = false) {
@@ -590,15 +592,14 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             if(pMod.isEmpty()) {
                 //it's a manual event from watch so update the event list and read the time out
                 updateEventList(EVENT_LABEL_AWAKE, triggerDateTime.toString())
-                speechManager.speakTheTime(MANUAL_PLAY_MESSAGE, pMessage)
+                speechManager.speakTheTimeWithMessage(MANUAL_PLAY_MESSAGE, pMessage)
             } else {
                 //it's an auto play event so we want a minimal sound routine
                 playCount = 1
             }
         }
 
-       Log.d("MainActivity", "called wth eventLabel = $eventLabel");
-
+        //Log.d("MainActivity", "called wth eventLabel = $eventLabel");
         soundList.add("$pType$pMod")
 
         //only allow this option via the prompt button
@@ -656,13 +657,13 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             var promptMessage = MILD_MESSAGE
             if(soundList.contains("s")) {
                 promptMessage = SSILD_MESSAGE
-            } else if(soundList.contains("w")) {
+            } else if(soundList.contains("wa")) {
                 //wilds initiated from watch should be longer
                 playCount = 3
                 promptMessage = WILD_MESSAGE
             }
 
-            speechManager.speakTheTime(WATCH_EVENT_MESSAGE, promptMessage)
+            speechManager.speakTheTimeWithMessage(WATCH_EVENT_MESSAGE, promptMessage)
 
         } else if (eventMap.containsKey(SLEEP_EVENT)) {
             //Log.d("PromptMonitor", "sleep event ${LocalDateTime.parse(viewModel.lastTimestamp.value)}")
@@ -678,6 +679,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             checkShouldStartInterruptCoolDown(true)
 
             resetNoisyReceiver()
+
+            Log.d("MainActivity", "play count $playCount for $soundList")
 
             soundPoolManager.playSoundList(
                 soundList, mBgRawId, mBgLabel, EVENT_LABEL_WATCH, binding.playStatus, playCount)
