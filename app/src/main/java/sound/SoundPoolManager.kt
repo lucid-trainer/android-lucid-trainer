@@ -37,6 +37,7 @@ class SoundPoolManager {
 
         const val ADJUST_BG_VOL_FACTOR = .5F
         const val PROMPT_ADJUST_BG_VOL_FACTOR = .7F
+        const val MILLIS_BETWEEN_BG_FADEUP = 50000L
         const val ROOT_SOUNDS_DIR = "lt_sounds"
         const val THEMES_DIR = "themes"
         const val MILD_THEME = "mild_theme"
@@ -224,7 +225,7 @@ class SoundPoolManager {
     }
 
     fun stopPlayingForeground() {
-        Log.d("MainActivity","Stopping mFgId $altBgId")
+        Log.d("MainActivity","Stopping mFgId $mFgId")
         isFGSoundStopped = true
         adjustAltBGVolForClip = false
         mSoundPoolCompat.stop(mFgId)
@@ -244,14 +245,12 @@ class SoundPoolManager {
     }
 
     fun playBackgroundSound(bgRawId: Int, volume: Float, textView: TextView) {
+        playBackgroundSoundAdjust(bgRawId, volume, textView, volume, 0)
+    }
+
+    private fun playBackgroundSoundAdjust(bgRawId: Int, startVolume: Float, textView: TextView, targetVolume: Float, fadeUpCnt: Int = 20) {
         val scope = CoroutineScope(Dispatchers.Default)
         isBGSoundStopped = false
-
-        //adjust the volume a bit based on low/mid/high/none adjustment setting
-        //this makes a small adjustment around the less granular standard device volume control
-        val adjVol = volume * allVolAdj
-
-        Log.d("MainActivity", "playing bg at vol $adjVol")
 
         if (bgJob == null || !mSoundPoolCompat.isPlaying(mBgId)) {
             bgJob = scope.launch {
@@ -261,28 +260,54 @@ class SoundPoolManager {
                 }
 
                 mBgId = mSoundPoolCompat.load(bgRawId)
-                //Log.d("MainActivity", "starting load for resource=$bgRawId")
 
                 isLoadedMap[mBgId] = false
                 var loopCnt = 0
                 while (!isLoadedMap[mBgId]!! && loopCnt < 3) {
-                    //Log.d("MainActivity", "waiting on loading spId=$mBgId")
                     loopCnt++
                     delay(timeMillis = 500)
                 }
 
-                mSoundPoolCompat.play(mBgId, adjVol, adjVol, -1, 1f)
+                var volume = startVolume * allVolAdj
+
+                //start continous play at the lowered level
+                if(fadeUpCnt > 0) {
+                    Log.d("MainActivity", "starting at start volume $volume")
+                    mSoundPoolCompat.play(mBgId, volume, volume, -1, 1f)
+
+                    //slowly up the volume of the background after delay
+                    for (i in 1..fadeUpCnt) {
+                        delay(timeMillis = MILLIS_BETWEEN_BG_FADEUP)
+                        val cntFactor = i.toFloat() / fadeUpCnt.toFloat()
+                        val fadeUpAmount = ((targetVolume * allVolAdj) - startVolume) * cntFactor
+                        val currVol = volume + fadeUpAmount
+                        Log.d(
+                            "MainActivity",
+                            "adding $fadeUpAmount to currVol $currVol with target $targetVolume"
+                        )
+                        mSoundPoolCompat.setVolume(mBgId, currVol, currVol)
+                    }
+
+                    //now revert to normal volume
+                    volume = targetVolume * allVolAdj
+                    Log.d("MainActivity", "setting bg at targetVolume $volume")
+                    mSoundPoolCompat.setVolume(mBgId, volume, volume)
+                } else {
+                    // begin at target volume instead
+                    volume = targetVolume * allVolAdj
+                    Log.d("MainActivity", "no fade up, starting at targtetVolume volume $volume")
+                    mSoundPoolCompat.play(mBgId, volume, volume, -1, 1f)
+                }
 
             }
         } else {
             textView.text = ""
         }
+
     }
 
     private suspend fun playAltBackgroundSound(soundRoutine: SoundRoutine, textView: TextView, playStart : Boolean = true) {
         val scope = CoroutineScope(Dispatchers.Default)
-
-        playBackgroundSound(soundRoutine.bgRawId, soundRoutine.bgVolume, textView)
 
         //might need to reset the label
         textView.text = "Playing ${soundRoutine.bgLabel}"
@@ -376,6 +401,7 @@ class SoundPoolManager {
                     //start any alternate background sounds and keep cycling through them until all are stopped
                     if(soundRoutine is WILDSoundRoutine || soundRoutine is MILDSoundRoutine) {
                         currAltBgVolAdj = 1F
+                        playBackgroundSound(soundRoutine.bgRawId, soundRoutine.bgVolume, textView)
                         playAltBackgroundSound(soundRoutine, textView)
                     } else {
                         playBackgroundSound(soundRoutine.bgRawId, soundRoutine.bgVolume, textView)
@@ -422,13 +448,15 @@ class SoundPoolManager {
                         } else if(currBgVolume != soundRoutine.bgVolume){
                             //turn the white noise sound back to normal
                             currVolume = soundRoutine.fgVolume
-                            currBgVolume = soundRoutine.bgVolume
                             stopPlayingBackground()
-                            playBackgroundSound(soundRoutine.bgRawId, currBgVolume, textView)
                             if(soundRoutine is WILDSoundRoutine || soundRoutine is MILDSoundRoutine) {
+                                playBackgroundSoundAdjust(soundRoutine.bgRawId, currBgVolume, textView,soundRoutine.bgVolume)
                                 playAltBackgroundSound(soundRoutine, textView, false)  //skip start sounds
+                            } else {
+                                playBackgroundSound(soundRoutine.bgRawId, soundRoutine.bgVolume, textView)
                             }
 
+                            currBgVolume = soundRoutine.bgVolume
                             adjustAltBGVolForClip = false
                             delay(timeMillis = 1000)
                         }
@@ -477,9 +505,10 @@ class SoundPoolManager {
                         //initialize any speech events if enough sounds in the routine are played.
                         //those are handled in MainActivity as it polls new watch events
                         if(soundRoutine.getSpeechEventsTrigger() == playedSoundCnt) {
-                            val speechEventsCount = soundRoutine.getSpeechEventsCount()
-                            if (speechEventsCount > 0) {
-                                speechManager.setSoundRoutineEvents(speechEventsCount)
+                            val eventsCount = soundRoutine.getSpeechEventsCount()
+                            val timeBetween = soundRoutine.getSpeechEventsTimeBetween()
+                            if (eventsCount > 0 && timeBetween > 0) {
+                                speechManager.setSoundRoutineEvents(eventsCount, timeBetween)
                             }
                         }
                     }
@@ -507,6 +536,8 @@ class SoundPoolManager {
                     }
                 }
             }
+        } else {
+            Log.d("MainActivity", "a sound routine is running so skipping")
         }
     }
 
@@ -521,6 +552,8 @@ class SoundPoolManager {
             loopCnt++
             delay(timeMillis = 300)
         }
+
+        Log.d("MainActivity", "waiting for sndId $sndId to stop")
 
         if (sndId != -1) {
             yield()

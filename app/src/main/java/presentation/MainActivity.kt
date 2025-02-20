@@ -73,7 +73,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         const val CLIP_DIR = "clip"
 
         const val MANUAL_PLAY_MESSAGE = "Manual play"
-        const val ACTIVE_EVENT_MESSAGE = "Elevated movement"
+        const val ACTIVE_EVENT_MESSAGE = "Movement"
         const val WATCH_EVENT_MESSAGE = "Watch event"
 
         const val WILD_MESSAGE = "wild"
@@ -250,8 +250,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             val hoursAllowed = hour in 22..23 || hour in 0..8
             val lastActivityValue = viewModel.lastActivityValue
             val isInActivityPeriod = promptMonitor.isInActivityPeriod(viewModel.lastTimestamp.value, 3L)
+            val isPromptRunning = promptMonitor.promptEventWaiting != null
 
-            if (lastActivityValue != "NONE" && hoursAllowed && !isInActivityPeriod) {
+            if (lastActivityValue != "NONE" && hoursAllowed && !isInActivityPeriod && !isPromptRunning) {
                 //we'll read out the time for any elevated activity
                 speechManager.speakTheTimeWithMessage(ACTIVE_EVENT_MESSAGE)
             }
@@ -753,8 +754,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     }
 
     private fun cancelStartCountDownPrompt(eventLabel: String) {
-        //Log.d("MainActivity", "stopping auto prompt from $eventLabel " +
-        //        "${viewModel.lastTimestamp.value} promptEventWaiting = $promptEventWaiting")
+        Log.d("MainActivity", "stopping prompt from $eventLabel")
 
         promptMonitor.promptEventWaiting = null
 
@@ -820,10 +820,12 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         val broadcastReceiver: BroadcastReceiver = (object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
                 if (intent.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) {
+                    Log.d("MainActivity", "bluetooth disconnected")
                     soundPoolManager.stopPlayingAll(binding.playStatus)
                 }
 
                 if(intent.action == BluetoothDevice.ACTION_ACL_CONNECTED) {
+                    Log.d("MainActivity", "bluetooth connected")
                     if (mBgRawId == -1) {
                         mBgLabel = "Fan"
                         mBgRawId = R.raw.boxfan

@@ -25,6 +25,7 @@ interface SoundRoutine {
     fun getAltBGSounds() : List<String>
     fun getSpeechEventsTrigger() : Int = 0
     fun getSpeechEventsCount() : Int = 0
+    fun getSpeechEventsTimeBetween() : Int = 0
     fun getRoutine() : List<Sound>
 
     fun overrideBG() : Boolean {
@@ -33,15 +34,16 @@ interface SoundRoutine {
 
     fun getVolAdjust(fileCount: Int): Float {
         return when {
-            fileCount <= 3 -> 1F
-            fileCount <= 6 -> .9F
+            fileCount <= 2 -> 1F
+            fileCount <= 4 -> .9F
+            fileCount <= 6 -> .85F
             fileCount <= 8 -> .8F
-            fileCount <= 10 -> .7F
-            fileCount <= 12 -> .6F
-            fileCount <= 14 -> .5F
-            fileCount <= 16 -> .4F
-            fileCount <= 18 -> .3F
-            else -> .2F
+            fileCount <= 10 -> .75F
+            fileCount <= 12 -> .7F
+            fileCount <= 14 -> .65F
+            fileCount <= 16 -> .6F
+            fileCount <= 18 -> .55F
+            else -> .5F
         }
     }
 }

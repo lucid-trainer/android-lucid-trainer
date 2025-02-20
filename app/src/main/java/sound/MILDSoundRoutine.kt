@@ -55,6 +55,10 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
         return 3
     }
 
+    override fun getSpeechEventsTimeBetween() : Int {
+        return 2
+    }
+
     private fun addForegroundSounds(routine: MutableList<Sound>) {
         var dir = "$ROOT_DIR/$THEMES_DIR/$theme/$FOREGROUND_DIR"
 

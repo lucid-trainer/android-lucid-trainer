@@ -24,11 +24,15 @@ class PromptSoundRoutine(
         val promptDir = "$ROOT_DIR/$PROMPT_DIR"
         val fileVolAdj = getVolIncr(promptCount)
 
-        if(playCount == 1) {
+        //for a prompt routine, keep around a minute in total length as they are chained and can be blocked if one
+        //is running and another tries to start. The minimum time between prompts is managed in the PromptMonitor
+        //SECONDS_BETWEEN_PROMPTS setting
+
+        if(promptCount == 1) {
             routine.add(Sound(0, 5, "$promptDir/name.ogg", fileVolAdj))
         }
 
-        if(playCount <= 2) {
+        if(promptCount <= 2) {
             val promptFile =
                 fileManager.getFilesFromDirectory(promptDir).filter { it.startsWith("random_") }
                     .shuffled().last()
@@ -46,14 +50,18 @@ class PromptSoundRoutine(
     }
 
     private fun getVolIncr(promptCount: Int): Float {
-        return .5F
+        return .55F
     }
 
     override fun getSpeechEventsTrigger(): Int {
-        return if(playCount == 1) 1 else 0
+        return if(promptCount == 1) 1 else 0
     }
 
     override fun getSpeechEventsCount(): Int {
+        return 1
+    }
+
+    override fun getSpeechEventsTimeBetween() : Int {
         return 1
     }
 }

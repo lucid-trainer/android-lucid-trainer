@@ -29,8 +29,8 @@ class PromptMonitor {
 
     companion object {
         const val NEW_PROMPT_PERIOD_WAIT_SECONDS = 45L
-        const val PROMPT_PERIOD = 35L
-        const val MAX_PROMPT_COOL_DOWN_PERIOD = 12L
+        const val PROMPT_PERIOD = 15L  //the period in which a new prompt chain can run
+        const val MAX_PROMPT_COOL_DOWN_PERIOD = 35L //periods between allowed prompt chains
         const val INTERRUPT_COOL_DOWN_PERIOD = 10L
         const val ACTIVITY_COOL_DOWN_PERIOD = 10L
         const val SLEEP_COOL_DOWN_PERIOD = 50L
@@ -126,7 +126,7 @@ class PromptMonitor {
     }
 
     private fun checkMaxPromptCoolDown(lastDateTime: LocalDateTime) {
-        //events tend to cluster which we want.  When we get to the max in a period wait for the cooldown period to end before
+        //events tend to cluster which we want. When we get to the max in a period wait for the cooldown period to end before
         //allowing any more events.  We also set this when a manual sound routine such as WildRoutine or PodcastRoutine is initiated
         //as this indicates the user is awake and going back to sleep
         val maxPromptCount = getMaxPromptCountPerPeriod(lastDateTime)

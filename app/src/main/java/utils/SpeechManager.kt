@@ -17,7 +17,6 @@ class SpeechManager() {
     private var soundRoutineEvents: ArrayDeque<Int> = ArrayDeque()
 
     companion object {
-        const val MINUTES_BETWEEN_ROUTINE_EVENTS = 2
 
         @Volatile
         private var INSTANCE: SpeechManager? = null
@@ -62,12 +61,13 @@ class SpeechManager() {
         }
     }
 
-    fun setSoundRoutineEvents(speechEventsCount: Int) {
+    fun setSoundRoutineEvents(speechEventsCount: Int, timeBetween: Int) {
         soundRoutineEvents.clear()
 
         var eventMinute = LocalDateTime.now().minute
+
         for (i in 1..speechEventsCount) {
-            eventMinute += MINUTES_BETWEEN_ROUTINE_EVENTS
+            eventMinute += timeBetween
             soundRoutineEvents.add(eventMinute)
         }
     }
