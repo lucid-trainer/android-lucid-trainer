@@ -29,9 +29,9 @@ class PromptMonitor {
 
     companion object {
         const val NEW_PROMPT_PERIOD_WAIT_SECONDS = 45L
-        const val PROMPT_PERIOD = 15L  //the period in which a new prompt chain can run
-        const val MAX_PROMPT_COOL_DOWN_PERIOD = 35L //periods between allowed prompt chains
-        const val INTERRUPT_COOL_DOWN_PERIOD = 10L
+        const val PROMPT_PERIOD = 20L  //the period in which a new prompt chain can run
+        const val MAX_PROMPT_COOL_DOWN_PERIOD = 30L //periods between allowed prompt chains
+        const val INTERRUPT_COOL_DOWN_PERIOD = 10L //period that prompts are quited after movement
         const val ACTIVITY_COOL_DOWN_PERIOD = 10L
         const val SLEEP_COOL_DOWN_PERIOD = 50L
         const val IN_AWAKE_PERIOD = 6L
@@ -297,10 +297,10 @@ class PromptMonitor {
 
     private fun getMaxPromptCountPerPeriod(lastDateTime: LocalDateTime): Int {
         val hour = lastDateTime.hour
-        var maxPromptCount = 6
+        var maxPromptCount = 8
 
         if (hour > 5) {
-            maxPromptCount = 4
+            maxPromptCount = 6
         }
 
         return maxPromptCount

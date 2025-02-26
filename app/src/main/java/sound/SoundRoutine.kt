@@ -34,16 +34,13 @@ interface SoundRoutine {
 
     fun getVolAdjust(fileCount: Int): Float {
         return when {
-            fileCount <= 2 -> 1F
-            fileCount <= 4 -> .9F
-            fileCount <= 6 -> .85F
-            fileCount <= 8 -> .8F
-            fileCount <= 10 -> .75F
-            fileCount <= 12 -> .7F
-            fileCount <= 14 -> .65F
-            fileCount <= 16 -> .6F
-            fileCount <= 18 -> .55F
-            else -> .5F
+            fileCount <= 3 -> 1F
+            fileCount <= 6 -> .95F
+            fileCount <= 9 -> .9F
+            fileCount <= 12 -> .85F
+            fileCount <= 15 -> .8F
+            fileCount <= 18 -> .75F
+            else -> .7F
         }
     }
 }

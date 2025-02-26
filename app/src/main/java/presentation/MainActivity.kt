@@ -254,13 +254,11 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
             if (lastActivityValue != "NONE" && hoursAllowed && !isInActivityPeriod && !isPromptRunning) {
                 //we'll read out the time for any elevated activity
-                speechManager.speakTheTimeWithMessage(ACTIVE_EVENT_MESSAGE)
+                speechManager.speakTheTimeWithMessage(lastActivityValue + " " + ACTIVE_EVENT_MESSAGE)
             }
 
-            //we'll set a cooldown period to interrupt prompting if the activity is high enough
-            if(lastActivityValue == "MEDIUM" || lastActivityValue == "HIGH") {
-                checkShouldStartInterruptCoolDown()
-            }
+            //we'll set a cooldown period to interrupt prompting
+            checkShouldStartInterruptCoolDown()
         }
     }
 
@@ -424,7 +422,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 resetNoisyReceiver()
                 soundPoolManager.stopPlayingBackground()
                 binding.playStatus.text = "Playing $mBgLabel"
-                soundPoolManager.playBackgroundSound(mBgRawId, 1F, binding.playStatus)
+                soundPoolManager.playBackgroundSound(mBgRawId, 1F, binding.playStatus, 1F)
             } else {
                 val text = "You need to choose a white noise selection"
                 Toast.makeText(application, text, Toast.LENGTH_LONG).show()
@@ -692,7 +690,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         if (mBgRawId != -1) {
             soundPoolManager.stopPlayingBackground()
             binding.playStatus.text = "Playing $mBgLabel"
-            soundPoolManager.playBackgroundSound(mBgRawId, 1F, binding.playStatus)
+            soundPoolManager.playBackgroundSound(mBgRawId, 1F, binding.playStatus, 1F)
         }
     }
 
@@ -833,7 +831,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                     }
                     soundPoolManager.stopPlayingBackground()
                     binding.playStatus.text = "Playing $mBgLabel"
-                    soundPoolManager.playBackgroundSound(mBgRawId, 1F, binding.playStatus)
+                    soundPoolManager.playBackgroundSound(mBgRawId, 1F, binding.playStatus, 1F)
                 }
             }
         })

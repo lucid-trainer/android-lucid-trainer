@@ -17,7 +17,7 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()
 
         val mildDir = "$ROOT_DIR/$MILD_DIR"
-        routine.add(Sound(0, 70, "$mildDir/instruction.ogg", 0F, 1.6F))
+        routine.add(Sound(0, 70, "$mildDir/instruction.ogg"))
         Log.d("MainActivity", "mildDir=$mildDir, count = ${fileManager.getFilesFromDirectory(mildDir).size} ")
 
         addStartSound(routine)
@@ -36,6 +36,7 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
         val dir = "/$ROOT_DIR/$THEMES_DIR/$theme/$ALT_BACKGROUND_DIR"
         //Log.d("MainActivity", "dir=$dir, count = ${fileManager.getFilesFromDirectory(dir).size} ")
         val files = fileManager.getFilesFromDirectory(dir).shuffled().slice(0..9)
+        Log.d("MainActivity", "bg files = $files")
 
         for (i in 0..9) {
             altBGSounds.add("$dir/${files[i]}")
@@ -73,7 +74,7 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
 
         var i = 1;
         for (file in files) {
-            routine.add(Sound(0, 20, "$dir/$file",0F, getVolAdjust(i)))
+            routine.add(Sound(0, 20, "$dir/$file",false, getVolAdjust(i)))
             i++
         }
 
@@ -82,7 +83,7 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
 
     private fun addStartSound(routine: MutableList<Sound>) {
         var dir = "$ROOT_DIR/$THEMES_DIR/$theme/$START_DIR"
-        routine.add(Sound(0, 20, "$dir/start.ogg",0F))
+        routine.add(Sound(0, 20, "$dir/start.ogg",false))
     }
 
     override fun getVolAdjust(fileCount: Int): Float {
@@ -94,6 +95,11 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
             fileCount <= 10 -> .6F
             else -> .5F
         }
+    }
+
+    //we always want to start a prompt by resetting the background
+    override fun overrideBG() : Boolean {
+        return true
     }
 
 }
