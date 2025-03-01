@@ -649,8 +649,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 //Log.d("MainActivity", "sending awake event to device repository for play event")
             }
 
-            //get the prompt to play. This will usually be just one. For mild, play the auto version when triggered from watch
-            val playEvent = eventMap[PLAY_EVENT]!!.replace("m", "ma").replace("w", "wa")
+            //get the prompt to play. This will usually be just one. For wild, play the auto version when triggered from watch
+            val playEvent = eventMap[PLAY_EVENT]!!.replace("w", "wa")
             soundList = playEvent.split(",").toMutableList()
 
             var promptMessage = MILD_MESSAGE

@@ -27,7 +27,11 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
     }
 
     override fun getStartSounds(): List<String> {
-        return emptyList()
+        val startSounds : MutableList<String> = emptyList<String>().toMutableList()
+
+        startSounds.add("$ROOT_DIR/$THEMES_DIR/$theme/$START_DIR/silence.ogg")
+
+        return startSounds
     }
 
     override fun getAltBGSounds(): List<String> {
@@ -47,8 +51,8 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
 
     override fun getSpeechEventsTrigger(): Int {
         return when(playCount) {
-            1 -> 3
-            else -> 6
+            1 -> 7
+            else -> 11
         }
     }
 
@@ -64,8 +68,8 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
         var dir = "$ROOT_DIR/$THEMES_DIR/$theme/$FOREGROUND_DIR"
 
         val limit = when(playCount) {
-            1 -> 6
-            else -> 10
+            1 -> 8
+            else -> 12
         }
 
         //Log.d("MainActivity", "altfg dir=$dir, count = ${fileManager.getFilesFromDirectory(dir).size} ")
@@ -89,17 +93,20 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
     override fun getVolAdjust(fileCount: Int): Float {
         return when {
             fileCount <= 1 -> 1F
+            fileCount <= 2 -> .95F
             fileCount <= 3 -> .9F
+            fileCount <= 4 -> .85F
             fileCount <= 5 -> .8F
-            fileCount <= 8 -> .7F
-            fileCount <= 10 -> .6F
-            else -> .5F
+            fileCount <= 6 -> .75F
+            fileCount <= 7 -> .7F
+            fileCount <= 8 -> .65F
+            fileCount <= 9 -> .6F
+            else -> .55F
         }
     }
 
     //we always want to start a prompt by resetting the background
-    override fun overrideBG() : Boolean {
+    override fun fadeDownBg() : Boolean {
         return true
     }
-
 }

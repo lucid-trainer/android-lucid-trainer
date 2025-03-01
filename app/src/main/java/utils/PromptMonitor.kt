@@ -278,8 +278,7 @@ class PromptMonitor {
 
     fun promptIntensityLevel(promptCount: Int = 1): Int {
         return when(promptCount) {
-            2 -> 1
-            3 -> 2
+            1, 2 -> 1
             else -> 0
         }
     }

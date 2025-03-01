@@ -33,7 +33,11 @@ class PodSoundRoutine(override var playCount: Int, override var bgRawId: Int, ov
     }
 
     //we always want to treat podcasts like the bg file has been overridden so we can turn down sound
-    override fun overrideBG() : Boolean {
+    override fun fadeDownBg() : Boolean {
+        return true
+    }
+
+    override fun fadeDownFg(): Boolean {
         return true
     }
 

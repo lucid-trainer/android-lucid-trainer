@@ -27,10 +27,8 @@ interface SoundRoutine {
     fun getSpeechEventsCount() : Int = 0
     fun getSpeechEventsTimeBetween() : Int = 0
     fun getRoutine() : List<Sound>
-
-    fun overrideBG() : Boolean {
-      return bgRawId != endBgRawId
-    }
+    fun fadeDownBg() : Boolean = false
+    fun fadeDownFg() : Boolean = false
 
     fun getVolAdjust(fileCount: Int): Float {
         return when {
