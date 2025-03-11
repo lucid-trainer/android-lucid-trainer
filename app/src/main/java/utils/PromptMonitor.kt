@@ -203,7 +203,7 @@ class PromptMonitor {
         val day = triggerDateTime.dayOfWeek
         val hourLimit = if(day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) 6 else 5
 
-        val allowedFirstPartOfNight = hour in 2..3
+        val allowedFirstPartOfNight = hour in 1..3
                 && isAwakeEventBeforePeriod(lastTimestamp, 20)
         val allowedSecondPartOfNight = hour in 4 .. hourLimit
                 && isAwakeEventBeforePeriod(lastTimestamp, 10)
@@ -255,8 +255,8 @@ class PromptMonitor {
 
         val day = current.dayOfWeek
         val isWeekend = day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY
-        val isMondayWednesday = day == DayOfWeek.MONDAY || day == DayOfWeek.WEDNESDAY
 
+        val isMondayWednesday = day == DayOfWeek.MONDAY || day == DayOfWeek.WEDNESDAY
         var alarmTimes = if(isWeekend) arrayListOf(Pair(7,5), Pair(7,10), Pair(7,55), Pair(8,5), Pair(8,10) )
             else if(isMondayWednesday) arrayListOf(Pair(6,20), Pair(6,25), Pair(6,30))
             else arrayListOf(Pair(6,45), Pair(6,50), Pair(6,55), Pair(7,5), Pair(7,10))

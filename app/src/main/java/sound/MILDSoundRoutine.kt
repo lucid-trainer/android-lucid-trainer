@@ -68,8 +68,8 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
         var dir = "$ROOT_DIR/$THEMES_DIR/$theme/$FOREGROUND_DIR"
 
         val limit = when(playCount) {
-            1 -> 8
-            else -> 12
+            1 -> 10
+            else -> 15
         }
 
         //Log.d("MainActivity", "altfg dir=$dir, count = ${fileManager.getFilesFromDirectory(dir).size} ")
@@ -91,17 +91,19 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
     }
 
     override fun getVolAdjust(fileCount: Int): Float {
+
         return when {
-            fileCount <= 1 -> 1F
-            fileCount <= 2 -> .95F
-            fileCount <= 3 -> .9F
-            fileCount <= 4 -> .85F
+            fileCount <= 1 -> .96F
+            fileCount <= 2 -> .92F
+            fileCount <= 3 -> .88F
+            fileCount <= 4 -> .84F
             fileCount <= 5 -> .8F
-            fileCount <= 6 -> .75F
-            fileCount <= 7 -> .7F
-            fileCount <= 8 -> .65F
-            fileCount <= 9 -> .6F
-            else -> .55F
+            fileCount <= 6 -> .76F
+            fileCount <= 7 -> .72F
+            fileCount <= 8 -> .68F
+            fileCount <= 9 -> .64F
+            fileCount <= 10 -> .6F
+            else -> .54F
         }
     }
 

@@ -326,7 +326,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         val hour = triggerDateTime.hour
 
         if (binding.chipAwake.isChecked) {
-            val hoursAllowed = hour in 1..5
+            val hoursAllowed = hour in 2..4
             val isAwakeEventAllowed = hoursAllowed && promptMonitor.isAwakeEventAllowed(viewModel.lastTimestamp.value)
 
             if (hoursAllowed) {
