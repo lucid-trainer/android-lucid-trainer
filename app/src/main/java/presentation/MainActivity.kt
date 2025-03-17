@@ -42,6 +42,7 @@ import utils.PromptMonitor
 import utils.SpeechManager
 import viewmodel.DocumentViewModel
 import viewmodel.DocumentViewModelFactory
+import java.time.DayOfWeek
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -63,7 +64,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         const val EVENT_LABEL_AWAKE = "awake_event"
         const val EVENT_LABEL_LIGHT = "light_event"
         const val EVENT_LABEL_REM = "rem_event"
-        const val EVENT_LABEL_FOLLOW_UP = "follow_up_event"
+        const val EVENT_LABEL_PROMPT = "prompt_event"
         const val SLEEP_EVENT_PROMPT_DELAY = 10000L //3000L DEBUG VALUE
         const val RESET_VOL = 9
 
@@ -75,6 +76,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         const val MANUAL_PLAY_MESSAGE = "Manual play"
         const val ACTIVE_EVENT_MESSAGE = "Movement"
         const val WATCH_EVENT_MESSAGE = "Watch event"
+        const val INTERRUPT_MESSAGE = "Movement Interrupt"
 
         const val WILD_MESSAGE = "wild"
         const val MILD_MESSAGE = "mild"
@@ -208,6 +210,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                             val sleepStage = viewModel.sleepStage.value ?: ""
                             processSleepStageEvents(sleepStage)
 
+                            //check for prompt events
+                            checkAndSubmitPromptEvent()
+
                             val eventsDisplay = promptMonitor.getEventsDisplay()
                             if(eventsDisplay.isNotEmpty()) {
                                 reading += eventsDisplay
@@ -257,8 +262,10 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 speechManager.speakTheTimeWithMessage(lastActivityValue + " " + ACTIVE_EVENT_MESSAGE)
             }
 
-            //we'll set a cooldown period to interrupt prompting
-            checkShouldStartInterruptCoolDown()
+            //we'll set a cooldown period to interrupt prompting if enough activity
+            if(lastActivityValue == "MEDIUM" || lastActivityValue == "HIGH") {
+                checkShouldStartInterruptCoolDown(false)
+            }
         }
     }
 
@@ -270,9 +277,11 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         speechManager.handleSoundRoutineEvents()
     }
 
-    private fun checkShouldStartInterruptCoolDown(isStartButton : Boolean = false) {
-        val isStartAllCoolDown = promptMonitor.checkInterruptCoolDown(viewModel.lastTimestamp.value, isStartButton)
-         if (isStartAllCoolDown && !isStartButton) {
+    private fun checkShouldStartInterruptCoolDown(isButton : Boolean = true) {
+        val isStartAllCoolDown = promptMonitor.checkInterruptCoolDown(viewModel.lastTimestamp.value, isButton)
+         if (isStartAllCoolDown && !isButton) {
+             val lastActivityValue = viewModel.lastActivityValue
+             speechManager.speakTheTimeWithMessage("$lastActivityValue $INTERRUPT_MESSAGE")
              stopSoundRoutine()
          }
     }
@@ -285,7 +294,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private fun processSleepStageEvents(sleepStage: String) {
         //Log.d("SleepStage", "${viewModel.lastTimestamp.value} stage=$sleepStage lastAwake=${viewModel.lastAwakeTimestamp}")
         when(sleepStage) {
-
             "AWAKE" -> {
                 binding.sleepStageTexview.setTextColor(Color.RED)
 
@@ -299,22 +307,20 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             }
 
             "RESTLESS" -> {
-                checkAndSubmitFollowUpPromptEvent()
                 binding.sleepStageTexview.setTextColor(Color.RED)
             }
 
             "LIGHT ASLEEP" -> {
-                checkAndSubmitLightPromptEvent()
+                checkForTriggerLightPromptEvent()
                 binding.sleepStageTexview.setTextColor(Color.YELLOW)
             }
 
             "REM ASLEEP" -> {
-                checkAndSubmitREMPromptEvent()
+                checkForTriggerREMPromptEvent()
                 binding.sleepStageTexview.setTextColor(Color.YELLOW)
             }
 
             "ASLEEP", "DEEP ASLEEP" -> {
-                checkAndSubmitFollowUpPromptEvent()
                 binding.sleepStageTexview.setTextColor(Color.BLUE)
             }
         }
@@ -324,9 +330,11 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
         val hour = triggerDateTime.hour
+        val day = triggerDateTime.dayOfWeek
+        val hourLimit = if(day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) 5 else 4
 
         if (binding.chipAwake.isChecked) {
-            val hoursAllowed = hour in 2..4
+            val hoursAllowed = hour in 2..hourLimit
             val isAwakeEventAllowed = hoursAllowed && promptMonitor.isAwakeEventAllowed(viewModel.lastTimestamp.value)
 
             if (hoursAllowed) {
@@ -341,39 +349,33 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
     }
 
-    private fun checkAndSubmitLightPromptEvent() {
+    private fun checkForTriggerLightPromptEvent() {
         if (binding.chipRem.isChecked) {
             val hoursAllowed = promptMonitor.getPromptHoursAllowed(viewModel.lastTimestamp.value)
             val logAllowed = getPromptLogHoursAllowed(viewModel.lastTimestamp.value)
 
-            val isLightPromptEventAllowed = hoursAllowed && promptMonitor.isPromptEventAllowed(viewModel.lastTimestamp.value)
+            val isLightPromptTriggerSet = hoursAllowed && promptMonitor.setPromptsIfAllowed(viewModel.lastTimestamp.value)
 
             if (logAllowed) {
-                val document = getDeviceDocument(EVENT_LABEL_LIGHT, isLightPromptEventAllowed)
+                val document = getDeviceDocument(EVENT_LABEL_LIGHT, isLightPromptTriggerSet)
                 logEvent(document)
-            }
-
-            if (isLightPromptEventAllowed) {
-                startCountDownPromptTimer(EVENT_LABEL_LIGHT)
             }
         }
     }
 
-    private fun checkAndSubmitREMPromptEvent() {
+    private fun checkForTriggerREMPromptEvent() {
         if (binding.chipRem.isChecked) {
             val hoursAllowed = promptMonitor.getPromptHoursAllowed(viewModel.lastTimestamp.value)
             val logAllowed = getPromptLogHoursAllowed(viewModel.lastTimestamp.value)
 
-            val isREMPromptEventAllowed = hoursAllowed && promptMonitor.isPromptEventAllowed(viewModel.lastTimestamp.value)
+            val isREMPromptTriggerSet =  hoursAllowed && promptMonitor.setPromptsIfAllowed(viewModel.lastTimestamp.value)
 
             if (logAllowed) {
-                val document = getDeviceDocument(EVENT_LABEL_REM, isREMPromptEventAllowed)
+                val document = getDeviceDocument(EVENT_LABEL_REM, isREMPromptTriggerSet)
                 logEvent(document)
             }
 
-            if (isREMPromptEventAllowed) {
-                startCountDownPromptTimer(EVENT_LABEL_REM)
-            } else {
+            if (!isREMPromptTriggerSet) {
                 //each rem trigger event that doesn't result in prompt is evaluated to possibly set next allowed prompt window
                 promptMonitor.checkRemTriggerEvent(viewModel.lastTimestamp.value)
             }
@@ -384,17 +386,17 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         return promptMonitor.getPromptHoursAllowed(lastTimestamp, true)
     }
 
-    private fun checkAndSubmitFollowUpPromptEvent() {
+    private fun checkAndSubmitPromptEvent() {
         val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
 
         if (binding.chipRem.isChecked) {
-            val isFollowUpPromptEventNeeded = promptMonitor.isFollowUpEventAllowed(viewModel.lastTimestamp.value)
+            val nextPrompt = promptMonitor.getNextPrompt(viewModel.lastTimestamp.value)
 
-            if (isFollowUpPromptEventNeeded) {
-                val document = getDeviceDocument(EVENT_LABEL_FOLLOW_UP, true)
+            if (nextPrompt != null) {
+                val document = getDeviceDocument(EVENT_LABEL_PROMPT, true)
                 logEvent(document)
 
-                startCountDownPromptTimer(EVENT_LABEL_FOLLOW_UP)
+                startCountDownPromptTimer(EVENT_LABEL_PROMPT)
                 promptMonitor.lastFollowupDateTime = triggerDateTime
             }
         }
@@ -441,6 +443,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         binding.btnStop.setOnClickListener {
             soundPoolManager.stopPlayingAll(binding.playStatus)
+            checkShouldStartInterruptCoolDown()
         }
 
         binding.btnReset.setOnClickListener {
@@ -583,7 +586,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             pMessage = WILD_MESSAGE
         }
 
-        if(eventLabel == EVENT_LABEL_LIGHT || eventLabel == EVENT_LABEL_REM || eventLabel == EVENT_LABEL_FOLLOW_UP) {
+        if(eventLabel == EVENT_LABEL_PROMPT) {
             pMod = "p"
         } else {
             //this can either be an auto awake event or an manual button event
@@ -675,7 +678,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         if(soundList.isNotEmpty()) {
             soundPoolManager.stopPlayingForeground()
             soundPoolManager.stopPlayingBackground()
-            checkShouldStartInterruptCoolDown(true)
+            checkShouldStartInterruptCoolDown()
 
             resetNoisyReceiver()
 
@@ -712,13 +715,13 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 promptMonitor.promptEventWaiting = eventLabel
                 val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
 
-                //capture in event list in the event list
+                //capture the in the event list
                 updateEventList(eventLabel, triggerDateTime.toString())
 
                 //get the current prompt count for rem associated prompt events
                 var promptCount = 0
-                if (eventLabel == EVENT_LABEL_LIGHT || eventLabel == EVENT_LABEL_REM || eventLabel == EVENT_LABEL_FOLLOW_UP) {
-                    promptCount = getPromptCountAndIncrement()
+                if (eventLabel == EVENT_LABEL_PROMPT) {
+                    promptCount = getPromptCount()
                 }
 
                 //send a vibration event to the watch
@@ -741,14 +744,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
     }
 
-    private fun getPromptCountAndIncrement(): Int {
+    private fun getPromptCount(): Int {
         val lastDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
-        val promptCount = promptMonitor.getPromptCountInPeriod(lastDateTime)
-        if (promptCount == 1) {
-            promptMonitor.lastFirstPromptDateTime = lastDateTime
-            //Log.d("MainActivity", "setting lastFirstPrompt ${promptMonitor.lastFirstPromptDateTime}")
-        }
-        return promptCount
+        return promptMonitor.getPromptCountInChain(lastDateTime)
     }
 
     private fun cancelStartCountDownPrompt(eventLabel: String) {
@@ -787,7 +785,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             triggerTimestamp,
             type,
             promptMonitor.lastAwakeDateTime.toString(),
-            promptMonitor.lastFirstPromptDateTime.toString(),
             promptMonitor.coolDownEndDateTime.toString(),
             promptMonitor.isInCoolDownPeriod(triggerTimestamp),
             promptMonitor.startPromptAllowPeriod.toString(),
@@ -805,11 +802,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         when(eventLabel) {
             EVENT_LABEL_AWAKE -> promptMonitor.addAwakeEvent(now)
 
-            EVENT_LABEL_LIGHT -> promptMonitor.addLightEvent(now)
-
-            EVENT_LABEL_REM -> promptMonitor.addRemEvent(now)
-
-            EVENT_LABEL_FOLLOW_UP -> promptMonitor.addFollowUpEvent(now)
+            EVENT_LABEL_PROMPT -> promptMonitor.addPromptEvent(now)
         }
     }
 

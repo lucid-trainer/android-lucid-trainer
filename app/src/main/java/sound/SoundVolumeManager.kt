@@ -57,8 +57,8 @@ class SoundVolumeManager() {
             is PromptSoundRoutine -> {
                 val promptCount = soundRoutine.promptCount
                 finishVolume = when(promptCount) {
-                    1 -> currBgVol * .55F
-                    else -> currBgVol * .75F
+                    1 -> currBgVol * .65F
+                    else -> currBgVol * .8F
                 }
                 fadeBackgroundDown(20, 600, finishVolume, mBgId)
             }
@@ -75,7 +75,7 @@ class SoundVolumeManager() {
 
     suspend private fun fadeBackgroundDown(fadeDownCnt: Int, fadeDownDelay: Long, finishVolume: Float, mBgId: Int) : Float {
         //slowly lower the volume of the background after delay
-        Log.d("MainActivity", "$currBgVol minus $finishVolume divided by ${fadeDownCnt.toFloat()}")
+        //Log.d("MainActivity", "$currBgVol minus $finishVolume divided by ${fadeDownCnt.toFloat()}")
         val bgFadeDownAmount = (currBgVol - finishVolume) / fadeDownCnt.toFloat()
 
         for (i in 1..fadeDownCnt) {
@@ -86,7 +86,7 @@ class SoundVolumeManager() {
             delay(timeMillis = fadeDownDelay)
             currBgVol -= bgFadeDownAmount
             setBgVol(mBgId, currBgVol)
-            Log.d("MainActivity", "for loop $i subtracting $bgFadeDownAmount to get currBgVol $currBgVol with target $finishVolume")
+            //Log.d("MainActivity", "for loop $i subtracting $bgFadeDownAmount to get currBgVol $currBgVol with target $finishVolume")
         }
 
         return currBgVol
@@ -111,10 +111,7 @@ class SoundVolumeManager() {
                 mSoundPoolCompat.setVolume(mFgId, currVol, currVol)
 
                 lastFgVol = currVol
-                Log.d(
-                    "MainActivity",
-                    "for loop $i subtracting $fgFadeDownAmount to fg currVol $currVol with target $finishVolume"
-                )
+                //Log.d("MainActivity", "for loop $i subtracting $fgFadeDownAmount to fg currVol $currVol with target $finishVolume")
             }
         }
 
@@ -136,7 +133,7 @@ class SoundVolumeManager() {
                 delay(timeMillis = fadeUpDelay)
 
                 currBgVol += fadeUpAmount
-                Log.d("MainActivity", "for loop $i adding $fadeUpAmount to get currVol $currBgVol with target $finishVolume")
+                //Log.d("MainActivity", "for loop $i adding $fadeUpAmount to get currVol $currBgVol with target $finishVolume")
                 setBgVol(mBgId, currBgVol)
 
                 //adjust the alt Bg volume back up a little each time as well.  We turned it down by half, this should restore it back
@@ -147,7 +144,7 @@ class SoundVolumeManager() {
             }
 
             //now revert to target volume
-            Log.d("MainActivity", "setting bg at targetVolume $finishVolume, altbg to $currAltBgVolMax ")
+            //Log.d("MainActivity", "setting bg at targetVolume $finishVolume, altbg to $currAltBgVolMax ")
             currBgVol = finishVolume
             setBgVol(mBgId, currBgVol)
             currAltBgVol = currAltBgVolMax
@@ -166,7 +163,7 @@ class SoundVolumeManager() {
             delay(timeMillis = fadeUpDelay)
             currBgVol = startVolume + bgFadeUpAmount
             setBgVol(mBgId, currBgVol)
-            Log.d("MainActivity", "for loop $i in bgFadeUP adding $bgFadeUpAmount to currVol $currBgVol with target $finishVolume")
+            //Log.d("MainActivity", "for loop $i in bgFadeUP adding $bgFadeUpAmount to currVol $currBgVol with target $finishVolume")
         }
 
         return currBgVol

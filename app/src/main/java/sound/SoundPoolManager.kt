@@ -152,8 +152,8 @@ class SoundPoolManager {
         //get the appropriate sound routine, adjusting volumes further depending on type
         val soundRoutine = when (type) {
             "m" -> {
-                fgVolume *= .9F
-                altBgVolume *= .85F
+                fgVolume *= .8F
+                altBgVolume *= .7F
                 MILDSoundRoutine(playCount, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel, MILD_THEME )
             }
 
@@ -165,14 +165,17 @@ class SoundPoolManager {
             }
 
             "wa" -> {
+                fgVolume *= .6F
+                altBgVolume *= .55F
+
                 WILDSoundRoutine(playCount, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel, randomTheme)
             }
 
             "wp", "mp" -> {
-                fgVolume *= .7F
+                fgVolume *= .6F
 
                 val fgLabel = if(type == "wp") "WILD" else "MILD"
-                PromptSoundRoutine(1, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel, MILD_THEME, fgLabel, promptCount)
+                MildPromptSoundRoutine(1, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel, MILD_THEME, fgLabel, promptCount)
             }
 
             //default is "w", a manual WILD sound routine

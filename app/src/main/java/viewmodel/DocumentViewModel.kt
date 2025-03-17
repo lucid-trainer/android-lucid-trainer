@@ -19,6 +19,7 @@ import network.response.transform
 import repository.DocumentsRepository
 import utils.AppConfig
 import utils.EventMonitor
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -130,7 +131,7 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
                         //set the documents in  the response data
                         documentState.value = DocumentApiState.success(it.data)
                     }
-                delay(15000L) //DEBUG value change to 3000L
+                delay(15000L) //DEBUG value change to 5000L from 15000L
             }
 
             //the flow is disabled
@@ -160,7 +161,7 @@ class DocumentViewModel(val dao : ReadingDao) : ViewModel() {
        return LocalDateTime.now();
 
         //for DEBUG, set a specific starting time
-       //return LocalDate.parse("2024-05-30").atTime(1,0)
+       //return LocalDate.parse("2025-03-15").atTime(4,20)
     }
 
     private fun getStartingTimestamp() : String {

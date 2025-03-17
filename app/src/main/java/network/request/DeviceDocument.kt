@@ -5,7 +5,6 @@ data class DeviceDocument (
     val readingTimestamp: String,
     val eventType: String,
     val lastAwakeTimestamp: String,
-    val lastFirstPromptTimestamp: String,
     val coolDownDateTime: String,
     val isInCooldownPeriod: Boolean,
     val startPromptAllowPeriod: String,

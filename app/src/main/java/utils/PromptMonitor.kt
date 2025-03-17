@@ -9,18 +9,18 @@ class PromptMonitor {
     var promptEventWaiting: String? = null
     private var awakeEventList: MutableList<LocalDateTime> =
         emptyList<LocalDateTime>().toMutableList()
-    private var lightEventList: MutableList<LocalDateTime> =
-        emptyList<LocalDateTime>().toMutableList()
-    private var remEventList: MutableList<LocalDateTime> = emptyList<LocalDateTime>().toMutableList()
-    private var followUpEventList: MutableList<LocalDateTime> = emptyList<LocalDateTime>().toMutableList()
-    var allPromptEvents: MutableList<LocalDateTime> = emptyList<LocalDateTime>().toMutableList()
+    private var promptEvents: MutableList<LocalDateTime> = emptyList<LocalDateTime>().toMutableList()
+    var triggerEvents: MutableList<LocalDateTime> = emptyList<LocalDateTime>().toMutableList()
+    var promptTriggerAndEventCount: MutableList<Pair<LocalDateTime, Int>> = emptyList<Pair<LocalDateTime, Int>>().toMutableList()
+    private var currentPromptList: MutableList<LocalDateTime> = emptyList<LocalDateTime>().toMutableList()
+    private var lastPromptDateTime: LocalDateTime? = null
+
 
     var lastAwakeDateTime : LocalDateTime? = null
     var lastFollowupDateTime : LocalDateTime? = null
     var lastSleepButtonDateTime: LocalDateTime? = null
     var lastActivityEventDateTime: LocalDateTime? = null
     var coolDownEndDateTime : LocalDateTime? = null
-    var lastFirstPromptDateTime : LocalDateTime? = null
     var lastAlarmEvent : Pair<Int, Int>? = null
 
     private var remEventTriggerList: MutableList<LocalDateTime> =
@@ -30,7 +30,9 @@ class PromptMonitor {
     companion object {
         const val NEW_PROMPT_PERIOD_WAIT_SECONDS = 45L
         const val PROMPT_PERIOD = 20L  //the period in which a new prompt chain can run
-        const val MAX_PROMPT_COOL_DOWN_PERIOD = 30L //periods between allowed prompt chains
+        const val PROMPT_COOL_DOWN_PERIOD = 20L //periods between allowed prompt chains
+        const val MIN_PROMPT_COUNT = 4
+        const val MAX_PROMPT_COUNT = 10
         const val INTERRUPT_COOL_DOWN_PERIOD = 10L //period that prompts are quited after movement
         const val ACTIVITY_COOL_DOWN_PERIOD = 10L
         const val SLEEP_COOL_DOWN_PERIOD = 50L
@@ -43,11 +45,10 @@ class PromptMonitor {
 
     fun clear() {
         awakeEventList.clear()
-        lightEventList.clear()
-        remEventList.clear()
-        followUpEventList.clear()
-        allPromptEvents.clear()
+        currentPromptList.clear()
+        promptEvents.clear()
         remEventTriggerList.clear()
+        promptTriggerAndEventCount.clear()
         promptEventWaiting = null
         lastAwakeDateTime = null
         lastFollowupDateTime = null
@@ -55,34 +56,21 @@ class PromptMonitor {
         coolDownEndDateTime = null
         startPromptAllowPeriod = null
         lastAlarmEvent = null
+        lastPromptDateTime = null
     }
 
     fun getEventsDisplay(): String {
         var eventsDisplay = ""
 
         if (awakeEventList.isNotEmpty()) {
-            val formatAwakeEvents = awakeEventList.toMutableList().map { dateTime -> dateTime.format(formatter) }
+            val formatAwakeEvents = awakeEventList.map { dateTime -> dateTime.format(formatter) }
             eventsDisplay += "ActiveEvents: $formatAwakeEvents \n"
         }
 
-        if (lightEventList.isNotEmpty()) {
-            val formatLightEvents: List<String> =
-                lightEventList.toMutableList().map { dateTime -> dateTime.format(formatter) }
-
-            eventsDisplay += "Light Events: $formatLightEvents \n"
-        }
-
-
-        if (remEventList.isNotEmpty()) {
-            val formatRemEvents: List<String> =
-                remEventList.toMutableList().map { dateTime -> dateTime.format(formatter) }
-            eventsDisplay += "REM Events: $formatRemEvents \n"
-        }
-
-        if (followUpEventList.isNotEmpty()) {
-            val formatFollowUpEvents: List<String> =
-                followUpEventList.toMutableList().map { dateTime -> dateTime.format(formatter) }
-            eventsDisplay += "Follow-up Events: $formatFollowUpEvents \n"
+        if(promptTriggerAndEventCount.isNotEmpty()) {
+            val formatTriggerAndCounts = promptTriggerAndEventCount.map { triggerAndCount -> triggerAndCount.first.format(formatter) + "[" +
+                triggerAndCount.second + "]"}
+            eventsDisplay += "PromptEvents: $formatTriggerAndCounts \n"
         }
 
         return eventsDisplay
@@ -92,25 +80,27 @@ class PromptMonitor {
         awakeEventList.add(lastDateTime)
     }
 
-    fun addLightEvent(lastDateTime : LocalDateTime) {
-        lightEventList.add(lastDateTime)
-        allPromptEvents.add(lastDateTime)
+    fun addPromptEvent(lastDateTime: LocalDateTime) {
+        promptEvents.add(lastDateTime)
 
-        checkMaxPromptCoolDown(lastDateTime)
+        //keep track of the prompt events that are actually fired and the first trigger
+        incrementTriggerAndEventCount()
     }
 
-    fun addRemEvent(lastDateTime : LocalDateTime) {
-        remEventList.add(lastDateTime)
-        allPromptEvents.add(lastDateTime)
-
-        checkMaxPromptCoolDown(lastDateTime)
+    private fun addNewTriggerAndEventCount(now: LocalDateTime) {
+        Log.d("MainActivity","adding trigger $now count 0")
+        promptTriggerAndEventCount.add(Pair(now, 0))
     }
 
-    fun addFollowUpEvent(lastDateTime : LocalDateTime) {
-        followUpEventList.add(lastDateTime)
-        allPromptEvents.add(lastDateTime)
-
-        checkMaxPromptCoolDown(lastDateTime)
+    private fun incrementTriggerAndEventCount() {
+        val lastIdx = promptTriggerAndEventCount.size - 1
+        if (lastIdx >= 0) {
+            var lastPromptTriggerCount = promptTriggerAndEventCount[lastIdx]
+            val lastCount = lastPromptTriggerCount.second
+            Log.d("MainActivity","incrementing trigger ${lastPromptTriggerCount.first} from $lastCount")
+            lastPromptTriggerCount = lastPromptTriggerCount.copy(second = lastCount + 1)
+            promptTriggerAndEventCount[lastIdx] = lastPromptTriggerCount
+        }
     }
 
     fun checkRemTriggerEvent(lastTimestamp: String?) {
@@ -125,35 +115,27 @@ class PromptMonitor {
         remEventTriggerList.add(lastDateTime)
     }
 
-    private fun checkMaxPromptCoolDown(lastDateTime: LocalDateTime) {
-        //events tend to cluster which we want. When we get to the max in a period wait for the cooldown period to end before
-        //allowing any more events.  We also set this when a manual sound routine such as WildRoutine or PodcastRoutine is initiated
-        //as this indicates the user is awake and going back to sleep
-        val maxPromptCount = getMaxPromptCountPerPeriod(lastDateTime)
-        if (allPromptEvents.size >= maxPromptCount
-            && lastDateTime <= allPromptEvents.takeLast(maxPromptCount).first().plusMinutes(PROMPT_PERIOD)
-        ) {
-            coolDownEndDateTime = lastDateTime.plusMinutes(MAX_PROMPT_COOL_DOWN_PERIOD)
-            Log.d("PromptMonitor", "maxPromptCount = $maxPromptCount setting coolDownEndDateTime=$coolDownEndDateTime")
-        }
-    }
-
-    fun checkInterruptCoolDown(lastTimestamp: String?, isSleepButton: Boolean) : Boolean {
-        //Check if we've had an interrupt from the watch device via high movement or the Sleep button and disable prompts for a time if so
+    fun checkInterruptCoolDown(lastTimestamp: String?, isButton: Boolean) : Boolean {
+        //Check if we've had an interrupt from the watch device via high movement or the stop/sleep button and disable prompts for a time if so
         var updatedAllCoolDown = false
         val lastDateTime = LocalDateTime.parse(lastTimestamp)
         lastActivityEventDateTime = lastDateTime
 
-        if(isSleepButton) {
-            //just set we use the sleep button
+        if(isButton) {
+            //just set we use the sleep button and clear any prompts
             coolDownEndDateTime = lastDateTime.plusMinutes( SLEEP_COOL_DOWN_PERIOD)
             updatedAllCoolDown = true
+            currentPromptList.clear()
+            Log.d("MainActivity","clearing prompt list from isSleepButton")
         } else {
-            if(allPromptEvents.isNotEmpty() && ( coolDownEndDateTime == null ||
-                (lastDateTime > coolDownEndDateTime && lastDateTime > allPromptEvents.last() &&
-                 lastDateTime < allPromptEvents.last().plusMinutes(4)))) {
+            if(promptEvents.isNotEmpty() && ( coolDownEndDateTime == null ||
+                (lastDateTime > coolDownEndDateTime && lastDateTime > promptEvents.last() &&
+                 lastDateTime < promptEvents.last().plusMinutes(4)))) {
+                //there was enough movement to interrupt any prompts, clear the list
                 coolDownEndDateTime = lastDateTime.plusMinutes(INTERRUPT_COOL_DOWN_PERIOD)
                 updatedAllCoolDown = true
+                currentPromptList.clear()
+                Log.d("MainActivity","clearing prompt list from interrupt cooldown $lastTimestamp")
             }
         }
         return updatedAllCoolDown
@@ -180,13 +162,13 @@ class PromptMonitor {
             coolDownPeriod)
     }
 
-    fun isAwakeEventBeforePeriod(lastTimestamp: String?, period: Long): Boolean {
+    private fun isAwakeEventBeforePeriod(lastTimestamp: String?, period: Long): Boolean {
         return (awakeEventList.isEmpty() || LocalDateTime.parse(lastTimestamp) >= awakeEventList.last()
             .plusMinutes(period))
     }
 
-    private fun isRecentPromptEvent(lastTimestamp: String?): Boolean {
-        return allPromptEvents.isNotEmpty() && LocalDateTime.parse(lastTimestamp) <= allPromptEvents.last().plusSeconds(SECONDS_BETWEEN_PROMPTS)
+    private fun isRecentPromptTriggerEvent(lastTimestamp: String?): Boolean {
+        return triggerEvents.isNotEmpty() && LocalDateTime.parse(lastTimestamp) <= triggerEvents.last().plusSeconds(60)
     }
 
     private fun isRecentAwakeEvent(lastTimestamp: String?): Boolean {
@@ -194,7 +176,7 @@ class PromptMonitor {
     }
 
     fun isAwakeEventAllowed(lastTimestamp: String?): Boolean {
-        return !isInSleepButtonPeriod(lastTimestamp) && !isRecentPromptEvent(lastTimestamp) && !isRecentAwakeEvent(lastTimestamp)
+        return !isInSleepButtonPeriod(lastTimestamp) && !isRecentPromptTriggerEvent(lastTimestamp) && !isRecentAwakeEvent(lastTimestamp)
     }
 
     fun getPromptHoursAllowed(lastTimestamp: String?, logOnly: Boolean = false): Boolean {
@@ -215,30 +197,78 @@ class PromptMonitor {
         }
     }
 
-    fun isPromptEventAllowed(lastTimestamp: String?): Boolean {
+    fun setPromptsIfAllowed(lastTimestamp: String?): Boolean {
         //Log.d("PromptMonitor", "$lastTimestamp isInPromptWindow = ${isInPromptWindow(lastTimestamp)}")
-        val isAllowed = promptEventWaiting == null && isInPromptWindow(lastTimestamp) && !isInAwakePeriod(lastTimestamp) && !isInCoolDownPeriod(lastTimestamp) &&
-                !isRecentPromptEvent(lastTimestamp)
+        val isAllowed = promptEventWaiting == null && isInPromptWindow(lastTimestamp) && !isInAwakePeriod(lastTimestamp)
+                && !isInCoolDownPeriod(lastTimestamp)  && !isRecentPromptTriggerEvent(lastTimestamp)
 
         if(isAllowed) {
-            //extend the prompt window
-            startPromptAllowPeriod =  LocalDateTime.parse(lastTimestamp)
+            //extend the prompt window and add prompts to the list
+            val triggerTime = LocalDateTime.parse(lastTimestamp)
+            startPromptAllowPeriod = triggerTime
+            triggerEvents.add(triggerTime)
+            addPrompts(lastTimestamp)
         }
 
         return isAllowed
     }
 
-    fun isFollowUpEventAllowed(lastTimestamp: String?): Boolean {
-        //we want several events in a row to nudge the sleeper - but anchored to a rem or light trigger event within the last few minutes
-        //This allows for padding with one or more follow-up events in a cycle of prompts
-        val remAndLightEvents = (remEventList + lightEventList).sorted()
-        val lastDateTime = LocalDateTime.parse(lastTimestamp)
+    private fun addPrompts(lastTimestamp: String?) {
+        val triggerDateTime = LocalDateTime.parse(lastTimestamp)
 
-        return remAndLightEvents.isNotEmpty() && promptEventWaiting == null &&
-                !isInCoolDownPeriod(lastTimestamp) && !isInAwakePeriod(lastTimestamp) &&
-                (lastFollowupDateTime == null || remAndLightEvents.last() > lastFollowupDateTime) &&
-                lastDateTime > remAndLightEvents.last().plusSeconds(SECONDS_BETWEEN_PROMPTS) &&
-                lastDateTime<= remAndLightEvents.last().plusSeconds(SECONDS_BETWEEN_PROMPTS * 2)
+        //load the initial list of prompts, or add a couple for each trigger
+        if(currentPromptList.size == 0) {
+            var nextPromptTime = triggerDateTime.plusSeconds(30)
+            while(currentPromptList.size < MIN_PROMPT_COUNT) {
+                Log.d("MainActivity","adding prompt $nextPromptTime")
+                currentPromptList.add(nextPromptTime)
+                nextPromptTime = nextPromptTime.plusSeconds(SECONDS_BETWEEN_PROMPTS)
+            }
+
+            Log.d("MainActivity","adding prompts and new trigger for $triggerDateTime")
+
+            addNewTriggerAndEventCount(triggerDateTime)
+        } else if(currentPromptList.size < MAX_PROMPT_COUNT){
+            repeat(2) {
+                val lastPromptTime = currentPromptList.last()
+                val nextPromptTime = lastPromptTime.plusSeconds(SECONDS_BETWEEN_PROMPTS)
+                Log.d("MainActivity","adding additional prompt $nextPromptTime")
+                currentPromptList.add(nextPromptTime)
+            }
+
+            Log.d("MainActivity","updatingPrompts for $triggerDateTime")
+        }
+
+        Log.d("MainActivity","end of add prompts, list size is now ${currentPromptList.size}")
+    }
+
+    fun getNextPrompt(lastTimestamp: String?): LocalDateTime? {
+        val triggerDateTime =  LocalDateTime.parse(lastTimestamp)
+        var nextPrompt: LocalDateTime? = null
+
+        //get the first prompt that's before the trigger time
+        nextPrompt = if (lastPromptDateTime != null) {
+            currentPromptList.firstOrNull{ it > lastPromptDateTime && it < triggerDateTime }
+        } else {
+            currentPromptList.firstOrNull { it < triggerDateTime }
+        }
+
+        if (nextPrompt != null) {
+            lastPromptDateTime = nextPrompt
+
+            Log.d("MainActivity","returning non-null prompt $nextPrompt")
+        } else {
+            //if we're outside of the window for new prompt triggers and the prompt list is completed we'll empty
+            //and set a cool down period before allowing new prompt triggers
+            if(!isInPromptWindow(lastTimestamp) && currentPromptList.size > 0 && lastPromptDateTime != null
+                && currentPromptList.firstOrNull{ it > lastPromptDateTime } == null) {
+                currentPromptList.clear()
+                coolDownEndDateTime = triggerDateTime.plusMinutes(PROMPT_COOL_DOWN_PERIOD)
+                Log.d("MainActivity","clearing prompt list from getNextPrompt")
+            }
+        }
+
+        return nextPrompt
     }
 
     private fun isInAwakePeriod(lastTimestamp: String?) : Boolean {
@@ -283,25 +313,15 @@ class PromptMonitor {
         }
     }
 
-    fun getPromptCountInPeriod(lastDateTime: LocalDateTime) : Int {
-        val inPromptChain = lastFirstPromptDateTime != null &&
-                lastFirstPromptDateTime!! > lastDateTime.minusMinutes(PROMPT_PERIOD)
-
-        return if(inPromptChain) {
-            allPromptEvents.filter { it > lastFirstPromptDateTime }.size + 1
-        } else {
-            1
-        }
-    }
-
-    private fun getMaxPromptCountPerPeriod(lastDateTime: LocalDateTime): Int {
-        val hour = lastDateTime.hour
-        var maxPromptCount = 8
-
-        if (hour > 5) {
-            maxPromptCount = 6
+    fun getPromptCountInChain(lastDateTime: LocalDateTime) : Int {
+        var promptCount = 1
+        for ((i, promptTime) in currentPromptList.withIndex()) {
+            if(promptTime == lastPromptDateTime) {
+                promptCount =  i + 1
+                break
+            }
         }
 
-        return maxPromptCount
+        return promptCount
     }
 }
