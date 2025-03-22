@@ -9,20 +9,11 @@ object EventMonitor {
         var sleepStage = ""
         var hour = workingReadingList.last().dateTime?.hour
 
-        val stepHrVal = when(hour) {
-            1,2,3 -> 2.75
-            else -> 2.25
-        }
+        val stepHrVal = 2.75
 
-        val stepHrVarLow = when(hour) {
-            1,2,3 -> .45
-            else -> .4
-        }
+        val stepHrVarLow = .45
 
-        val stepHrVarHigh = when(hour) {
-            1,2,3 -> .75
-            else -> .7
-        }
+        val stepHrVarHigh = .75
 
         if (workingReadingList.size >= 15) {
             ///activity metrics

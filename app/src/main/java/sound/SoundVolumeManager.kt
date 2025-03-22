@@ -73,7 +73,7 @@ class SoundVolumeManager() {
     }
 
 
-    suspend private fun fadeBackgroundDown(fadeDownCnt: Int, fadeDownDelay: Long, finishVolume: Float, mBgId: Int) : Float {
+    private suspend fun fadeBackgroundDown(fadeDownCnt: Int, fadeDownDelay: Long, finishVolume: Float, mBgId: Int) : Float {
         //slowly lower the volume of the background after delay
         //Log.d("MainActivity", "$currBgVol minus $finishVolume divided by ${fadeDownCnt.toFloat()}")
         val bgFadeDownAmount = (currBgVol - finishVolume) / fadeDownCnt.toFloat()

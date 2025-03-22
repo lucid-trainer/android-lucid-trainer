@@ -40,6 +40,7 @@ import utils.AppConfig
 import utils.FileManager
 import utils.PromptMonitor
 import utils.SpeechManager
+import utils.TestManager
 import viewmodel.DocumentViewModel
 import viewmodel.DocumentViewModelFactory
 import java.time.DayOfWeek
@@ -62,7 +63,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         const val EVENT_LABEL_BUTTON = "button_press"
         const val EVENT_LABEL_WATCH = "watch_event"
         const val EVENT_LABEL_AWAKE = "awake_event"
-        const val EVENT_LABEL_LIGHT = "light_event"
         const val EVENT_LABEL_REM = "rem_event"
         const val EVENT_LABEL_PROMPT = "prompt_event"
         const val SLEEP_EVENT_PROMPT_DELAY = 10000L //3000L DEBUG VALUE
@@ -81,6 +81,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         const val WILD_MESSAGE = "wild"
         const val MILD_MESSAGE = "mild"
         const val SSILD_MESSAGE = "s s i l d"
+        const val SLEEP_BUTTON_MESSAGE = "sleep button"
 
         val filter = IntentFilter().apply {
             addAction(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
@@ -93,19 +94,23 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private lateinit var soundPoolManager: SoundPoolManager
     private lateinit var fileManager: FileManager
     private lateinit var speechManager: SpeechManager
+    private lateinit var testManager: TestManager
 
-    private var  lastEventTimestamp = ""
+    private var lastEventTimestamp = ""
     private var lastActiveEventTimestamp: LocalDateTime? = null
     private var apJob: Job? = null
 
     //monitor event sleep stage estimate for prompts
-    private val promptMonitor : PromptMonitor = PromptMonitor()
+    private val promptMonitor: PromptMonitor = PromptMonitor()
 
     private val myNoisyAudioStreamReceiver = getSpeakerEnabledReceiver()
 
     private var maxVolume = 0
     private var mBgRawId = -1
     private var mBgLabel = ""
+
+    //for testing prompting
+    private var isPromptTesting = false
 
     private val deviceDocumentRepository = DeviceDocumentsRepository(
         AppConfig.ApiService()
@@ -125,13 +130,18 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         speechManager = SpeechManager.getInstance(applicationContext)
 
+        soundPoolManager = SoundPoolManager.getInstance(application)
+
+        testManager = TestManager.getInstance(soundPoolManager)
+
         setupSound()
 
         // initialize viewModel
         val dao = ReadingDatabase.getInstance(application).readingDao
         val viewModelFactory = DocumentViewModelFactory(dao)
         viewModel = ViewModelProvider(
-            this, viewModelFactory)[DocumentViewModel::class.java]
+            this, viewModelFactory
+        )[DocumentViewModel::class.java]
 
         this.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
 
@@ -192,14 +202,15 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                         //check for speech events initiated by alarms or sound routines
                         handleSpeechEvents()
 
-                        if(lastEventTimestamp != viewModel.lastTimestamp.value) {
+                        if (lastEventTimestamp != viewModel.lastTimestamp.value) {
                             val dateFormat = DateTimeFormatter.ofPattern("M/dd/yyyy hh:mm:ss")
                             val displayDate = LocalDateTime.parse(viewModel.lastTimestamp.value)
                                 .format(dateFormat)
 
                             //initialize the lastAwakeTimestamp
                             if (promptMonitor.lastAwakeDateTime == null) {
-                                promptMonitor.lastAwakeDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
+                                promptMonitor.lastAwakeDateTime =
+                                    LocalDateTime.parse(viewModel.lastTimestamp.value)
                             }
 
                             //get any recent high active event and interrupt any prompts if found running
@@ -214,7 +225,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                             checkAndSubmitPromptEvent()
 
                             val eventsDisplay = promptMonitor.getEventsDisplay()
-                            if(eventsDisplay.isNotEmpty()) {
+                            if (eventsDisplay.isNotEmpty()) {
                                 reading += eventsDisplay
                             }
 
@@ -222,17 +233,22 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                             binding.readingTextview.text = reading
                             binding.sleepStageTexview.text = sleepStage
 
-                            if(viewModel.eventMap.value?.isNotEmpty()!!) {
-                                viewModel.eventMap.value?.let { events -> playPromptsFromWatchUI(events) }
+                            if (viewModel.eventMap.value?.isNotEmpty()!!) {
+                                viewModel.eventMap.value?.let { events ->
+                                    playPromptsFromWatchUI(
+                                        events
+                                    )
+                                }
                             }
                             lastEventTimestamp = viewModel.lastTimestamp.value.toString()
                         }
                     }
                     // In case of error, show some data to user
                     else -> {
-                        Log.e("MainActivity","$it.message")
+                        Log.e("MainActivity", "$it.message")
                         binding.progressBar.isVisible = false
-                        Toast.makeText(this@MainActivity, "${it.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@MainActivity, "${it.message}", Toast.LENGTH_SHORT)
+                            .show()
                     }
                 }
 
@@ -254,7 +270,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             val hour = LocalDateTime.parse(viewModel.lastTimestamp.value).hour
             val hoursAllowed = hour in 22..23 || hour in 0..8
             val lastActivityValue = viewModel.lastActivityValue
-            val isInActivityPeriod = promptMonitor.isInActivityPeriod(viewModel.lastTimestamp.value, 3L)
+            val isInActivityPeriod =
+                promptMonitor.isInActivityPeriod(viewModel.lastTimestamp.value, 3L)
             val isPromptRunning = promptMonitor.promptEventWaiting != null
 
             if (lastActivityValue != "NONE" && hoursAllowed && !isInActivityPeriod && !isPromptRunning) {
@@ -263,27 +280,31 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             }
 
             //we'll set a cooldown period to interrupt prompting if enough activity
-            if(lastActivityValue == "MEDIUM" || lastActivityValue == "HIGH") {
-                checkShouldStartInterruptCoolDown(false)
+            if (lastActivityValue == "MEDIUM" || lastActivityValue == "HIGH") {
+                checkShouldStartInterruptCoolDown()
             }
         }
     }
 
     private fun handleSpeechEvents() {
-        if(promptMonitor.isAlarmEventTime()) {
+        if (promptMonitor.isAlarmEventTime()) {
             speechManager.speakTheTime()
         }
 
         speechManager.handleSoundRoutineEvents()
     }
 
-    private fun checkShouldStartInterruptCoolDown(isButton : Boolean = true) {
-        val isStartAllCoolDown = promptMonitor.checkInterruptCoolDown(viewModel.lastTimestamp.value, isButton)
-         if (isStartAllCoolDown && !isButton) {
-             val lastActivityValue = viewModel.lastActivityValue
-             speechManager.speakTheTimeWithMessage("$lastActivityValue $INTERRUPT_MESSAGE")
-             stopSoundRoutine()
-         }
+    private fun checkShouldStartInterruptCoolDown(isButton: Boolean = false) {
+        val isStartAllCoolDown =
+            promptMonitor.checkInterruptCoolDown(viewModel.lastTimestamp.value, isButton)
+
+        if (isStartAllCoolDown && isButton) {
+            speechManager.speakTheTimeWithMessage( SLEEP_BUTTON_MESSAGE, INTERRUPT_MESSAGE)
+        }
+
+        if (isStartAllCoolDown && !isButton) {
+            stopSoundRoutine()
+        }
     }
 
     private fun clearSessionState() {
@@ -293,7 +314,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
     private fun processSleepStageEvents(sleepStage: String) {
         //Log.d("SleepStage", "${viewModel.lastTimestamp.value} stage=$sleepStage lastAwake=${viewModel.lastAwakeTimestamp}")
-        when(sleepStage) {
+        when (sleepStage) {
             "AWAKE" -> {
                 binding.sleepStageTexview.setTextColor(Color.RED)
 
@@ -311,7 +332,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             }
 
             "LIGHT ASLEEP" -> {
-                checkForTriggerLightPromptEvent()
                 binding.sleepStageTexview.setTextColor(Color.YELLOW)
             }
 
@@ -331,11 +351,12 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
         val hour = triggerDateTime.hour
         val day = triggerDateTime.dayOfWeek
-        val hourLimit = if(day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) 5 else 4
+        val hourLimit = if (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) 5 else 4
 
         if (binding.chipAwake.isChecked) {
             val hoursAllowed = hour in 2..hourLimit
-            val isAwakeEventAllowed = hoursAllowed && promptMonitor.isAwakeEventAllowed(viewModel.lastTimestamp.value)
+            val isAwakeEventAllowed =
+                hoursAllowed && promptMonitor.isAwakeEventAllowed(viewModel.lastTimestamp.value)
 
             if (hoursAllowed) {
                 val document = getDeviceDocument(EVENT_LABEL_AWAKE, isAwakeEventAllowed)
@@ -349,26 +370,15 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
     }
 
-    private fun checkForTriggerLightPromptEvent() {
-        if (binding.chipRem.isChecked) {
-            val hoursAllowed = promptMonitor.getPromptHoursAllowed(viewModel.lastTimestamp.value)
-            val logAllowed = getPromptLogHoursAllowed(viewModel.lastTimestamp.value)
-
-            val isLightPromptTriggerSet = hoursAllowed && promptMonitor.setPromptsIfAllowed(viewModel.lastTimestamp.value)
-
-            if (logAllowed) {
-                val document = getDeviceDocument(EVENT_LABEL_LIGHT, isLightPromptTriggerSet)
-                logEvent(document)
-            }
-        }
-    }
-
     private fun checkForTriggerREMPromptEvent() {
         if (binding.chipRem.isChecked) {
             val hoursAllowed = promptMonitor.getPromptHoursAllowed(viewModel.lastTimestamp.value)
             val logAllowed = getPromptLogHoursAllowed(viewModel.lastTimestamp.value)
 
-            val isREMPromptTriggerSet =  hoursAllowed && promptMonitor.setPromptsIfAllowed(viewModel.lastTimestamp.value)
+            val isREMPromptTriggerSet = hoursAllowed && promptMonitor.setPromptsIfAllowed(
+                viewModel.lastTimestamp.value,
+                EVENT_LABEL_REM
+            )
 
             if (logAllowed) {
                 val document = getDeviceDocument(EVENT_LABEL_REM, isREMPromptTriggerSet)
@@ -414,8 +424,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
     private fun setupSound() {
 
-        soundPoolManager = SoundPoolManager.getInstance(application)
-
         val bgSelector = binding.bgNoiseSpin
         bgSelector.onItemSelectedListener = this
 
@@ -432,9 +440,12 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
 
         binding.btnPrompt.setOnClickListener {
-            if(binding.chipGroup.checkedChipId == View.NO_ID ) {
+            if (binding.chipGroup.checkedChipId == View.NO_ID) {
                 val text = "You need to choose a sound routine"
                 Toast.makeText(application, text, Toast.LENGTH_LONG).show()
+            } else if(isPromptTesting) {
+                val pType = if(binding.chipWild.isChecked) "w" else "m"
+                testManager.testPrompting(pType, mBgRawId, mBgLabel, binding.playStatus)
             } else {
                 resetNoisyReceiver()
                 playPromptsFromEventsOrUI(EVENT_LABEL_BUTTON)
@@ -443,6 +454,10 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         binding.btnStop.setOnClickListener {
             soundPoolManager.stopPlayingAll(binding.playStatus)
+
+            if(isPromptTesting) {
+                testManager.stopPlayingAll(binding.playStatus)
+            }
             checkShouldStartInterruptCoolDown()
         }
 
@@ -471,10 +486,12 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         binding.seekBar.setOnSeekBarChangeListener(object :
             OnSeekBarChangeListener {
-                override fun onProgressChanged(seekBar: SeekBar,
-                                               progress: Int, fromUser: Boolean) {
-                    //Log.d("MainActivity", "volume=" + progress)
-                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC,progress,0)
+            override fun onProgressChanged(
+                seekBar: SeekBar,
+                progress: Int, fromUser: Boolean
+            ) {
+                //Log.d("MainActivity", "volume=" + progress)
+                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, progress, 0)
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar?) {
@@ -493,11 +510,12 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             binding.chipMild.isChecked = true
             binding.chipRem.isChecked = true
             binding.chipAwake.isChecked = false
-            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC,RESET_VOL,0)
+            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, RESET_VOL, 0)
         }
 
 
-        val podCount = fileManager.getFilesFromDirectory(PodSoundRoutine.ROOT_DIR+"/"+PodSoundRoutine.POD_DIR).size
+        val podCount =
+            fileManager.getFilesFromDirectory(PodSoundRoutine.ROOT_DIR + "/" + PodSoundRoutine.POD_DIR).size
         binding.chipPod.isVisible = podCount > 0
 
         binding.chipGroupPod.isVisible = false
@@ -535,11 +553,13 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             .setPositiveButton("Yes") { dialog, id ->
                 run {
                     val themes = fileManager.getAllDirectoriesFromPath("$ROOT_DIR/$THEMES_DIR")
-                    for(theme in themes) {
+                    for (theme in themes) {
                         val fgSize = fileManager.getUsedFilesFromDirectory(
-                            "$ROOT_DIR/$THEMES_DIR/$theme/$FOREGROUND_DIR").size
+                            "$ROOT_DIR/$THEMES_DIR/$theme/$FOREGROUND_DIR"
+                        ).size
                         val clipSize = fileManager.getUsedFilesFromDirectory(
-                            "$ROOT_DIR/$THEMES_DIR/$theme/$CLIP_DIR").size
+                            "$ROOT_DIR/$THEMES_DIR/$theme/$CLIP_DIR"
+                        ).size
                         Log.d("MainActivity", "clearing used fg= $fgSize clip= $clipSize")
 
                         fileManager.resetFilesUsed(
@@ -555,28 +575,24 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         val alert = builder.create()
         alert.show()
     }
-   /*
+
+    /*
       Handles playing of prompt routines triggered from the app, either from events triggered by raw watch data or
       from UI events (button presses)
     */
-    private fun playPromptsFromEventsOrUI(eventLabel : String, promptCount: Int = 0) {
+    private fun playPromptsFromEventsOrUI(eventLabel: String, promptCount: Int = 0) {
         val soundList = mutableListOf<String>()
-        var pMod = ""
-        var pType = ""
         var pMessage = ""
 
         val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
 
-        //default for auto prompts is a moderate length routine
+        //default is a moderate length routine
         var playCount = 2
 
+        var pType = "m"  //default to mild
         if (binding.chipSsild.isChecked) {
             pType = "s"
             pMessage = SSILD_MESSAGE
-        }
-        if (binding.chipMild.isChecked) {
-            pType = "m"
-            pMessage = MILD_MESSAGE
         }
         if (binding.chipWild.isChecked) {
             pType = "w"
@@ -586,12 +602,13 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             pMessage = WILD_MESSAGE
         }
 
-        if(eventLabel == EVENT_LABEL_PROMPT) {
+        var pMod: String
+        if (eventLabel == EVENT_LABEL_PROMPT) {
             pMod = "p"
         } else {
             //this can either be an auto awake event or an manual button event
-            pMod = if(eventLabel == EVENT_LABEL_AWAKE) "a" else ""
-            if(pMod.isEmpty()) {
+            pMod = if (eventLabel == EVENT_LABEL_AWAKE) "a" else ""
+            if (pMod.isEmpty()) {
                 //it's a manual event from watch so update the event list and read the time out
                 updateEventList(EVENT_LABEL_AWAKE, triggerDateTime.toString())
                 speechManager.speakTheTimeWithMessage(MANUAL_PLAY_MESSAGE, pMessage)
@@ -606,13 +623,13 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         //only allow this option via the prompt button
         if (eventLabel == EVENT_LABEL_BUTTON && binding.chipPod.isChecked) {
-            if(binding.chipPod1.isChecked) {
+            if (binding.chipPod1.isChecked) {
                 playCount = 1
-            } else if(binding.chipPod2.isChecked) {
+            } else if (binding.chipPod2.isChecked) {
                 playCount = 2
-            } else if(binding.chipPod3.isChecked) {
+            } else if (binding.chipPod3.isChecked) {
                 playCount = 3
-            } else if(binding.chipPod4.isChecked) {
+            } else if (binding.chipPod4.isChecked) {
                 playCount = 4
             }
 
@@ -621,7 +638,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         resetNoisyReceiver()
         soundPoolManager.playSoundList(
-            soundList, mBgRawId, mBgLabel, eventLabel, binding.playStatus, playCount, promptCount)
+            soundList, mBgRawId, mBgLabel, eventLabel, binding.playStatus, playCount, promptCount
+        )
     }
 
     /*
@@ -632,23 +650,29 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
 
-        var soundList : MutableList<String> = emptyList<String>().toMutableList()
+        var soundList: MutableList<String> = emptyList<String>().toMutableList()
         var playCount = 2
 
-        if(eventMap.containsKey(POD_EVENT) && (eventMap[POD_EVENT] != null)) {
+        if (eventMap.containsKey(POD_EVENT) && (eventMap[POD_EVENT] != null)) {
             updateEventList(EVENT_LABEL_AWAKE, triggerDateTime.toString())
             CoroutineScope(Dispatchers.Default).launch {
-                deviceDocumentRepository.postDevicePrompt("appdata", getDeviceDocument(EVENT_LABEL_AWAKE, true))
+                deviceDocumentRepository.postDevicePrompt(
+                    "appdata",
+                    getDeviceDocument(EVENT_LABEL_AWAKE, true)
+                )
                 //Log.d("MainActivity", "sending awake event to device repository for podcast event")
             }
 
             val podNumber = eventMap[POD_EVENT]!!.toInt()
             playCount = podNumber
             soundList.add("p")
-        }  else if(eventMap.containsKey(PLAY_EVENT) && (eventMap[PLAY_EVENT] != null)) {
+        } else if (eventMap.containsKey(PLAY_EVENT) && (eventMap[PLAY_EVENT] != null)) {
             updateEventList(EVENT_LABEL_AWAKE, triggerDateTime.toString())
             CoroutineScope(Dispatchers.Default).launch {
-                deviceDocumentRepository.postDevicePrompt("appdata", getDeviceDocument(EVENT_LABEL_AWAKE, true))
+                deviceDocumentRepository.postDevicePrompt(
+                    "appdata",
+                    getDeviceDocument(EVENT_LABEL_AWAKE, true)
+                )
                 //Log.d("MainActivity", "sending awake event to device repository for play event")
             }
 
@@ -657,9 +681,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             soundList = playEvent.split(",").toMutableList()
 
             var promptMessage = MILD_MESSAGE
-            if(soundList.contains("s")) {
+            if (soundList.contains("s")) {
                 promptMessage = SSILD_MESSAGE
-            } else if(soundList.contains("wa")) {
+            } else if (soundList.contains("wa")) {
                 //wilds initiated from watch should be longer
                 playCount = 3
                 promptMessage = WILD_MESSAGE
@@ -671,13 +695,12 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             //Log.d("PromptMonitor", "sleep event ${LocalDateTime.parse(viewModel.lastTimestamp.value)}")
             //stop any more prompts for a period of time
             lastActiveEventTimestamp = LocalDateTime.parse(viewModel.lastTimestamp.value)
-
             cancelStartCountDownPrompt(SLEEP_EVENT)
+            checkShouldStartInterruptCoolDown(true)
         }
 
-        if(soundList.isNotEmpty()) {
+        if (soundList.isNotEmpty()) {
             soundPoolManager.stopPlayingForeground()
-            soundPoolManager.stopPlayingBackground()
             checkShouldStartInterruptCoolDown()
 
             resetNoisyReceiver()
@@ -685,7 +708,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             Log.d("MainActivity", "play count $playCount for $soundList")
 
             soundPoolManager.playSoundList(
-                soundList, mBgRawId, mBgLabel, EVENT_LABEL_WATCH, binding.playStatus, playCount)
+                soundList, mBgRawId, mBgLabel, EVENT_LABEL_WATCH, binding.playStatus, playCount
+            )
         }
     }
 
@@ -697,14 +721,17 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
     }
 
-    private fun startCountDownPromptTimer(eventLabel : String) {
+    private fun startCountDownPromptTimer(eventLabel: String) {
         //avoid stepping on a waiting or running job
         val isRunning = promptMonitor.promptEventWaiting != null
 
         Log.d("MainActivity", "called with event $eventLabel");
 
-        if(isRunning) {
-            Log.d("MainActivity", "returning, promptEventWaiting = $promptMonitor.promptEventWaiting")
+        if (isRunning) {
+            Log.d(
+                "MainActivity",
+                "returning, promptEventWaiting = $promptMonitor.promptEventWaiting"
+            )
             return
         }
 
@@ -725,10 +752,12 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 }
 
                 //send a vibration event to the watch
-                deviceDocumentRepository.postDevicePrompt("appdata",
-                    getDeviceDocument(eventLabel, true, promptCount))
+                deviceDocumentRepository.postDevicePrompt(
+                    "appdata",
+                    getDeviceDocument(eventLabel, true, promptCount)
+                )
 
-                if(eventLabel != EVENT_LABEL_AWAKE) {
+                if (eventLabel != EVENT_LABEL_AWAKE) {
                     //give the watch a little time to pick up the vibration event
                     yield()
                     delay(timeMillis = SLEEP_EVENT_PROMPT_DELAY)
@@ -754,14 +783,14 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         promptMonitor.promptEventWaiting = null
 
-        val document = getDeviceDocument("cancel from: $eventLabel", false )
+        val document = getDeviceDocument("cancel from: $eventLabel", false)
         logEvent(document)
 
-        if(apJob != null && apJob!!.isActive) {
+        if (apJob != null && apJob!!.isActive) {
             apJob!!.cancel()
         }
 
-        if(mBgLabel.isNotEmpty()) {
+        if (mBgLabel.isNotEmpty()) {
             binding.playStatus.text = "Playing $mBgLabel"
         } else {
             binding.playStatus.text = ""
@@ -769,9 +798,14 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         soundPoolManager.stopPlayingForeground()
         soundPoolManager.stopPlayingAltBackground()
+        speechManager.clearSoundRoutineEvents()
     }
 
-    private fun getDeviceDocument(type: String, allowed: Boolean, promptCount: Int = 0) : DeviceDocument {
+    private fun getDeviceDocument(
+        type: String,
+        allowed: Boolean,
+        promptCount: Int = 0
+    ): DeviceDocument {
         val triggerTimestamp =
             if (viewModel.lastTimestamp.value != null) viewModel.lastTimestamp.value!! else ""
 
@@ -780,7 +814,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         val intensity = promptMonitor.promptIntensityLevel(promptCount)
 
-        return  DeviceDocument(
+        return DeviceDocument(
             LocalDateTime.now().toString(),
             triggerTimestamp,
             type,
@@ -799,7 +833,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private fun updateEventList(eventLabel: String, triggerTimestamp: String) {
         val now = LocalDateTime.parse(triggerTimestamp)
 
-        when(eventLabel) {
+        when (eventLabel) {
             EVENT_LABEL_AWAKE -> promptMonitor.addAwakeEvent(now)
 
             EVENT_LABEL_PROMPT -> promptMonitor.addPromptEvent(now)
@@ -815,7 +849,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                     soundPoolManager.stopPlayingAll(binding.playStatus)
                 }
 
-                if(intent.action == BluetoothDevice.ACTION_ACL_CONNECTED) {
+                if (intent.action == BluetoothDevice.ACTION_ACL_CONNECTED) {
                     Log.d("MainActivity", "bluetooth connected")
                     if (mBgRawId == -1) {
                         mBgLabel = "Fan"
@@ -831,7 +865,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         return broadcastReceiver
     }
 
-    private fun purgeOldRecords(dateTime : LocalDateTime) {
+    private fun purgeOldRecords(dateTime: LocalDateTime) {
         // create a scope to access the database from a thread other than the main thread
         val scope = CoroutineScope(Dispatchers.Default)
         scope.launch {
@@ -860,7 +894,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         mBgRawId = if (bgChoice.toString() == "Fan") {
             mBgLabel = "Fan"
             R.raw.boxfan
-        } else if  (bgChoice.toString() == "AC") {
+        } else if (bgChoice.toString() == "AC") {
             mBgLabel = "AC"
             R.raw.ac
         } else if (bgChoice.toString() == "Metal Fan") {

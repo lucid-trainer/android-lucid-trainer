@@ -82,6 +82,10 @@ class SpeechManager() {
         }
     }
 
+    fun clearSoundRoutineEvents() {
+        soundRoutineEvents.clear()
+    }
+
     fun speakTheTime() {
         speakTheTimeWithMessage("", "", true)
     }

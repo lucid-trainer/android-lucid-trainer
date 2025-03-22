@@ -1,6 +1,7 @@
 package utils
 
 import android.util.Log
+import presentation.MainActivity.Companion.EVENT_LABEL_REM
 import java.time.DayOfWeek
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -30,7 +31,8 @@ class PromptMonitor {
     companion object {
         const val NEW_PROMPT_PERIOD_WAIT_SECONDS = 45L
         const val PROMPT_PERIOD = 20L  //the period in which a new prompt chain can run
-        const val PROMPT_COOL_DOWN_PERIOD = 20L //periods between allowed prompt chains
+        const val MIN_PROMPT_COOL_DOWN_PERIOD = 5L //periods between allowed prompt chains
+        const val MAX_PROMPT_COOL_DOWN_PERIOD = 15L //periods between allowed prompt chains
         const val MIN_PROMPT_COUNT = 4
         const val MAX_PROMPT_COUNT = 10
         const val INTERRUPT_COOL_DOWN_PERIOD = 10L //period that prompts are quited after movement
@@ -122,11 +124,13 @@ class PromptMonitor {
         lastActivityEventDateTime = lastDateTime
 
         if(isButton) {
-            //just set we use the sleep button and clear any prompts
-            coolDownEndDateTime = lastDateTime.plusMinutes( SLEEP_COOL_DOWN_PERIOD)
+            //set the timeout to at least length of constant plus some random additional minutes
+            lastSleepButtonDateTime = lastDateTime
+            val sleepBtnCoolDown = SLEEP_COOL_DOWN_PERIOD + (0..40).random()
+            coolDownEndDateTime = lastDateTime.plusMinutes(sleepBtnCoolDown)
             updatedAllCoolDown = true
             currentPromptList.clear()
-            Log.d("MainActivity","clearing prompt list from isSleepButton")
+            Log.d("MainActivity","clearing prompt list from isSleepButton, cool down ends $coolDownEndDateTime")
         } else {
             if(promptEvents.isNotEmpty() && ( coolDownEndDateTime == null ||
                 (lastDateTime > coolDownEndDateTime && lastDateTime > promptEvents.last() &&
@@ -183,7 +187,7 @@ class PromptMonitor {
         val triggerDateTime = LocalDateTime.parse(lastTimestamp)
         val hour = triggerDateTime.hour
         val day = triggerDateTime.dayOfWeek
-        val hourLimit = if(day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) 6 else 5
+        val hourLimit = if(day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) 7 else 5
 
         val allowedFirstPartOfNight = hour in 1..3
                 && isAwakeEventBeforePeriod(lastTimestamp, 20)
@@ -197,15 +201,15 @@ class PromptMonitor {
         }
     }
 
-    fun setPromptsIfAllowed(lastTimestamp: String?): Boolean {
+    fun setPromptsIfAllowed(lastTimestamp: String?, eventType: String): Boolean {
         //Log.d("PromptMonitor", "$lastTimestamp isInPromptWindow = ${isInPromptWindow(lastTimestamp)}")
         val isAllowed = promptEventWaiting == null && isInPromptWindow(lastTimestamp) && !isInAwakePeriod(lastTimestamp)
                 && !isInCoolDownPeriod(lastTimestamp)  && !isRecentPromptTriggerEvent(lastTimestamp)
+                && (eventType == EVENT_LABEL_REM || currentPromptList.isNotEmpty())  // we only want REM events to start new chain
 
         if(isAllowed) {
             //extend the prompt window and add prompts to the list
             val triggerTime = LocalDateTime.parse(lastTimestamp)
-            startPromptAllowPeriod = triggerTime
             triggerEvents.add(triggerTime)
             addPrompts(lastTimestamp)
         }
@@ -217,7 +221,7 @@ class PromptMonitor {
         val triggerDateTime = LocalDateTime.parse(lastTimestamp)
 
         //load the initial list of prompts, or add a couple for each trigger
-        if(currentPromptList.size == 0) {
+        if(currentPromptList.isEmpty()) {
             var nextPromptTime = triggerDateTime.plusSeconds(30)
             while(currentPromptList.size < MIN_PROMPT_COUNT) {
                 Log.d("MainActivity","adding prompt $nextPromptTime")
@@ -226,12 +230,13 @@ class PromptMonitor {
             }
 
             Log.d("MainActivity","adding prompts and new trigger for $triggerDateTime")
-
+            startPromptAllowPeriod = triggerDateTime
             addNewTriggerAndEventCount(triggerDateTime)
         } else if(currentPromptList.size < MAX_PROMPT_COUNT){
             repeat(2) {
                 val lastPromptTime = currentPromptList.last()
-                val nextPromptTime = lastPromptTime.plusSeconds(SECONDS_BETWEEN_PROMPTS)
+                val nextPromptTime = if(lastPromptTime > triggerDateTime) lastPromptTime.plusSeconds(SECONDS_BETWEEN_PROMPTS)
+                       else triggerDateTime.plusSeconds(60)
                 Log.d("MainActivity","adding additional prompt $nextPromptTime")
                 currentPromptList.add(nextPromptTime)
             }
@@ -255,15 +260,18 @@ class PromptMonitor {
 
         if (nextPrompt != null) {
             lastPromptDateTime = nextPrompt
-
             Log.d("MainActivity","returning non-null prompt $nextPrompt")
         } else {
-            //if we're outside of the window for new prompt triggers and the prompt list is completed we'll empty
+            //if it's been more than 5 minutes without a prompt, go ahead and clear the list
             //and set a cool down period before allowing new prompt triggers
-            if(!isInPromptWindow(lastTimestamp) && currentPromptList.size > 0 && lastPromptDateTime != null
-                && currentPromptList.firstOrNull{ it > lastPromptDateTime } == null) {
+            if(currentPromptList.size > 0
+                && currentPromptList.firstOrNull{ it > triggerDateTime!!.minusMinutes(5) } == null) {
+                //if we haven't gotten close to max prompts, we'll set a smaller cool down period
+                val promptCoolDownPeriod = if(currentPromptList.size < MAX_PROMPT_COUNT - 2)
+                    MIN_PROMPT_COOL_DOWN_PERIOD else MAX_PROMPT_COOL_DOWN_PERIOD
+                coolDownEndDateTime = triggerDateTime.plusMinutes(promptCoolDownPeriod)
+                Log.d("MainActivity","adding $promptCoolDownPeriod to get cool down $coolDownEndDateTime")
                 currentPromptList.clear()
-                coolDownEndDateTime = triggerDateTime.plusMinutes(PROMPT_COOL_DOWN_PERIOD)
                 Log.d("MainActivity","clearing prompt list from getNextPrompt")
             }
         }
@@ -286,9 +294,7 @@ class PromptMonitor {
         val day = current.dayOfWeek
         val isWeekend = day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY
 
-        val isMondayWednesday = day == DayOfWeek.MONDAY || day == DayOfWeek.WEDNESDAY
-        var alarmTimes = if(isWeekend) arrayListOf(Pair(7,5), Pair(7,10), Pair(7,55), Pair(8,5), Pair(8,10) )
-            else if(isMondayWednesday) arrayListOf(Pair(6,20), Pair(6,25), Pair(6,30))
+        var alarmTimes = if(isWeekend) arrayListOf(Pair(8,10), Pair(8,15))
             else arrayListOf(Pair(6,45), Pair(6,50), Pair(6,55), Pair(7,5), Pair(7,10))
 
         //Log.d("MainActivity","${viewModel.lastTimestamp.value} hour=$hour minute=$minute alarmHour=$alarmHour")
@@ -308,7 +314,7 @@ class PromptMonitor {
 
     fun promptIntensityLevel(promptCount: Int = 1): Int {
         return when(promptCount) {
-            1, 2 -> 1
+            1 -> 1
             else -> 0
         }
     }

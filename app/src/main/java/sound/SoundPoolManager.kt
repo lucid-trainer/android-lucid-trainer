@@ -151,28 +151,30 @@ class SoundPoolManager {
 
         //get the appropriate sound routine, adjusting volumes further depending on type
         val soundRoutine = when (type) {
+
             "m" -> {
-                fgVolume *= .8F
-                altBgVolume *= .7F
-                MILDSoundRoutine(playCount, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel, MILD_THEME )
+                fgVolume *= .75F
+                altBgVolume *= .6F
+
+                MILDSoundRoutine(playCount, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel,  endBgLabel, MILD_THEME)
             }
 
             "ma" -> {
-                fgVolume *= .6F
-                altBgVolume *= .55F
+                fgVolume *= .65F
+                altBgVolume *= .5F
 
                 MILDSoundRoutine(1, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel,  endBgLabel, MILD_THEME)
             }
 
             "wa" -> {
-                fgVolume *= .6F
-                altBgVolume *= .55F
+                fgVolume *= .65F
+                altBgVolume *= .5F
 
                 WILDSoundRoutine(playCount, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel, randomTheme)
             }
 
             "wp", "mp" -> {
-                fgVolume *= .6F
+                fgVolume *= .625F
 
                 val fgLabel = if(type == "wp") "WILD" else "MILD"
                 MildPromptSoundRoutine(1, bgRawRes, endBgRawRes, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, endBgLabel, MILD_THEME, fgLabel, promptCount)
@@ -456,7 +458,7 @@ class SoundPoolManager {
 
         if (fadeUpCnt > 0) {
             Log.d("MainActivity", "fade up the background from $startVolume to $finishVolume")
-            volumeManager.currAltBgVol *= .7F //set the background to a lower level and fade up
+            volumeManager.currAltBgVol *= .7F //set the alt background to a lower level to fade up as well
             //Log.d("MainActivity", "484: setting currAltBgVol to $currAltBgVol")
             volumeManager.fadeBackgroundUp(fadeUpCnt, fadeUpDelay, finishVolume, startVolume, mBgId)
         } else {

@@ -21,7 +21,11 @@ class MildPromptSoundRoutine (
 
         val bgSounds : MutableList<String> = emptyList<String>().toMutableList()
 
-        bgSounds.add("$promptDir/ambient_1.ogg")
+        val altBgFile =
+            fileManager.getFilesFromDirectory(promptDir).filter { it.startsWith("alt_background_") }
+                .shuffled().last()
+
+        bgSounds.add("$promptDir/$altBgFile")
 
         return bgSounds
 
@@ -45,7 +49,7 @@ class MildPromptSoundRoutine (
 
         routine.add(Sound(0, 7, "$promptDir/silence.ogg"))
 
-        routine.add(Sound(0, 0, "$promptDir/ambient_2.ogg"))
+        routine.add(Sound(0, 0, "$promptDir/foreground.ogg"))
 
         return routine
     }
