@@ -1,90 +1,114 @@
 package sound
 
+import android.util.Log
 import com.lucidtrainer.R
 import utils.FileManager
 
 class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, override var endBgRawId: Int,
                        override var bgVolume: Float, override var altBgVolume: Float, override var fgVolume: Float,
                        override val eventLabel : String, override var bgLabel : String, override var endBgLabel : String,
-                       override val fgLabel : String = "MILD"
+                       override var theme: String, override val fgLabel : String = "MILD"
 
 ) : SoundRoutine {
 
     private val fileManager = FileManager.getInstance()!!
 
-    companion object {
-        const val ROOT_DIR = "wild"
-        const val FOREGROUND_DIR = "fg"
-        const val ALT_BACKGROUND_DIR = "bg"
-        const val PROMPT_DIR = "prompt"
-        const val START_DIR = "start"
-    }
-
     override fun getRoutine(): List<Sound> {
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()
 
-        routine.add(Sound(R.raw.mild_intro, 0))
-        routine.add(Sound(R.raw.mild_dream_1, 90))
-        routine.add(Sound(R.raw.mild_replay, 90))
-        routine.add(Sound(R.raw.mild_finish, 20))
+        val mildDir = "$ROOT_DIR/$MILD_DIR"
+        routine.add(Sound(0, 70, "$mildDir/instruction.ogg"))
+        Log.d("MainActivity", "mildDir=$mildDir, count = ${fileManager.getFilesFromDirectory(mildDir).size} ")
 
-        //add light wild routine (quiet, hard to hear sound to hopefully fall asleep to but no long main clip)
-        addWildStartSound(routine)
-
+        addStartSound(routine)
         addForegroundSounds(routine)
-
-        addPromptSound(routine)
 
         return routine
     }
 
     override fun getStartSounds(): List<String> {
-        return emptyList()
+        val startSounds : MutableList<String> = emptyList<String>().toMutableList()
+
+        startSounds.add("$ROOT_DIR/$THEMES_DIR/$theme/$START_DIR/silence.ogg")
+
+        return startSounds
     }
 
     override fun getAltBGSounds(): List<String> {
         val altBGSounds : MutableList<String> = emptyList<String>().toMutableList()
 
-        val dir = "/$ROOT_DIR/$ALT_BACKGROUND_DIR"
-
+        val dir = "/$ROOT_DIR/$THEMES_DIR/$theme/$ALT_BACKGROUND_DIR"
+        //Log.d("MainActivity", "dir=$dir, count = ${fileManager.getFilesFromDirectory(dir).size} ")
         val files = fileManager.getFilesFromDirectory(dir).shuffled().slice(0..9)
+        Log.d("MainActivity", "bg files = $files")
 
         for (i in 0..9) {
-            altBGSounds.add("${WILDSoundRoutine.ROOT_DIR}/${WILDSoundRoutine.ALT_BACKGROUND_DIR}/${files[i]}")
+            altBGSounds.add("$dir/${files[i]}")
         }
 
         return altBGSounds
     }
 
+    override fun getSpeechEventsTrigger(): Int {
+        return when(playCount) {
+            1 -> 7
+            else -> 11
+        }
+    }
+
+    override fun getSpeechEventsCount(): Int {
+        return 3
+    }
+
+    override fun getSpeechEventsTimeBetween() : Int {
+        return 2
+    }
+
     private fun addForegroundSounds(routine: MutableList<Sound>) {
+        var dir = "$ROOT_DIR/$THEMES_DIR/$theme/$FOREGROUND_DIR"
 
-        val dir = "$ROOT_DIR/$FOREGROUND_DIR"
+        val limit = when(playCount) {
+            1 -> 8
+            else -> 12
+        }
 
-        val limit = if(playCount > 1) 15 else 8
+        //Log.d("MainActivity", "altfg dir=$dir, count = ${fileManager.getFilesFromDirectory(dir).size} ")
 
         val files = fileManager.getUnusedFilesFromDirectory(dir, limit).shuffled().slice(0 until limit)
 
-        //Log.d("WildRoutine", "used fg ${FileMonitor.getUnusedFilesFromDirectory(dir, 8).size}")
-
+        var i = 1;
         for (file in files) {
-            routine.add(Sound(0, 20, "$dir/$file"))
+            routine.add(Sound(0, 20, "$dir/$file",false, getVolAdjust(i)))
+            i++
         }
 
         fileManager.addFilesUsed(dir, files)
     }
 
-    private fun addWildStartSound(routine: MutableList<Sound>) {
-        routine.add(Sound(0, 20, "$ROOT_DIR/$START_DIR/wild_start.ogg"))
+    private fun addStartSound(routine: MutableList<Sound>) {
+        var dir = "$ROOT_DIR/$THEMES_DIR/$theme/$START_DIR"
+        routine.add(Sound(0, 20, "$dir/start.ogg",false))
     }
 
-    private fun addPromptSound(routine: MutableList<Sound>) {
-        //add a prompt near start of the the routine
-        var dir = "$ROOT_DIR/$PROMPT_DIR"
+    override fun getVolAdjust(fileCount: Int): Float {
 
-        val file = fileManager.getFilesFromDirectory(dir).shuffled().last()
+        return when {
+            fileCount <= 1 -> .95F
+            fileCount <= 2 -> .9F
+            fileCount <= 3 -> .85F
+            fileCount <= 4 -> .8F
+            fileCount <= 5 -> .75F
+            fileCount <= 6 -> .7F
+            fileCount <= 7 -> .64F
+            fileCount <= 8 -> .58F
+            fileCount <= 9 -> .52F
+            fileCount <= 10 -> .48F
+            else -> .42F
+        }
+    }
 
-        val index = if(playCount > 2)  10 else 7
-
-        routine.add(index, Sound(0, 20, "$dir/$file"))
+    //we always want to start a prompt by resetting the background
+    override fun fadeDownBg() : Boolean {
+        return true
     }
 }

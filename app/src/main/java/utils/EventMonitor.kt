@@ -7,6 +7,13 @@ object EventMonitor {
     fun getSleepStage(workingReadingList:  ArrayList<Reading>) : String {
 
         var sleepStage = ""
+        var hour = workingReadingList.last().dateTime?.hour
+
+        val stepHrVal = 2.75
+
+        val stepHrVarLow = .45
+
+        val stepHrVarHigh = .75
 
         if (workingReadingList.size >= 15) {
             ///activity metrics
@@ -15,14 +22,14 @@ object EventMonitor {
             val activeCnt =
                 workingReadingList.map { it -> it.accelMovement }.takeLast(5).filter { it > .2 }.size
             val restlessCnt =
-                workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .11 }.size
+                workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .15 }.size
             val deepCnt =
                 workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .01 }.size
             val lightCnt =
-                workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .02 && it <= .11}.size
+                workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .02 && it <= .15}.size
 
             val recentMove =
-                workingReadingList.map { it -> it.accelMovement }.takeLast(10).filter { it > .11 }.size
+                workingReadingList.map { it -> it.accelMovement }.takeLast(10).filter { it > .15 }.size
             val extendedDeepCnt =
                 workingReadingList.map { it -> it.accelMovement }.takeLast(36).filter { it > .02 }.size
 
@@ -31,7 +38,7 @@ object EventMonitor {
                 workingReadingList.map { it -> it.heartRate }.takeLast(15).take(10).average()
             val recentHeartRate =  workingReadingList.map { it -> it.heartRate }.takeLast(5)
             val stepHrIncrease = recentHeartRate.filter { it > avgHeartRate + 1 }.size >= 2 &&
-                    recentHeartRate.any { it > avgHeartRate + 2 } && extendedDeepCnt > 0
+                    recentHeartRate.any { it > avgHeartRate + stepHrVal } && extendedDeepCnt > 0
 
             //hrVar trigger
             val avgHeartVarRate =
@@ -39,8 +46,8 @@ object EventMonitor {
             val recentHeartRateVar =  workingReadingList.map { it -> it.heartRateVar }.takeLast(5)
             val currentMoveCnt = workingReadingList.map { it -> it.accelMovement }.takeLast(4).filter { it > .05 }.size
             val stepHrVarIncrease = currentMoveCnt == 0  &&
-                    ((extendedDeepCnt > 0 && recentHeartRateVar.filter { it > avgHeartVarRate + .25 }.size >= 2) ||
-                            recentHeartRateVar.any {it > avgHeartVarRate + .5})
+                    ((extendedDeepCnt > 0 && recentHeartRateVar.filter { it > avgHeartVarRate + stepHrVarLow }.size >= 2) ||
+                            recentHeartRateVar.any {it > avgHeartVarRate + stepHrVarHigh})
 
             sleepStage = "LIGHT ASLEEP"
 
@@ -63,8 +70,20 @@ object EventMonitor {
         return sleepStage;
     }
 
-    fun getActiveEvent(workingReadingList:  ArrayList<Reading>) : Boolean {
-        return (workingReadingList.size >= 1 &&
-                workingReadingList.map { it -> it.accelMovement }.last() > .25)
+    fun getLastActivity(workingReadingList:  ArrayList<Reading>) : String {
+        var lastActivity = "NONE"
+
+        if(workingReadingList.size >= 1) {
+            val lastActivityReading = workingReadingList.map { it -> it.accelMovement }.last()
+            if(lastActivityReading > .325) {
+                lastActivity = "HIGH"
+            } else if (lastActivityReading > .2) {
+                lastActivity = "MEDIUM"
+            } else if (lastActivityReading > .1) {
+                lastActivity = "LIGHT"
+            }
+        }
+
+        return lastActivity
     }
 }

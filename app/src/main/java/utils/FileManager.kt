@@ -6,6 +6,9 @@ import android.os.Environment
 import android.util.Log
 import com.olekdia.androidcommon.extensions.defaultSharedPreferences
 import java.io.File
+import kotlin.io.path.Path
+import kotlin.io.path.listDirectoryEntries
+import kotlin.io.path.name
 
 class FileManager(val sharedPreferences : SharedPreferences) {
 
@@ -68,6 +71,7 @@ class FileManager(val sharedPreferences : SharedPreferences) {
     fun addFileUsed(dir: String, file: String) {
         val files = listOf(file)
         addFilesUsed(dir, files)
+        Log.d("FileManager", "add files used $dir $file $files")
     }
 
     fun resetFilesUsed(vararg dirs: String) {
@@ -114,13 +118,31 @@ class FileManager(val sharedPreferences : SharedPreferences) {
         return filesList
     }
 
+    fun getAllDirectoriesFromPath(dir: String) : List<String> {
+
+        val dirList = mutableListOf<String>()
+        val dirs = Path(ex.path + "/$dir").listDirectoryEntries()
+
+        if(dir != null && dirs.isNotEmpty()) {
+            for (i in dirs.indices) {
+                dirList.add(dirs[i].name)
+            }
+        }
+
+        return dirList
+    }
+
     fun getFilePath(fileName : String): String? {
 
-        val fileLocation = fileName.split("/")
+        val fileLocation = fileName.substringBeforeLast("/")
+        val fileNameOnly = fileName.substringAfterLast("/")
+
+
+        Log.d("MainActivity", "File Manager $fileName: $fileLocation")
 
         val file = File(
-            File(ex.path + "/" + fileLocation[0] + "/" + fileLocation[1] + "/"),
-            fileLocation[2])
+            File(ex.path + "/" + fileLocation + "/"),
+            fileNameOnly)
 
         return if (file.exists()) {
             file.path

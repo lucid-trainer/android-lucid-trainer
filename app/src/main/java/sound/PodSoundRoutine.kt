@@ -5,11 +5,11 @@ import android.util.Log
 class PodSoundRoutine(override var playCount: Int, override var bgRawId: Int, override var endBgRawId: Int,
                       override var bgVolume: Float, override var altBgVolume: Float, override var fgVolume: Float,
                       override val eventLabel : String, override var bgLabel : String, override var endBgLabel : String,
-                      override val fgLabel : String = "POD",
+                      override val theme: String = "", override val fgLabel : String = "POD",
 ) : SoundRoutine {
 
     companion object {
-        const val ROOT_DIR = "other"
+        const val ROOT_DIR = "lt_sounds"
         const val POD_DIR = "podcasts"
     }
 
@@ -33,7 +33,11 @@ class PodSoundRoutine(override var playCount: Int, override var bgRawId: Int, ov
     }
 
     //we always want to treat podcasts like the bg file has been overridden so we can turn down sound
-    override fun overrideBG() : Boolean {
+    override fun fadeDownBg() : Boolean {
+        return true
+    }
+
+    override fun fadeDownFg(): Boolean {
         return true
     }
 

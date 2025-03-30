@@ -5,7 +5,7 @@ import com.lucidtrainer.R
 class SSILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, override var endBgRawId: Int,
                         override var bgVolume: Float, override var altBgVolume: Float, override var fgVolume: Float,
                         override val eventLabel : String, override var bgLabel : String, override var endBgLabel : String,
-                        override val fgLabel : String = "SSILD"
+                        override val theme: String = "", override val fgLabel : String = "SSILD"
 
 ) : SoundRoutine {
 
