@@ -16,7 +16,6 @@ class PromptMonitor {
     private var currentPromptList: MutableList<LocalDateTime> = emptyList<LocalDateTime>().toMutableList()
     private var lastPromptDateTime: LocalDateTime? = null
 
-
     var lastAwakeDateTime : LocalDateTime? = null
     var lastFollowupDateTime : LocalDateTime? = null
     var lastSleepButtonDateTime: LocalDateTime? = null
@@ -251,6 +250,8 @@ class PromptMonitor {
         val triggerDateTime =  LocalDateTime.parse(lastTimestamp)
         var nextPrompt: LocalDateTime? = null
 
+        Log.d("MainActivity", "calling getNextPrompt")
+
         //get the first prompt that's before the trigger time
         nextPrompt = if (lastPromptDateTime != null) {
             currentPromptList.firstOrNull{ it > lastPromptDateTime && it < triggerDateTime }
@@ -277,6 +278,10 @@ class PromptMonitor {
         }
 
         return nextPrompt
+    }
+
+    fun isInPromptRunPeriod() : Boolean {
+        return currentPromptList.any { it > lastPromptDateTime && getPromptCountInChain() > 1  }
     }
 
     private fun isInAwakePeriod(lastTimestamp: String?) : Boolean {
@@ -319,7 +324,7 @@ class PromptMonitor {
         }
     }
 
-    fun getPromptCountInChain(lastDateTime: LocalDateTime) : Int {
+    fun getPromptCountInChain() : Int {
         var promptCount = 1
         for ((i, promptTime) in currentPromptList.withIndex()) {
             if(promptTime == lastPromptDateTime) {
@@ -329,5 +334,15 @@ class PromptMonitor {
         }
 
         return promptCount
+    }
+
+    fun getActivityVolAdjust(): Float {
+        var activityVolAdjust = 1F
+
+        if (isInPromptRunPeriod()) {
+            .8F
+        }
+
+        return activityVolAdjust
     }
 }

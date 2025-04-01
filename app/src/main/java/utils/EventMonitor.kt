@@ -81,6 +81,8 @@ object EventMonitor {
                 lastActivity = "MEDIUM"
             } else if (lastActivityReading > .1) {
                 lastActivity = "LIGHT"
+            } else if (lastActivityReading > .02) {
+                lastActivity = "TRACE"
             }
         }
 

@@ -267,21 +267,24 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         ) {
 
             lastActiveEventTimestamp = viewModel.lastActiveEventTimestamp
-            val hour = LocalDateTime.parse(viewModel.lastTimestamp.value).hour
+            val triggerTimestamp = LocalDateTime.parse(viewModel.lastTimestamp.value)
+            val hour = triggerTimestamp.hour
             val hoursAllowed = hour in 22..23 || hour in 0..8
             val lastActivityValue = viewModel.lastActivityValue
             val isInActivityPeriod =
                 promptMonitor.isInActivityPeriod(viewModel.lastTimestamp.value, 3L)
             val isPromptRunning = promptMonitor.promptEventWaiting != null
 
-            if (lastActivityValue != "NONE" && hoursAllowed && !isInActivityPeriod && !isPromptRunning) {
+            if (lastActivityValue != "NONE" && lastActivityValue != "TRACE" && hoursAllowed && !isInActivityPeriod && !isPromptRunning) {
                 //we'll read out the time for any elevated activity
-                speechManager.speakTheTimeWithMessage(lastActivityValue + " " + ACTIVE_EVENT_MESSAGE)
+                speechManager.speakTheTimeWithMessage(lastActivityValue + " " + ACTIVE_EVENT_MESSAGE, "",.4F)
             }
 
             //we'll set a cooldown period to interrupt prompting if enough activity
             if (lastActivityValue == "MEDIUM" || lastActivityValue == "HIGH") {
                 checkShouldStartInterruptCoolDown()
+            } else if(lastActivityValue == "LOW" || lastActivityValue == "TRACE") {
+                soundPoolManager.activeFgVolAdj = promptMonitor.getActivityVolAdjust()
             }
         }
     }
@@ -299,7 +302,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             promptMonitor.checkInterruptCoolDown(viewModel.lastTimestamp.value, isButton)
 
         if (isStartAllCoolDown && isButton) {
-            speechManager.speakTheTimeWithMessage( SLEEP_BUTTON_MESSAGE, INTERRUPT_MESSAGE)
+            speechManager.speakTheTimeWithMessage( SLEEP_BUTTON_MESSAGE, INTERRUPT_MESSAGE, .4F)
         }
 
         if (isStartAllCoolDown && !isButton) {
@@ -637,9 +640,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
 
         resetNoisyReceiver()
-        soundPoolManager.playSoundList(
-            soundList, mBgRawId, mBgLabel, eventLabel, binding.playStatus, playCount, promptCount
-        )
+        playSoundList(soundList, playCount, eventLabel, promptCount)
     }
 
     /*
@@ -707,10 +708,22 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
             Log.d("MainActivity", "play count $playCount for $soundList")
 
-            soundPoolManager.playSoundList(
-                soundList, mBgRawId, mBgLabel, EVENT_LABEL_WATCH, binding.playStatus, playCount
-            )
+            playSoundList(soundList, playCount, EVENT_LABEL_WATCH)
         }
+    }
+
+    private fun playSoundList(
+        soundList: MutableList<String>,
+        playCount: Int,
+        eventLabel: String,
+        promptCount: Int = 1
+    ) {
+        Log.d("MainActivity", "eventLabel = $eventLabel promptCount = $promptCount")
+        if(eventLabel != EVENT_LABEL_PROMPT || promptCount == 1) {
+            Log.d("MainActivity", "resetting activeFgVolAdj")
+            soundPoolManager.activeFgVolAdj = 1F
+        }
+        soundPoolManager.playSoundList(soundList, mBgRawId, mBgLabel, eventLabel, binding.playStatus, playCount, promptCount)
     }
 
     private fun stopSoundRoutine() {
@@ -748,7 +761,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 //get the current prompt count for rem associated prompt events
                 var promptCount = 0
                 if (eventLabel == EVENT_LABEL_PROMPT) {
-                    promptCount = getPromptCount()
+                    promptCount = promptMonitor.getPromptCountInChain()
                 }
 
                 //send a vibration event to the watch
@@ -771,11 +784,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 promptMonitor.promptEventWaiting = null
             }
         }
-    }
-
-    private fun getPromptCount(): Int {
-        val lastDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
-        return promptMonitor.getPromptCountInChain(lastDateTime)
     }
 
     private fun cancelStartCountDownPrompt(eventLabel: String) {

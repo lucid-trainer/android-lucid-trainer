@@ -57,8 +57,8 @@ class SoundVolumeManager() {
             is PromptSoundRoutine -> {
                 val promptCount = soundRoutine.promptCount
                 finishVolume = when(promptCount) {
-                    1 -> currBgVol * .65F
-                    else -> currBgVol * .8F
+                    1 -> currBgVol * .7F
+                    else -> currBgVol * .85F
                 }
                 fadeBackgroundDown(20, 600, finishVolume, mBgId)
             }
@@ -152,18 +152,20 @@ class SoundVolumeManager() {
         }
     }
 
-    suspend fun fadeBackgroundUpForReset(fadeDownCnt: Int, startVolume: Float, finishVolume: Float, mBgId: Int, fadeUpDelay: Long = 1000) : Float {
+    suspend fun fadeBackgroundUpForReset(fadeUpCnt: Int, startVolume: Float, finishVolume: Float, mBgId: Int, fadeUpDelay: Long = 1000) : Float {
         //slowly up the volume of the background after delay
-        val bgFadeUpAmount = (finishVolume - startVolume) / fadeDownCnt.toFloat()
-        for (i in 1..fadeDownCnt) {
+        val bgFadeUpAmount = (finishVolume - startVolume) / fadeUpCnt.toFloat()
+        currBgVol = startVolume
+
+        for (i in 1..fadeUpCnt) {
             yield()
             if(isBGSoundStopped) {
                 break
             }
             delay(timeMillis = fadeUpDelay)
-            currBgVol = startVolume + bgFadeUpAmount
+            currBgVol += bgFadeUpAmount
             setBgVol(mBgId, currBgVol)
-            //Log.d("MainActivity", "for loop $i in bgFadeUP adding $bgFadeUpAmount to currVol $currBgVol with target $finishVolume")
+            //Log.d("MainActivity", "for loop $i in reset bgFadeUP adding $bgFadeUpAmount to currVol $currBgVol with target $finishVolume")
         }
 
         return currBgVol

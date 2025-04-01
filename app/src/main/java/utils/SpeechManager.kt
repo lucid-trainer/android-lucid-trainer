@@ -87,10 +87,10 @@ class SpeechManager() {
     }
 
     fun speakTheTime() {
-        speakTheTimeWithMessage("", "", true)
+        speakTheTimeWithMessage("", "", 0.4F, true)
     }
 
-    fun speakTheTimeWithMessage(eventMessage : String, promptMessage: String = "", isShortPrompt: Boolean = false, volume: Float = 0.5F) {
+    fun speakTheTimeWithMessage(eventMessage : String, promptMessage: String = "", volume: Float = 0.55F, isShortPrompt: Boolean = false) {
         val currentTime = LocalTime.now().format(DateTimeFormatter.ofPattern("hh:mm a", Locale.ENGLISH))
         val commenceMessage = if(promptMessage.isNotEmpty()) "Commencing $promptMessage soon." else ""
         val fullMessage = if(isShortPrompt) "It's $currentTime" else
