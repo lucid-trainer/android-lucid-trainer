@@ -75,13 +75,13 @@ object EventMonitor {
 
         if(workingReadingList.size >= 1) {
             val lastActivityReading = workingReadingList.map { it -> it.accelMovement }.last()
-            if(lastActivityReading > .325) {
+            if(lastActivityReading >= .325) {
                 lastActivity = "HIGH"
-            } else if (lastActivityReading > .2) {
+            } else if (lastActivityReading >= .2) {
                 lastActivity = "MEDIUM"
-            } else if (lastActivityReading > .1) {
+            } else if (lastActivityReading >= .1) {
                 lastActivity = "LIGHT"
-            } else if (lastActivityReading > .02) {
+            } else if (lastActivityReading >= .02) {
                 lastActivity = "TRACE"
             }
         }

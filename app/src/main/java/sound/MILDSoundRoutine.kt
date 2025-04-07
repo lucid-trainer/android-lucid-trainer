@@ -49,21 +49,6 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
         return altBGSounds
     }
 
-    override fun getSpeechEventsTrigger(): Int {
-        return when(playCount) {
-            1 -> 7
-            else -> 11
-        }
-    }
-
-    override fun getSpeechEventsCount(): Int {
-        return 3
-    }
-
-    override fun getSpeechEventsTimeBetween() : Int {
-        return 2
-    }
-
     private fun addForegroundSounds(routine: MutableList<Sound>) {
         var dir = "$ROOT_DIR/$THEMES_DIR/$theme/$FOREGROUND_DIR"
 
@@ -93,17 +78,17 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
     override fun getVolAdjust(fileCount: Int): Float {
 
         return when {
-            fileCount <= 1 -> .95F
-            fileCount <= 2 -> .9F
-            fileCount <= 3 -> .85F
-            fileCount <= 4 -> .8F
-            fileCount <= 5 -> .75F
-            fileCount <= 6 -> .7F
-            fileCount <= 7 -> .64F
-            fileCount <= 8 -> .58F
-            fileCount <= 9 -> .52F
-            fileCount <= 10 -> .48F
-            else -> .42F
+            fileCount <= 1 -> .9F
+            fileCount <= 2 -> .85F
+            fileCount <= 3 -> .8F
+            fileCount <= 4 -> .75F
+            fileCount <= 5 -> .7F
+            fileCount <= 6 -> .65F
+            fileCount <= 7 -> .6F
+            fileCount <= 8 -> .55F
+            fileCount <= 9 -> .5F
+            fileCount <= 10 -> .45F
+            else -> .4F
         }
     }
 

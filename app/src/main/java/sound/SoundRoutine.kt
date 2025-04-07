@@ -23,9 +23,6 @@ interface SoundRoutine {
     val theme: String
     fun getStartSounds(): List<String>
     fun getAltBGSounds() : List<String>
-    fun getSpeechEventsTrigger() : Int = 0
-    fun getSpeechEventsCount() : Int = 0
-    fun getSpeechEventsTimeBetween() : Int = 0
     fun getRoutine() : List<Sound>
     fun fadeDownBg() : Boolean = false
     fun fadeDownFg() : Boolean = false

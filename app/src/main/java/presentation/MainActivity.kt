@@ -132,7 +132,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         soundPoolManager = SoundPoolManager.getInstance(application)
 
-        testManager = TestManager.getInstance(soundPoolManager)
+        testManager = TestManager.getInstance(soundPoolManager, promptMonitor)
 
         setupSound()
 
@@ -275,16 +275,26 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 promptMonitor.isInActivityPeriod(viewModel.lastTimestamp.value, 3L)
             val isPromptRunning = promptMonitor.promptEventWaiting != null
 
-            if (lastActivityValue != "NONE" && lastActivityValue != "TRACE" && hoursAllowed && !isInActivityPeriod && !isPromptRunning) {
+            Log.d("MainActivity", "handle activity event $lastActivityValue")
+
+            //toggle the volume down if in prompt period
+            val currFgVolAdj = promptMonitor.getActivityVolAdjust()
+            Log.d("MainActivity", "prompt volume was ${soundPoolManager.activeFgVolAdj}")
+            if(currFgVolAdj < soundPoolManager.activeFgVolAdj) {
+                soundPoolManager.activeFgVolAdj = currFgVolAdj
+                Log.d("MainActivity", "prompt volume now ${soundPoolManager.activeFgVolAdj}")
+                val soundFile = promptMonitor.getVolAdjustSound()
+                soundPoolManager.playSound(soundFile, .6F)
+            }
+
+            if(lastActivityValue != "TRACE" && hoursAllowed && !isInActivityPeriod && !isPromptRunning) {
                 //we'll read out the time for any elevated activity
-                speechManager.speakTheTimeWithMessage(lastActivityValue + " " + ACTIVE_EVENT_MESSAGE, "",.4F)
+                speechManager.speakTheTimeWithMessage(lastActivityValue + " " + ACTIVE_EVENT_MESSAGE, "", .4F)
             }
 
             //we'll set a cooldown period to interrupt prompting if enough activity
             if (lastActivityValue == "MEDIUM" || lastActivityValue == "HIGH") {
                 checkShouldStartInterruptCoolDown()
-            } else if(lastActivityValue == "LOW" || lastActivityValue == "TRACE") {
-                soundPoolManager.activeFgVolAdj = promptMonitor.getActivityVolAdjust()
             }
         }
     }
@@ -722,6 +732,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         if(eventLabel != EVENT_LABEL_PROMPT || promptCount == 1) {
             Log.d("MainActivity", "resetting activeFgVolAdj")
             soundPoolManager.activeFgVolAdj = 1F
+            promptMonitor.adjPromptVolumeCnt = 0
         }
         soundPoolManager.playSoundList(soundList, mBgRawId, mBgLabel, eventLabel, binding.playStatus, playCount, promptCount)
     }
@@ -832,6 +843,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             promptMonitor.startPromptAllowPeriod.toString(),
             promptMonitor.isInPromptWindow(triggerTimestamp),
             promptCount,
+            soundPoolManager.activeFgVolAdj,
             intensity,
             allowed,
             debugLog

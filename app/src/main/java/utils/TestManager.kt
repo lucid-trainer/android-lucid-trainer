@@ -9,11 +9,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 import presentation.MainActivity
+import sound.PromptSoundRoutine
 import sound.SoundPoolManager
 
 
 class TestManager {
     private lateinit var soundPoolManager: SoundPoolManager
+    private lateinit var promptMonitor: PromptMonitor
     private var testJob: Job? = null
 
     companion object {
@@ -21,12 +23,13 @@ class TestManager {
         @Volatile
         private var INSTANCE: TestManager? = null
 
-        fun getInstance(soundPoolManager: SoundPoolManager): TestManager {
+        fun getInstance(soundPoolManager: SoundPoolManager, promptMonitor: PromptMonitor): TestManager {
             synchronized(this) {
                 var instance = INSTANCE
                 if (instance == null) {
                     instance = TestManager()
                     instance.initSoundPoolManager(soundPoolManager)
+                    instance.initPromptMonitor(promptMonitor)
                     INSTANCE = instance
                 }
                 return instance
@@ -43,9 +46,15 @@ class TestManager {
         this.soundPoolManager = soundPoolManager
     }
 
+    private fun initPromptMonitor(promptMonitor: PromptMonitor) {
+        this.promptMonitor = promptMonitor
+    }
+
     fun testPrompting(promptType : String, mBgRawId: Int, mBgLabel: String, playStatus: TextView) {
 
         val scope = CoroutineScope(Dispatchers.Default)
+
+        promptMonitor.adjPromptVolumeCnt = 0
 
         if (testJob == null || testJob!!.isCompleted) {
             testJob = scope.launch {
@@ -53,15 +62,19 @@ class TestManager {
                     val soundList = mutableListOf<String>()
                     soundList.add(promptType + "p")
 
-                    playStatus.text = "$i: "
+                    playStatus.text = "Test prompt $i: "
 
                     Log.d("MainActivity", "playing test prompt $i");
 
                     soundPoolManager.playSoundList(soundList, mBgRawId, mBgLabel,
                         MainActivity.EVENT_LABEL_PROMPT, playStatus, 1, i)
 
-                    Log.d("MainActivity", "waiting 90 seconds to start next test prompt");
-                    delay(timeMillis = 90000)
+                    val sound = promptMonitor.getVolAdjustSound()
+                    soundPoolManager.playSound(sound, .6F)
+                    promptMonitor.adjPromptVolumeCnt += 1
+
+                    Log.d("MainActivity", "waiting 60 seconds to start next test prompt");
+                    delay(timeMillis = 30000)
                     yield()
 
                 }

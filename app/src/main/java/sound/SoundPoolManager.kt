@@ -34,6 +34,7 @@ class SoundPoolManager {
     private var altBgId = -1
     private var allVolAdj = 0.85F
     var activeFgVolAdj = 1F
+    private var immFgId = -1
 
     companion object {
         const val ROOT_SOUNDS_DIR = "lt_sounds"
@@ -283,6 +284,7 @@ class SoundPoolManager {
                         playedSoundCnt += 1
 
                         val startingFgVolume = soundRoutine.fgVolume * activeFgVolAdj
+                        //Log.d("MainActivity", "startingFgVolume = $startingFgVolume")
 
                         var (currBgVolume, currVolume) = adjustVolumeForSound(sound, soundRoutine, startingBgVolume, startingFgVolume, textView)
                         startingBgVolume = currBgVolume
@@ -327,15 +329,6 @@ class SoundPoolManager {
 
                         lastBgLabel = soundRoutine.endBgLabel
 
-                        //initialize any speech events if enough sounds in the routine are played.
-                        //those are handled in MainActivity as it polls new watch events
-                        if(soundRoutine.getSpeechEventsTrigger() == playedSoundCnt) {
-                            val eventsCount = soundRoutine.getSpeechEventsCount()
-                            val timeBetween = soundRoutine.getSpeechEventsTimeBetween()
-                            if (eventsCount > 0 && timeBetween > 0) {
-                                speechManager.setSoundRoutineEvents(eventsCount, timeBetween)
-                            }
-                        }
                     }
 
                     stopPlayingAltBackground()
@@ -620,6 +613,11 @@ class SoundPoolManager {
         volumeManager.isBGVolAdjustedForClip = false
         mSoundPoolCompat.stop(mFgId)
         mSoundPoolCompat.unload(mFgId)
+
+        mSoundPoolCompat.stop(immFgId)
+        mSoundPoolCompat.unload(immFgId)
+        immFgId = -1
+
         stopFadeDownForeground()
 
         fgJob?.let { cancelSoundJob(it) }
@@ -638,5 +636,12 @@ class SoundPoolManager {
         if(job.isActive) {
             job.cancel()
         }
+    }
+
+    //immediately plays a single sound file once
+    fun playSound(filePath: String, volume: Float) {
+        val filePathFull = fileManager.getFilePath(filePath)
+        Log.d("MainActivity", "playing active sound $filePathFull at volume $volume")
+        immFgId = mSoundPoolCompat.playOnce(filePathFull, volume, volume, 1F)
     }
 }

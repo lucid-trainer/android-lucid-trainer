@@ -61,17 +61,6 @@ class SpeechManager() {
         }
     }
 
-    fun setSoundRoutineEvents(speechEventsCount: Int, timeBetween: Int) {
-        soundRoutineEvents.clear()
-
-        var eventMinute = LocalDateTime.now().minute
-
-        for (i in 1..speechEventsCount) {
-            eventMinute += timeBetween
-            soundRoutineEvents.add(eventMinute)
-        }
-    }
-
     fun handleSoundRoutineEvents() {
         if(soundRoutineEvents.isNotEmpty()){
             var eventMinute = soundRoutineEvents.first()

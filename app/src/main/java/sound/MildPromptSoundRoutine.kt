@@ -11,7 +11,7 @@ class MildPromptSoundRoutine (
 
     private val fileManager = FileManager.getInstance()!!
 
-    private val promptDir = "$ROOT_DIR/$PROMPT_DIR"
+    private val promptDir = PromptSoundRoutine.promptDir
 
     override fun getStartSounds(): List<String> {
         return emptyList()
@@ -44,7 +44,7 @@ class MildPromptSoundRoutine (
                 fileManager.getFilesFromDirectory(promptDir).filter { it.startsWith("random_") }
                     .shuffled().last()
 
-            routine.add(Sound(0, 0, "$promptDir/$promptFile",false, 1.1F))
+            routine.add(Sound(0, 0, "$promptDir/$promptFile",false, 1.2F))
         }
 
         routine.add(Sound(0, 7, "$promptDir/silence.ogg"))
@@ -52,10 +52,6 @@ class MildPromptSoundRoutine (
         routine.add(Sound(0, 0, "$promptDir/foreground.ogg"))
 
         return routine
-    }
-
-    override fun getSpeechEventsTrigger(): Int {
-        return if(promptCount == 1) 1 else 0
     }
 
 }

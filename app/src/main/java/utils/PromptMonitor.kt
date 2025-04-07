@@ -2,6 +2,7 @@ package utils
 
 import android.util.Log
 import presentation.MainActivity.Companion.EVENT_LABEL_REM
+import sound.PromptSoundRoutine
 import java.time.DayOfWeek
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -15,6 +16,7 @@ class PromptMonitor {
     var promptTriggerAndEventCount: MutableList<Pair<LocalDateTime, Int>> = emptyList<Pair<LocalDateTime, Int>>().toMutableList()
     private var currentPromptList: MutableList<LocalDateTime> = emptyList<LocalDateTime>().toMutableList()
     private var lastPromptDateTime: LocalDateTime? = null
+    var adjPromptVolumeCnt = 0
 
     var lastAwakeDateTime : LocalDateTime? = null
     var lastFollowupDateTime : LocalDateTime? = null
@@ -58,6 +60,7 @@ class PromptMonitor {
         startPromptAllowPeriod = null
         lastAlarmEvent = null
         lastPromptDateTime = null
+        adjPromptVolumeCnt = 0
     }
 
     fun getEventsDisplay(): String {
@@ -186,7 +189,7 @@ class PromptMonitor {
         val triggerDateTime = LocalDateTime.parse(lastTimestamp)
         val hour = triggerDateTime.hour
         val day = triggerDateTime.dayOfWeek
-        val hourLimit = if(day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) 7 else 5
+        val hourLimit = if(day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) 7 else 6
 
         val allowedFirstPartOfNight = hour in 1..3
                 && isAwakeEventBeforePeriod(lastTimestamp, 20)
@@ -250,8 +253,6 @@ class PromptMonitor {
         val triggerDateTime =  LocalDateTime.parse(lastTimestamp)
         var nextPrompt: LocalDateTime? = null
 
-        Log.d("MainActivity", "calling getNextPrompt")
-
         //get the first prompt that's before the trigger time
         nextPrompt = if (lastPromptDateTime != null) {
             currentPromptList.firstOrNull{ it > lastPromptDateTime && it < triggerDateTime }
@@ -280,8 +281,8 @@ class PromptMonitor {
         return nextPrompt
     }
 
-    fun isInPromptRunPeriod() : Boolean {
-        return currentPromptList.any { it > lastPromptDateTime && getPromptCountInChain() > 1  }
+    private fun isInPromptRunPeriod() : Boolean {
+        return currentPromptList.isNotEmpty() && currentPromptList.any { it > lastPromptDateTime }
     }
 
     private fun isInAwakePeriod(lastTimestamp: String?) : Boolean {
@@ -340,9 +341,23 @@ class PromptMonitor {
         var activityVolAdjust = 1F
 
         if (isInPromptRunPeriod()) {
-            .8F
+            adjPromptVolumeCnt += 1
+            val adjustVal = .05F * adjPromptVolumeCnt.toFloat()
+            activityVolAdjust = 1F - adjustVal
+        } else {
+            adjPromptVolumeCnt = 0
         }
 
         return activityVolAdjust
+    }
+
+    fun getVolAdjustSound(): String {
+        val fileNum = when(adjPromptVolumeCnt) {
+            0 -> 1
+            1, 2, 3 -> adjPromptVolumeCnt
+            else -> 3
+        }
+
+        return PromptSoundRoutine.getVolAdjustSound(fileNum)
     }
 }

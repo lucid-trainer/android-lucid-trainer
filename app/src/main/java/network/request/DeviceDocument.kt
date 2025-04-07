@@ -10,6 +10,7 @@ data class DeviceDocument (
     val startPromptAllowPeriod: String,
     val isInPromptWindow: Boolean,
     val promptCount: Int,
+    val promptVolume: Float,
     val intensity: Int,
     val prompt_allowed: Boolean,
     val debugLog: String
