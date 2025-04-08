@@ -23,10 +23,10 @@ class WILDSoundRoutine(override var playTier: Int, override var bgRawId: Int, ov
 
         val dir = "/$ROOT_DIR/$THEMES_DIR/$theme/$ALT_BACKGROUND_DIR"
 
-        Log.d("MainActivity", "bg dir = $dir")
+        //Log.d("MainActivity", "bg dir = $dir")
 
         val files = fileManager.getFilesFromDirectory(dir).shuffled().slice(0..9)
-        Log.d("MainActivity", "bg files = $files")
+        //Log.d("MainActivity", "bg files = $files")
         for (i in 0..9) {
             altBGSounds.add("$ROOT_DIR/$THEMES_DIR/$theme/$ALT_BACKGROUND_DIR/${files[i]}")
         }

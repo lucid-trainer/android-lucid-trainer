@@ -275,11 +275,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 promptMonitor.isInActivityPeriod(viewModel.lastTimestamp.value, 3L)
             val isPromptRunning = promptMonitor.promptEventWaiting != null
 
-            Log.d("MainActivity", "handle activity event $lastActivityValue")
-
             //toggle the volume down if in prompt period
             val currFgVolAdj = promptMonitor.getActivityVolAdjust()
-            Log.d("MainActivity", "prompt volume was ${soundPoolManager.activeFgVolAdj}")
             if(currFgVolAdj < soundPoolManager.activeFgVolAdj) {
                 soundPoolManager.activeFgVolAdj = currFgVolAdj
                 Log.d("MainActivity", "prompt volume now ${soundPoolManager.activeFgVolAdj}")
@@ -326,7 +323,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     }
 
     private fun processSleepStageEvents(sleepStage: String) {
-        //Log.d("SleepStage", "${viewModel.lastTimestamp.value} stage=$sleepStage lastAwake=${viewModel.lastAwakeTimestamp}")
         when (sleepStage) {
             "AWAKE" -> {
                 binding.sleepStageTexview.setTextColor(Color.RED)
@@ -377,7 +373,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             }
 
             if (isAwakeEventAllowed) {
-                Log.d("MainActivity", "calling prompt with awake label");
                 startCountDownPromptTimer(EVENT_LABEL_AWAKE)
             }
         }
@@ -482,20 +477,17 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             purgeAllRecords()
             viewModel.workingReadingList.clear()
             viewModel.sleepStage.value = ""
-            //Log.d("MainActivity", "list size=" + viewModel.workingReadingList.size)
         }
 
         // Set the maximum volume of the SeekBar to the maximum volume of the MediaPlayer:
         maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
         binding.seekBar.max = maxVolume
-        //Log.d("MainActivity", "max volume=$maxVolume")
 
         // Set the current volume of the SeekBar to the current volume of the MediaPlayer:
 
         // Set the current volume of the SeekBar to the current volume of the MediaPlayer:
         val currVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
         binding.seekBar.progress = currVolume
-        //Log.d("MainActivity", "curr volume=$currVolume")
 
         binding.seekBar.setOnSeekBarChangeListener(object :
             OnSeekBarChangeListener {
@@ -503,7 +495,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 seekBar: SeekBar,
                 progress: Int, fromUser: Boolean
             ) {
-                //Log.d("MainActivity", "volume=" + progress)
                 audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, progress, 0)
             }
 
@@ -573,7 +564,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                         val clipSize = fileManager.getUsedFilesFromDirectory(
                             "$ROOT_DIR/$THEMES_DIR/$theme/$CLIP_DIR"
                         ).size
-                        Log.d("MainActivity", "clearing used fg= $fgSize clip= $clipSize")
 
                         fileManager.resetFilesUsed(
                             "$ROOT_DIR/$THEMES_DIR/$theme/$FOREGROUND_DIR",
@@ -632,7 +622,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             }
         }
 
-        //Log.d("MainActivity", "called wth eventLabel = $eventLabel");
         soundList.add("$pType$pMod")
 
         //only allow this option via the prompt button, podcast uses playTier to just identify file to play
@@ -658,8 +647,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
       These are events passed from the watch to play a prompt routine, podcast or set a sleep period
      */
     private fun playPromptsFromWatchUI(eventMap: Map<String, String>) {
-        Log.d("MainActivity", "called Watch method with eventMap " + eventMap.keys)
-
         val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
 
         var soundList: MutableList<String> = emptyList<String>().toMutableList()
@@ -672,7 +659,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                     "appdata",
                     getDeviceDocument(EVENT_LABEL_AWAKE, true)
                 )
-                //Log.d("MainActivity", "sending awake event to device repository for podcast event")
             }
 
             val podNumber = eventMap[POD_EVENT]!!.toInt()
@@ -685,7 +671,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                     "appdata",
                     getDeviceDocument(EVENT_LABEL_AWAKE, true)
                 )
-                //Log.d("MainActivity", "sending awake event to device repository for play event")
             }
 
             //get the prompt to play. This will usually be just one. For wild, play the auto version when triggered from watch
@@ -704,7 +689,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             speechManager.speakTheTimeWithMessage(WATCH_EVENT_MESSAGE, promptMessage)
 
         } else if (eventMap.containsKey(SLEEP_EVENT)) {
-            //Log.d("PromptMonitor", "sleep event ${LocalDateTime.parse(viewModel.lastTimestamp.value)}")
             //stop any more prompts for a period of time
             lastActiveEventTimestamp = LocalDateTime.parse(viewModel.lastTimestamp.value)
             cancelStartCountDownPrompt(SLEEP_EVENT)
@@ -729,9 +713,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         eventLabel: String,
         promptCount: Int = 1
     ) {
-        Log.d("MainActivity", "eventLabel = $eventLabel promptCount = $promptCount")
         if(eventLabel != EVENT_LABEL_PROMPT || promptCount == 1) {
-            Log.d("MainActivity", "resetting activeFgVolAdj")
+            Log.d("MainActivity", "resetting prompt volume")
             soundPoolManager.activeFgVolAdj = 1F
             promptMonitor.adjPromptVolumeCnt = 0
         }
@@ -750,13 +733,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         //avoid stepping on a waiting or running job
         val isRunning = promptMonitor.promptEventWaiting != null
 
-        Log.d("MainActivity", "called with event $eventLabel");
-
         if (isRunning) {
-            Log.d(
-                "MainActivity",
-                "returning, promptEventWaiting = $promptMonitor.promptEventWaiting"
-            )
             return
         }
 
@@ -792,14 +769,12 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
                 delay(timeMillis = 10000)
 
-                //Log.d("MainActivity", "set promptEventWaiting to null")
                 promptMonitor.promptEventWaiting = null
             }
         }
     }
 
     private fun cancelStartCountDownPrompt(eventLabel: String) {
-        Log.d("MainActivity", "stopping prompt from $eventLabel")
 
         promptMonitor.promptEventWaiting = null
 
@@ -866,12 +841,10 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         val broadcastReceiver: BroadcastReceiver = (object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
                 if (intent.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) {
-                    Log.d("MainActivity", "bluetooth disconnected")
                     soundPoolManager.stopPlayingAll(binding.playStatus)
                 }
 
                 if (intent.action == BluetoothDevice.ACTION_ACL_CONNECTED) {
-                    Log.d("MainActivity", "bluetooth connected")
                     if (mBgRawId == -1) {
                         mBgLabel = "Fan"
                         mBgRawId = R.raw.boxfan
@@ -890,7 +863,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         // create a scope to access the database from a thread other than the main thread
         val scope = CoroutineScope(Dispatchers.Default)
         scope.launch {
-            //Log.d("MainActivity", "dateTimeOfQuery=$dateTime")
             val dao = ReadingDatabase.getInstance(application).readingDao
             dao.deleteOlder(dateTime)
         }
@@ -901,7 +873,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         val scope = CoroutineScope(Dispatchers.Default)
         scope.launch {
             lastEventTimestamp = ""
-            //Log.d("MainActivity", "delete all records")
             val dao = ReadingDatabase.getInstance(application).readingDao
             dao.deleteAll()
         }
@@ -909,8 +880,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
     override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
         val bgChoice = parent?.getItemAtPosition(position)
-
-        //Log.d("MainActivity", "bgChoice = $bgChoice")
 
         mBgRawId = if (bgChoice.toString() == "Fan") {
             mBgLabel = "Fan"
@@ -936,8 +905,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         } else {
             -1
         }
-
-        //Log.d("MainActivity", "bgChoice = $mBgRawId")
     }
 
     override fun onNothingSelected(parent: AdapterView<*>?) {

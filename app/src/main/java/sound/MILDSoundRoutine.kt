@@ -16,7 +16,7 @@ class MILDSoundRoutine(override var playTier: Int, override var bgRawId: Int, ov
 
         val mildDir = "$ROOT_DIR/$MILD_DIR"
         routine.add(Sound(0, 70, "$mildDir/instruction.ogg"))
-        Log.d("MainActivity", "mildDir=$mildDir, count = ${fileManager.getFilesFromDirectory(mildDir).size} ")
+        //Log.d("MainActivity", "mildDir=$mildDir, count = ${fileManager.getFilesFromDirectory(mildDir).size} ")
 
         addStartSound(routine)
         addForegroundSounds(routine)

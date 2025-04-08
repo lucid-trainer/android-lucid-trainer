@@ -71,7 +71,7 @@ class FileManager(val sharedPreferences : SharedPreferences) {
     fun addFileUsed(dir: String, file: String) {
         val files = listOf(file)
         addFilesUsed(dir, files)
-        Log.d("FileManager", "add files used $dir $file $files")
+        //Log.d("FileManager", "add files used $dir $file $files")
     }
 
     fun resetFilesUsed(vararg dirs: String) {
@@ -80,7 +80,7 @@ class FileManager(val sharedPreferences : SharedPreferences) {
                 putStringSet(FILE_PREFIX + dir, emptySet())
                 apply()
             }
-            Log.d("FileManager", "resetting shared pref for $dir")
+            //Log.d("FileManager", "resetting shared pref for $dir")
         }
     }
 
@@ -138,7 +138,7 @@ class FileManager(val sharedPreferences : SharedPreferences) {
         val fileNameOnly = fileName.substringAfterLast("/")
 
 
-        Log.d("MainActivity", "File Manager $fileName: $fileLocation")
+        //Log.d("MainActivity", "File Manager $fileName: $fileLocation")
 
         val file = File(
             File(ex.path + "/" + fileLocation + "/"),

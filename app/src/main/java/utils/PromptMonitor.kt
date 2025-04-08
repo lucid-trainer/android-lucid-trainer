@@ -92,7 +92,7 @@ class PromptMonitor {
     }
 
     private fun addNewTriggerAndEventCount(now: LocalDateTime) {
-        Log.d("MainActivity","adding trigger $now count 0")
+        //Log.d("MainActivity","adding trigger $now count 0")
         promptTriggerAndEventCount.add(Pair(now, 0))
     }
 
@@ -101,7 +101,7 @@ class PromptMonitor {
         if (lastIdx >= 0) {
             var lastPromptTriggerCount = promptTriggerAndEventCount[lastIdx]
             val lastCount = lastPromptTriggerCount.second
-            Log.d("MainActivity","incrementing trigger ${lastPromptTriggerCount.first} from $lastCount")
+            //Log.d("MainActivity","incrementing trigger ${lastPromptTriggerCount.first} from $lastCount")
             lastPromptTriggerCount = lastPromptTriggerCount.copy(second = lastCount + 1)
             promptTriggerAndEventCount[lastIdx] = lastPromptTriggerCount
         }
@@ -132,7 +132,7 @@ class PromptMonitor {
             coolDownEndDateTime = lastDateTime.plusMinutes(sleepBtnCoolDown)
             updatedAllCoolDown = true
             currentPromptList.clear()
-            Log.d("MainActivity","clearing prompt list from isSleepButton, cool down ends $coolDownEndDateTime")
+            //Log.d("MainActivity","clearing prompt list from isSleepButton, cool down ends $coolDownEndDateTime")
         } else {
             if(promptEvents.isNotEmpty() && ( coolDownEndDateTime == null ||
                 (lastDateTime > coolDownEndDateTime && lastDateTime > promptEvents.last() &&
@@ -141,7 +141,7 @@ class PromptMonitor {
                 coolDownEndDateTime = lastDateTime.plusMinutes(INTERRUPT_COOL_DOWN_PERIOD)
                 updatedAllCoolDown = true
                 currentPromptList.clear()
-                Log.d("MainActivity","clearing prompt list from interrupt cooldown $lastTimestamp")
+                //Log.d("MainActivity","clearing prompt list from interrupt cooldown $lastTimestamp")
             }
         }
         return updatedAllCoolDown
@@ -231,7 +231,7 @@ class PromptMonitor {
                 nextPromptTime = nextPromptTime.plusSeconds(SECONDS_BETWEEN_PROMPTS)
             }
 
-            Log.d("MainActivity","adding prompts and new trigger for $triggerDateTime")
+            //Log.d("MainActivity","adding prompts and new trigger for $triggerDateTime")
             startPromptAllowPeriod = triggerDateTime
             addNewTriggerAndEventCount(triggerDateTime)
         } else if(currentPromptList.size < MAX_PROMPT_COUNT){
@@ -243,10 +243,10 @@ class PromptMonitor {
                 currentPromptList.add(nextPromptTime)
             }
 
-            Log.d("MainActivity","updatingPrompts for $triggerDateTime")
+            //Log.d("MainActivity","updatingPrompts for $triggerDateTime")
         }
 
-        Log.d("MainActivity","end of add prompts, list size is now ${currentPromptList.size}")
+        //Log.d("MainActivity","end of add prompts, list size is now ${currentPromptList.size}")
     }
 
     fun getNextPrompt(lastTimestamp: String?): LocalDateTime? {
@@ -262,7 +262,7 @@ class PromptMonitor {
 
         if (nextPrompt != null) {
             lastPromptDateTime = nextPrompt
-            Log.d("MainActivity","returning non-null prompt $nextPrompt")
+            //Log.d("MainActivity","returning non-null prompt $nextPrompt")
         } else {
             //if it's been more than 5 minutes without a prompt, go ahead and clear the list
             //and set a cool down period before allowing new prompt triggers
@@ -272,9 +272,9 @@ class PromptMonitor {
                 val promptCoolDownPeriod = if(currentPromptList.size < MAX_PROMPT_COUNT - 2)
                     MIN_PROMPT_COOL_DOWN_PERIOD else MAX_PROMPT_COOL_DOWN_PERIOD
                 coolDownEndDateTime = triggerDateTime.plusMinutes(promptCoolDownPeriod)
-                Log.d("MainActivity","adding $promptCoolDownPeriod to get cool down $coolDownEndDateTime")
+                //Log.d("MainActivity","adding $promptCoolDownPeriod to get cool down $coolDownEndDateTime")
                 currentPromptList.clear()
-                Log.d("MainActivity","clearing prompt list from getNextPrompt")
+                //Log.d("MainActivity","clearing prompt list from getNextPrompt")
             }
         }
 
