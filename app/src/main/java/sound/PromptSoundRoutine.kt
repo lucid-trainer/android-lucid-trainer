@@ -19,11 +19,4 @@ interface PromptSoundRoutine  : SoundRoutine {
         return true
     }
 
-    override fun getSpeechEventsCount(): Int {
-        return 1
-    }
-
-    override fun getSpeechEventsTimeBetween() : Int {
-        return 1
-    }
 }

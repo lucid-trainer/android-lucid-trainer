@@ -1,13 +1,11 @@
 package sound
 
 import android.util.Log
-import com.lucidtrainer.R
 import utils.FileManager
 
-class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, override var endBgRawId: Int,
-                       override var bgVolume: Float, override var altBgVolume: Float, override var fgVolume: Float,
-                       override val eventLabel : String, override var bgLabel : String, override var endBgLabel : String,
-                       override var theme: String, override val fgLabel : String = "MILD"
+class MILDSoundRoutine(override var playTier: Int, override var bgRawId: Int, override var bgVolume: Float,
+                       override var altBgVolume: Float, override var fgVolume: Float, override val eventLabel : String,
+                       override var bgLabel : String, override var theme: String, override val fgLabel : String = "MILD"
 
 ) : SoundRoutine {
 
@@ -52,7 +50,7 @@ class MILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
     private fun addForegroundSounds(routine: MutableList<Sound>) {
         var dir = "$ROOT_DIR/$THEMES_DIR/$theme/$FOREGROUND_DIR"
 
-        val limit = when(playCount) {
+        val limit = when(playTier) {
             1 -> 8
             else -> 12
         }

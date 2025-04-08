@@ -3,10 +3,9 @@ package sound
 import android.util.Log
 import utils.FileManager
 
-class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, override var endBgRawId: Int,
-                       override var bgVolume: Float, override var altBgVolume: Float, override var fgVolume: Float,
-                       override val eventLabel : String, override var bgLabel : String, override var endBgLabel : String,
-                       override var theme: String, override val fgLabel : String = "WILD"
+class WILDSoundRoutine(override var playTier: Int, override var bgRawId: Int, override var bgVolume: Float,
+    override var altBgVolume: Float, override var fgVolume: Float, override val eventLabel : String,
+    override var bgLabel : String, override var theme: String, override val fgLabel : String = "WILD"
 ) : SoundRoutine {
 
     private val fileManager = FileManager.getInstance()!!
@@ -53,13 +52,13 @@ class WILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, o
 
         routine.add(Sound(0, 30, "$promptDir/silence.ogg"))
 
-        val limit = when(playCount) {
+        val limit = when(playTier) {
             2 -> 10
             3 -> 20
             else -> 6
         }
 
-        Log.d("MainActivity", "WILD fg limit = $limit for $playCount")
+        Log.d("MainActivity", "WILD fg limit = $limit for $playTier")
 
         val files = fileManager.getUnusedFilesFromDirectory(dir, limit).shuffled().slice(0 until limit)
 

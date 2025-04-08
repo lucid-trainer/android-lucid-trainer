@@ -2,11 +2,9 @@ package sound
 
 import com.lucidtrainer.R
 
-class SSILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, override var endBgRawId: Int,
-                        override var bgVolume: Float, override var altBgVolume: Float, override var fgVolume: Float,
-                        override val eventLabel : String, override var bgLabel : String, override var endBgLabel : String,
-                        override val theme: String = "", override val fgLabel : String = "SSILD"
-
+class SSILDSoundRoutine(override var playTier: Int, override var bgRawId: Int,override var bgVolume: Float,
+    override var altBgVolume: Float, override var fgVolume: Float, override val eventLabel : String,
+    override var bgLabel : String, override val theme: String = "", override val fgLabel : String = "SSILD"
 ) : SoundRoutine {
 
     override fun getStartSounds(): List<String> {
@@ -29,14 +27,14 @@ class SSILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, 
         routine.add(Sound(R.raw.ssild_hear, 3))
         routine.add(Sound(R.raw.ssild_feel, 3))
 
-        if(playCount > 2) {
+        if(playTier > 2) {
             routine.add(Sound(R.raw.ssild_round_3, 3))
 
             routine.add(Sound(R.raw.ssild_hear, 3))
             routine.add(Sound(R.raw.ssild_feel, 3))
         }
 
-        if(playCount > 3) {
+        if(playTier > 3) {
             routine.add(Sound(R.raw.ssild_round_4, 3))
             routine.add(Sound(R.raw.ssild_hear, 3))
             routine.add(Sound(R.raw.ssild_feel, 3))
@@ -51,13 +49,13 @@ class SSILDSoundRoutine(override var playCount: Int, override var bgRawId: Int, 
         routine.add(Sound(R.raw.ssild_hear, 25))
         routine.add(Sound(R.raw.ssild_feel, 25))
 
-        if(playCount > 2) {
+        if(playTier > 2) {
             routine.add(Sound(R.raw.ssild_round_3, 25))
             routine.add(Sound(R.raw.ssild_hear, 25))
             routine.add(Sound(R.raw.ssild_feel, 25))
         }
 
-        if(playCount > 3) {
+        if(playTier > 3) {
             routine.add(Sound(R.raw.ssild_round_4, 25))
             routine.add(Sound(R.raw.ssild_hear, 25))
             routine.add(Sound(R.raw.ssild_feel, 25))

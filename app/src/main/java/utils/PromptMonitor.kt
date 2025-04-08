@@ -342,7 +342,7 @@ class PromptMonitor {
 
         if (isInPromptRunPeriod()) {
             adjPromptVolumeCnt += 1
-            val adjustVal = .05F * adjPromptVolumeCnt.toFloat()
+            val adjustVal = .06F * adjPromptVolumeCnt.toFloat()
             activityVolAdjust = 1F - adjustVal
         } else {
             adjPromptVolumeCnt = 0
@@ -359,5 +359,25 @@ class PromptMonitor {
         }
 
         return PromptSoundRoutine.getVolAdjustSound(fileNum)
+    }
+
+    fun getPromptTierForTime(triggerDateTime: LocalDateTime): Int {
+        var playTier = 3 //default is highest tier
+
+        if(triggerDateTime != null) {
+            val hour = triggerDateTime.hour
+            val day = triggerDateTime.dayOfWeek
+            val isWeekend = day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY
+
+            playTier = if (isWeekend) {
+                if(hour == 7) 1 else if(hour == 6) 2 else 3
+            } else {
+                if(hour == 6) 1 else if(hour == 5) 2 else 3
+            }
+        }
+
+        Log.d("MainActivity","prompt monitor sets playTier = $playTier")
+
+        return playTier
     }
 }

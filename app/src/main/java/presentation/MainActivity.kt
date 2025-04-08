@@ -284,7 +284,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 soundPoolManager.activeFgVolAdj = currFgVolAdj
                 Log.d("MainActivity", "prompt volume now ${soundPoolManager.activeFgVolAdj}")
                 val soundFile = promptMonitor.getVolAdjustSound()
-                soundPoolManager.playSound(soundFile, .6F)
+                soundPoolManager.playSound(soundFile, .4F)
             }
 
             if(lastActivityValue != "TRACE" && hoursAllowed && !isInActivityPeriod && !isPromptRunning) {
@@ -458,7 +458,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 Toast.makeText(application, text, Toast.LENGTH_LONG).show()
             } else if(isPromptTesting) {
                 val pType = if(binding.chipWild.isChecked) "w" else "m"
-                testManager.testPrompting(pType, mBgRawId, mBgLabel, binding.playStatus)
+                testManager.testPrompting(pType, mBgRawId, binding.playStatus)
             } else {
                 resetNoisyReceiver()
                 playPromptsFromEventsOrUI(EVENT_LABEL_BUTTON)
@@ -599,8 +599,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
 
-        //default is a moderate length routine
-        var playCount = 2
+        //default is a middle tier routine
+        var playTier = 2
 
         var pType = "m"  //default to mild
         if (binding.chipSsild.isChecked) {
@@ -610,14 +610,15 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         if (binding.chipWild.isChecked) {
             pType = "w"
 
-            //manual wilds should be longer
-            playCount = 3
+            //manual wilds should be higher tier/longer playing
+            playTier = 3
             pMessage = WILD_MESSAGE
         }
 
         var pMod: String
         if (eventLabel == EVENT_LABEL_PROMPT) {
             pMod = "p"
+            playTier = promptMonitor.getPromptTierForTime(triggerDateTime)
         } else {
             //this can either be an auto awake event or an manual button event
             pMod = if (eventLabel == EVENT_LABEL_AWAKE) "a" else ""
@@ -626,31 +627,31 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 updateEventList(EVENT_LABEL_AWAKE, triggerDateTime.toString())
                 speechManager.speakTheTimeWithMessage(MANUAL_PLAY_MESSAGE, pMessage)
             } else {
-                //it's an auto play event so we want a minimal sound routine
-                playCount = 1
+                //it's an auto play event so we want a low tier sound routine
+                playTier = 1
             }
         }
 
         //Log.d("MainActivity", "called wth eventLabel = $eventLabel");
         soundList.add("$pType$pMod")
 
-        //only allow this option via the prompt button
+        //only allow this option via the prompt button, podcast uses playTier to just identify file to play
         if (eventLabel == EVENT_LABEL_BUTTON && binding.chipPod.isChecked) {
             if (binding.chipPod1.isChecked) {
-                playCount = 1
+                playTier = 1
             } else if (binding.chipPod2.isChecked) {
-                playCount = 2
+                playTier = 2
             } else if (binding.chipPod3.isChecked) {
-                playCount = 3
+                playTier = 3
             } else if (binding.chipPod4.isChecked) {
-                playCount = 4
+                playTier = 4
             }
 
             soundList.add("p")
         }
 
         resetNoisyReceiver()
-        playSoundList(soundList, playCount, eventLabel, promptCount)
+        playSoundList(soundList, playTier, eventLabel, promptCount)
     }
 
     /*
@@ -662,7 +663,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
 
         var soundList: MutableList<String> = emptyList<String>().toMutableList()
-        var playCount = 2
+        var playTier = 2 //default is middle tier
 
         if (eventMap.containsKey(POD_EVENT) && (eventMap[POD_EVENT] != null)) {
             updateEventList(EVENT_LABEL_AWAKE, triggerDateTime.toString())
@@ -675,7 +676,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             }
 
             val podNumber = eventMap[POD_EVENT]!!.toInt()
-            playCount = podNumber
+            playTier = podNumber
             soundList.add("p")
         } else if (eventMap.containsKey(PLAY_EVENT) && (eventMap[PLAY_EVENT] != null)) {
             updateEventList(EVENT_LABEL_AWAKE, triggerDateTime.toString())
@@ -695,8 +696,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             if (soundList.contains("s")) {
                 promptMessage = SSILD_MESSAGE
             } else if (soundList.contains("wa")) {
-                //wilds initiated from watch should be longer
-                playCount = 3
+                //wilds initiated from watch should be higher tier/longer
+                playTier = 3
                 promptMessage = WILD_MESSAGE
             }
 
@@ -716,15 +717,15 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
             resetNoisyReceiver()
 
-            Log.d("MainActivity", "play count $playCount for $soundList")
+            Log.d("MainActivity", "play tier $playTier for $soundList")
 
-            playSoundList(soundList, playCount, EVENT_LABEL_WATCH)
+            playSoundList(soundList, playTier, EVENT_LABEL_WATCH)
         }
     }
 
     private fun playSoundList(
         soundList: MutableList<String>,
-        playCount: Int,
+        playTier: Int,
         eventLabel: String,
         promptCount: Int = 1
     ) {
@@ -734,7 +735,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             soundPoolManager.activeFgVolAdj = 1F
             promptMonitor.adjPromptVolumeCnt = 0
         }
-        soundPoolManager.playSoundList(soundList, mBgRawId, mBgLabel, eventLabel, binding.playStatus, playCount, promptCount)
+        soundPoolManager.playSoundList(soundList, mBgRawId, eventLabel, binding.playStatus, playTier, promptCount)
     }
 
     private fun stopSoundRoutine() {

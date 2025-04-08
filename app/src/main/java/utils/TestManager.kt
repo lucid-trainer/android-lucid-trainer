@@ -50,7 +50,7 @@ class TestManager {
         this.promptMonitor = promptMonitor
     }
 
-    fun testPrompting(promptType : String, mBgRawId: Int, mBgLabel: String, playStatus: TextView) {
+    fun testPrompting(promptType : String, mBgRawId: Int, playStatus: TextView) {
 
         val scope = CoroutineScope(Dispatchers.Default)
 
@@ -64,17 +64,17 @@ class TestManager {
 
                     playStatus.text = "Test prompt $i: "
 
-                    Log.d("MainActivity", "playing test prompt $i");
+                    Log.d("MainActivity", "playing test prompt $i")
 
-                    soundPoolManager.playSoundList(soundList, mBgRawId, mBgLabel,
-                        MainActivity.EVENT_LABEL_PROMPT, playStatus, 1, i)
+                    soundPoolManager.playSoundList(soundList, mBgRawId,
+                        MainActivity.EVENT_LABEL_PROMPT, playStatus, 3, i)
 
                     val sound = promptMonitor.getVolAdjustSound()
-                    soundPoolManager.playSound(sound, .6F)
+                    soundPoolManager.playSound(sound, .4F)
                     promptMonitor.adjPromptVolumeCnt += 1
 
-                    Log.d("MainActivity", "waiting 60 seconds to start next test prompt");
-                    delay(timeMillis = 30000)
+                    Log.d("MainActivity", "waiting 90 seconds to start next test prompt");
+                    delay(timeMillis = 90000)
                     yield()
 
                 }

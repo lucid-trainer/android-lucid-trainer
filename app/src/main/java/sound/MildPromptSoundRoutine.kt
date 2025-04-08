@@ -1,12 +1,12 @@
 package sound
 
+import android.util.Log
 import utils.FileManager
 
 class MildPromptSoundRoutine (
-    override var playCount: Int, override var bgRawId: Int, override var endBgRawId: Int,
-    override var bgVolume: Float, override var altBgVolume: Float, override var fgVolume: Float,
-    override val eventLabel: String, override var bgLabel: String, override var endBgLabel: String,
-    override val theme: String, override val fgLabel: String = "PROMPT", override val promptCount: Int = 1
+    override var playTier: Int, override var bgRawId: Int, override var bgVolume: Float,
+    override var altBgVolume: Float, override var fgVolume: Float, override val eventLabel: String,
+    override var bgLabel: String, override val theme: String, override val fgLabel: String = "PROMPT", override val promptCount: Int = 1
 ) : PromptSoundRoutine {
 
     private val fileManager = FileManager.getInstance()!!
@@ -44,12 +44,16 @@ class MildPromptSoundRoutine (
                 fileManager.getFilesFromDirectory(promptDir).filter { it.startsWith("random_") }
                     .shuffled().last()
 
-            routine.add(Sound(0, 0, "$promptDir/$promptFile",false, 1.2F))
+            val fileVolAdjust = if(playTier == 1) .9F else if(playTier == 2) 1F else 1.2F
+            routine.add(Sound(0, 0, "$promptDir/$promptFile",false, fileVolAdjust))
         }
 
         routine.add(Sound(0, 7, "$promptDir/silence.ogg"))
 
-        routine.add(Sound(0, 0, "$promptDir/foreground.ogg"))
+        val fileVolAdjust = if(playTier == 1) .75F else if(playTier == 2) .9F else 1F
+        Log.d("MainActivity", "For prompt routine - playTier = $playTier, fileVolAdjust = $fileVolAdjust")
+
+        routine.add(Sound(0, 0, "$promptDir/foreground.ogg", false, fileVolAdjust))
 
         return routine
     }
