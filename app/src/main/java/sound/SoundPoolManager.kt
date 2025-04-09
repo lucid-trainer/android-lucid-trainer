@@ -25,8 +25,6 @@ class SoundPoolManager {
     private lateinit var speechManager: SpeechManager
     private lateinit var volumeManager: SoundVolumeManager
 
-    private var mBgId = -1
-    private var mFgId = -1
     private var fgJob: Job? = null
     private var bgJob: Job? = null
     private var altBgJob: Job? = null
@@ -44,6 +42,8 @@ class SoundPoolManager {
         private var INSTANCE: SoundPoolManager? = null
         var isLoadedMap = emptyMap<Int, Boolean>().toMutableMap()
         var loadingErrorMessage = ""
+        var mBgId = -1
+        var mFgId = -1
 
         fun getInstance(context: Context): SoundPoolManager {
             synchronized(this) {
@@ -174,6 +174,9 @@ class SoundPoolManager {
             "wp", "mp" -> {
                 fgVolume *= .6F
 
+                val tierAltAdj = if(playTier == 3) 1.2F else if(playTier == 2) 1.1F else 1F
+                altBgVolume *= tierAltAdj
+
                 val fgLabel = if(type == "wp") "WILD" else "MILD"
                 MildPromptSoundRoutine(playTier, bgRawId, 1F, altBgVolume, fgVolume, eventLabel, bgLabel, MILD_THEME, fgLabel, promptCount)
             }
@@ -246,14 +249,15 @@ class SoundPoolManager {
                         playBackgroundSound(soundRoutine.bgRawId, startingBgVolume, textView, startingBgVolume)
                     } else if(volumeManager.currBgVol > 0 && volumeManager.currBgVol < startingBgVolumeAdj){
                         //fade up the bg volume to match the routine
-                        volumeManager.fadeBackgroundUpForReset(20, volumeManager.currBgVol, startingBgVolumeAdj, mBgId )
+                        volumeManager.fadeBackgroundUpForReset(20, volumeManager.currBgVol, startingBgVolumeAdj )
                     }
 
                     Log.d("MainActivity", "playing $soundRoutine.javaClass.name} start fg vol:${soundRoutine.fgVolume} " +
                             "start bg vol: ${soundRoutine.altBgVolume}")
                     if(soundRoutine.fadeDownBg()) {
                         //start a fade down before playing the routine
-                        startingBgVolume = volumeManager.fadeDownBackgroundForRoutine(soundRoutine, mBgId)
+                        Log.d("MainActivity","curr mBgId = $mBgId ${SoundPoolManager.mBgId}")
+                        startingBgVolume = volumeManager.fadeDownBackgroundForRoutine(soundRoutine)
                     } else {
                         stopPlayingAltBackground()
                     }
@@ -275,15 +279,17 @@ class SoundPoolManager {
                     var idxCnt = soundRoutine.getRoutine().size
 
                     for (sound in soundRoutine.getRoutine()) {
-                        playedSoundCnt += 1
-
-                        val startingFgVolume = soundRoutine.fgVolume * activeFgVolAdj
-
-                        var (currBgVolume, currVolume) = adjustVolumeForSound(sound, soundRoutine, startingBgVolume, startingFgVolume, textView)
-                        startingBgVolume = currBgVolume
-
                         //check if stop button pushed mid play or the sound file id is already initialized
                         if (!volumeManager.isFGSoundStopped) {
+                            playedSoundCnt += 1
+
+                            var startingFgVolume = if(soundRoutine.fadeDownFg() && volumeManager.isFgFadeDownRunning())
+                                volumeManager.currFgVol else soundRoutine.fgVolume
+                            startingFgVolume *= activeFgVolAdj //activity can trigger an adjustment to turn the fg volume down (just prompts for now)
+
+                            var (currBgVolume, currVolume) = adjustVolumeForSound(sound, soundRoutine, startingBgVolume, startingFgVolume, textView)
+                            startingBgVolume = currBgVolume
+
                             var filePath = ""
 
                             //play the sound file - playOnce handles loading and unloading the file
@@ -301,10 +307,11 @@ class SoundPoolManager {
 
                             if(soundRoutine.fadeDownFg()) {
                                 //start a fade down on the playing fg sound (for long play files like podcasts)
-                                volumeManager.fadeForegroundDown(25, currVolume, currVolume * .7F, mFgId)
+                                volumeManager.fadeForegroundDown(25, currVolume, currVolume * .7F)
                             }
 
-                             var playStatus = "Playing ${soundRoutine.bgLabel} and ${soundRoutine.fgLabel} routine"
+
+                            var playStatus = "Playing ${soundRoutine.bgLabel} and ${soundRoutine.fgLabel} routine"
                              playStatus +=  if(filePath.isNotEmpty()) ", current file ${filePath.substringAfterLast("/")}"
                                 else " for ${soundRoutine.playTier} cycles"
                              textView.text = playStatus
@@ -373,7 +380,7 @@ class SoundPoolManager {
             if (currBgVol == soundRoutine.bgVolume) {
                 currBgVol *= .4F
                 stopPlayingAltBackground() // this will stop the alt bg sounds as well to just focus on the fg clip
-                volumeManager.setBgVol(mBgId, currBgVol)
+                volumeManager.setBgVol(currBgVol)
                 volumeManager.isBGVolAdjustedForClip = true
                 delay(timeMillis = 1000)
             }
@@ -387,7 +394,7 @@ class SoundPoolManager {
             } else {
                 //Log.d("MainActivity", "We're returning the volume to normal")
                 currBgVol = soundRoutine.bgVolume * allVolAdj
-                volumeManager.setBgVol(mBgId, currBgVol)
+                volumeManager.setBgVol(currBgVol)
             }
 
             delay(timeMillis = 1000)
@@ -457,7 +464,7 @@ class SoundPoolManager {
             //Log.d("MainActivity", "fade up the background from $startVolume to $finishVolume")
             volumeManager.currAltBgVol *= .7F //set the alt background to a lower level to fade up as well
             //Log.d("MainActivity", "484: setting currAltBgVol to $currAltBgVol")
-            volumeManager.fadeBackgroundUp(fadeUpCnt, fadeUpDelay, finishVolume, startVolume, mBgId)
+            volumeManager.fadeBackgroundUp(fadeUpCnt, fadeUpDelay, finishVolume, startVolume)
         } else {
             loadAndPlayBackgroundRoutine(scope, bgRawId, finishVolume)
         }
@@ -509,19 +516,23 @@ class SoundPoolManager {
             altBgJob = scope.launch {
                 delay(timeMillis = 10000)
                 //mild has an intro file and then long delay so hold off playing alt bg until then
-                val delayBetween = if(soundRoutine is MILDSoundRoutine) 120_000L else 20_000L
+                val delayBetween = if(soundRoutine is MILDSoundRoutine) 120_000L
+                   else if(soundRoutine is PromptSoundRoutine) 5_000L else 20_000L
 
                 val startSounds = soundRoutine.getStartSounds()
 
                 //play the start sounds once and not on restart
                 if(playStart && startSounds.isNotEmpty()) {
-                    playAltSounds(startSounds, soundRoutine.altBgVolume * 1.2F, delayBetween)
+                    val volume = soundRoutine.altBgVolume * 1.2F
+                    playAltSounds(startSounds, volume, delayBetween)
                 }
 
                 val altBGSounds = soundRoutine.getAltBGSounds()
                 if(altBGSounds.isNotEmpty()) {
                     do {
-                        playAltSounds(altBGSounds, volumeManager.currAltBgVol, delayBetween)
+                        //activity can trigger an adjustment to turn the fg and alt bg volume down (just prompts for now)
+                        val volume = volumeManager.currAltBgVol * activeFgVolAdj
+                        playAltSounds(altBGSounds, volume , delayBetween)
                     } while (!volumeManager.isBGSoundStopped)
                 }
             }
@@ -540,11 +551,9 @@ class SoundPoolManager {
 
             if (filePath != null) {
 
-                //adjust the alt bg volume down to match the fg volume if activity event
-                val altBgVol = volumeManager.currAltBgVol * activeFgVolAdj
-                Log.d("MainActivity", "playing alt bg file $filePath at current alt bg vol $altBgVol")
+                Log.d("MainActivity", "playing alt bg file $filePath at current alt bg vol $volume")
 
-                altBgId = mSoundPoolCompat.playOnce(filePath, altBgVol, altBgVol, 1F)
+                altBgId = mSoundPoolCompat.playOnce(filePath, volume, volume, 1F)
 
                 waitForSoundPlayToComplete(altBgId)
 

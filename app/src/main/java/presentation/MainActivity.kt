@@ -281,7 +281,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 soundPoolManager.activeFgVolAdj = currFgVolAdj
                 Log.d("MainActivity", "prompt volume now ${soundPoolManager.activeFgVolAdj}")
                 val soundFile = promptMonitor.getVolAdjustSound()
-                soundPoolManager.playSound(soundFile, .4F)
+                soundPoolManager.playSound(soundFile, .45F)
             }
 
             if(lastActivityValue != "TRACE" && hoursAllowed && !isInActivityPeriod && !isPromptRunning) {
@@ -622,8 +622,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             }
         }
 
-        soundList.add("$pType$pMod")
-
         //only allow this option via the prompt button, podcast uses playTier to just identify file to play
         if (eventLabel == EVENT_LABEL_BUTTON && binding.chipPod.isChecked) {
             if (binding.chipPod1.isChecked) {
@@ -636,8 +634,10 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 playTier = 4
             }
 
-            soundList.add("p")
+            pType="p"
         }
+
+        soundList.add("$pType$pMod")
 
         resetNoisyReceiver()
         playSoundList(soundList, playTier, eventLabel, promptCount)
@@ -715,7 +715,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     ) {
         if(eventLabel != EVENT_LABEL_PROMPT || promptCount == 1) {
             Log.d("MainActivity", "resetting prompt volume")
-            soundPoolManager.activeFgVolAdj = 1F
+            soundPoolManager.activeFgVolAdj = 1F  //this resets adjustment for movement/activity to nothing for any routine that's not a prompt
             promptMonitor.adjPromptVolumeCnt = 0
         }
         soundPoolManager.playSoundList(soundList, mBgRawId, eventLabel, binding.playStatus, playTier, promptCount)

@@ -50,7 +50,7 @@ class MildPromptSoundRoutine (
 
         routine.add(Sound(0, 7, "$promptDir/silence.ogg"))
 
-        val fileVolAdjust = if(playTier == 1) .75F else if(playTier == 2) .9F else 1F
+        val fileVolAdjust = if(playTier == 1) .8F else if(playTier == 2) .9F else 1F
         Log.d("MainActivity", "For prompt routine - playTier = $playTier, fileVolAdjust = $fileVolAdjust")
 
         routine.add(Sound(0, 0, "$promptDir/foreground.ogg", false, fileVolAdjust))

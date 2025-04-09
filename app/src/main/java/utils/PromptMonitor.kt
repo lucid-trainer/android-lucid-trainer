@@ -342,7 +342,7 @@ class PromptMonitor {
 
         if (isInPromptRunPeriod()) {
             adjPromptVolumeCnt += 1
-            val adjustVal = .06F * adjPromptVolumeCnt.toFloat()
+            val adjustVal = .15F * adjPromptVolumeCnt
             activityVolAdjust = 1F - adjustVal
         } else {
             adjPromptVolumeCnt = 0
@@ -353,9 +353,8 @@ class PromptMonitor {
 
     fun getVolAdjustSound(): String {
         val fileNum = when(adjPromptVolumeCnt) {
-            0 -> 1
             1, 2, 3 -> adjPromptVolumeCnt
-            else -> 3
+            else -> 2
         }
 
         return PromptSoundRoutine.getVolAdjustSound(fileNum)

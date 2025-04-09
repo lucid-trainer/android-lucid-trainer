@@ -66,12 +66,21 @@ class TestManager {
 
                     Log.d("MainActivity", "playing test prompt $i")
 
+                    //simulate the next prompt in a chain
                     soundPoolManager.playSoundList(soundList, mBgRawId,
                         MainActivity.EVENT_LABEL_PROMPT, playStatus, 3, i)
 
-                    val sound = promptMonitor.getVolAdjustSound()
-                    soundPoolManager.playSound(sound, .4F)
-                    promptMonitor.adjPromptVolumeCnt += 1
+                    //simulate activity trigger adjustment down in volume
+                    val activityList = listOf(2, 4, 7, 8)
+                    if(i in activityList) {
+                        promptMonitor.adjPromptVolumeCnt += 1
+                        val sound = promptMonitor.getVolAdjustSound()
+                        soundPoolManager.playSound(sound, .45F)
+
+                        val adjustVal = .15F * promptMonitor.adjPromptVolumeCnt
+                        soundPoolManager.activeFgVolAdj = 1F - adjustVal
+                        Log.d("MainActivity", "next prompt should be ${soundPoolManager.activeFgVolAdj} lower");
+                    }
 
                     Log.d("MainActivity", "waiting 90 seconds to start next test prompt");
                     delay(timeMillis = 90000)
