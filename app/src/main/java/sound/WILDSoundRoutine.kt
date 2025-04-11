@@ -64,7 +64,11 @@ class WILDSoundRoutine(override var playTier: Int, override var bgRawId: Int, ov
 
         var i = 1;
         for (file in files) {
-            routine.add(Sound(0, 20, "$dir/$file",false, getVolAdjust(i)))
+            if(i == 1) {
+                routine.add(Sound(0, 20, "$dir/$file", "ON"))
+            } else {
+                routine.add(Sound(0, 20, "$dir/$file"))
+            }
             i++
         }
 
@@ -79,7 +83,7 @@ class WILDSoundRoutine(override var playTier: Int, override var bgRawId: Int, ov
         routine.add(2, Sound(0, 0, "$startDir/start/tune.ogg"))
 
         val clipFile = fileManager.getUnusedFilesFromDirectory("$startDir/$CLIP_DIR", 1).shuffled().last()
-        routine.add(3, Sound(0, 20, "$startDir/$CLIP_DIR/$clipFile", true))
+        routine.add(3, Sound(0, 20, "$startDir/$CLIP_DIR/$clipFile", "OFF"))
 
         fileManager.addFileUsed("$startDir/$CLIP_DIR", clipFile)
     }
@@ -92,5 +96,4 @@ class WILDSoundRoutine(override var playTier: Int, override var bgRawId: Int, ov
                 .shuffled().last()
         routine.add(4, Sound(0, 20, "$promptDir/$promptFile"))
     }
-
 }

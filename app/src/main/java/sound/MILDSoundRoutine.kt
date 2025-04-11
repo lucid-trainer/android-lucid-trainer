@@ -48,41 +48,15 @@ class MILDSoundRoutine(override var playTier: Int, override var bgRawId: Int, ov
 
     private fun addForegroundSounds(routine: MutableList<Sound>) {
 
-        var fileVolAdjust = if(playTier == 1) .9F else if(playTier == 2) 1F else 1.2F
-
-        fileVolAdjust = if(playTier == 1) .8F else if(playTier == 2) .9F else 1F
-        Log.d("MainActivity", "For prompt routine - playTier = $playTier, fileVolAdjust = $fileVolAdjust")
-
         for(i in 1..10) {
             if(i == 2) {
-                routine.add(Sound(0, 5, "$promptDir/vol_adjust_1.ogg", false, 1.1F))
+                routine.add(Sound(0, 5, "$promptDir/vol_adjust_1.ogg"))
             } else if(i == 4) {
-                routine.add(Sound(0, 5, "$promptDir/vol_adjust_2.ogg", false, .9F))
+                routine.add(Sound(0, 5, "$promptDir/vol_adjust_2.ogg"))
             } else if (i == 5) {
-                routine.add(Sound(0, 5, "$promptDir/vol_adjust_3.ogg", false, .75F))
+                routine.add(Sound(0, 5, "$promptDir/vol_adjust_3.ogg"))
             }
-            routine.add(Sound(0, 30, "$promptDir/foreground.ogg", false, getVolAdjust(i)))
+            routine.add(Sound(0, 30, "$promptDir/foreground.ogg"))
         }
-    }
-
-    override fun getVolAdjust(fileCount: Int): Float {
-
-        return when {
-            fileCount <= 1 -> .9F
-            fileCount <= 2 -> .82F
-            fileCount <= 3 -> .74F
-            fileCount <= 4 -> .66F
-            fileCount <= 5 -> .58F
-            fileCount <= 6 -> .5F
-            fileCount <= 7 -> .42F
-            fileCount <= 8 -> .36F
-            else -> .3F
-        }
-    }
-
-
-    //we always want to start a prompt by resetting the background
-    override fun fadeDownBg() : Boolean {
-        return true
     }
 }

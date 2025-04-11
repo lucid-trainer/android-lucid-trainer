@@ -44,17 +44,12 @@ class MildPromptSoundRoutine (
                 fileManager.getFilesFromDirectory(promptDir).filter { it.startsWith("random_") }
                     .shuffled().last()
 
-            val fileVolAdjust = if(playTier == 1) .9F else if(playTier == 2) 1F else 1.1F
-            routine.add(Sound(0, 0, "$promptDir/$promptFile",false, fileVolAdjust))
+            routine.add(Sound(0, 0, "$promptDir/$promptFile"))
         }
 
-        routine.add(Sound(0, 7, "$promptDir/silence.ogg"))
+        routine.add(Sound(0, 7, "$promptDir/silence.ogg", "ON"))
 
-        //lower the volume based on time of night.  If it's the last part of night, gradually diminish each prompt in cycle
-        val fileVolAdjust = if(playTier == 1) 1F - (.06F*promptCount) else if(playTier == 2) .9F else 1F
-        Log.d("MainActivity", "For prompt routine - playTier = $playTier, fileVolAdjust = $fileVolAdjust")
-
-        routine.add(Sound(0, 0, "$promptDir/foreground.ogg", false, fileVolAdjust))
+        routine.add(Sound(0, 0, "$promptDir/foreground.ogg"))
 
         return routine
     }

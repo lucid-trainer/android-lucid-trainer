@@ -114,11 +114,11 @@ class SoundVolumeManager() {
                 lastFgVol = currFgVol
                 //Log.d("MainActivity", "for loop $i subtracting $fgFadeDownAmount to fg currVol $currFgVol with target $finishVolume")
             }
+            //re-initialize volume
+            currFgVol = 1F
+            fadeFgJob = null
         }
 
-        //re-initialize volume
-        currFgVol = 1F
-        fadeFgJob = null
 
         return lastFgVol
     }
@@ -183,6 +183,7 @@ class SoundVolumeManager() {
     }
 
     fun isFgFadeDownRunning(): Boolean {
+        Log.d("MainActivity", "isFgRunning = $fadeFgJob $currFgVol")
         return fadeFgJob != null && currFgVol < 1F
     }
     
