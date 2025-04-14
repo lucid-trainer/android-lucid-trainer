@@ -87,7 +87,7 @@ class SoundVolumeManager() {
             delay(timeMillis = fadeDownDelay)
             currBgVol -= bgFadeDownAmount
             setBgVol(currBgVol)
-            Log.d("MainActivity", "for loop $i subtracting $bgFadeDownAmount to get currBgVol $currBgVol with target $finishVolume")
+            //Log.d("MainActivity", "for loop $i subtracting $bgFadeDownAmount to get currBgVol $currBgVol with target $finishVolume")
         }
 
         return currBgVol
@@ -112,7 +112,7 @@ class SoundVolumeManager() {
                 mSoundPoolCompat.setVolume(SoundPoolManager.mFgId, currFgVol, currFgVol)
 
                 lastFgVol = currFgVol
-                Log.d("MainActivity", "for loop $i subtracting $fgFadeDownAmount to fg currVol $currFgVol with target $finishVolume")
+                //Log.d("MainActivity", "for loop $i subtracting $fgFadeDownAmount to fg currVol $currFgVol with target $finishVolume")
             }
         }
 
@@ -138,7 +138,7 @@ class SoundVolumeManager() {
                 delay(timeMillis = fadeUpDelay)
 
                 currBgVol += fadeUpAmount
-                Log.d("MainActivity", "for loop $i adding $fadeUpAmount to get currVol $currBgVol with target $finishVolume")
+                //Log.d("MainActivity", "for loop $i adding $fadeUpAmount to get currVol $currBgVol with target $finishVolume")
                 setBgVol(currBgVol)
 
                 //adjust the alt Bg volume back up a little each time as well.  We turned it down by half, this should restore it back

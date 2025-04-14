@@ -281,12 +281,12 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 soundPoolManager.activeFgVolAdj = currFgVolAdj
                 Log.d("MainActivity", "prompt volume now ${soundPoolManager.activeFgVolAdj}")
                 val soundFile = promptMonitor.getVolAdjustSound()
-                soundPoolManager.playSound(soundFile, .45F)
+                soundPoolManager.playSound(soundFile, .5F)
             }
 
-            if(lastActivityValue != "TRACE" && hoursAllowed && !isInActivityPeriod && !isPromptRunning) {
+            if(lastActivityValue != "TRACE" && lastActivityValue != "LIGHT" && hoursAllowed && !isInActivityPeriod && !isPromptRunning) {
                 //we'll read out the time for any elevated activity
-                speechManager.speakTheTimeWithMessage(lastActivityValue + " " + ACTIVE_EVENT_MESSAGE, "", .4F)
+                speechManager.speakTheTimeWithMessage("$lastActivityValue $ACTIVE_EVENT_MESSAGE", "", .4F)
             }
 
             //we'll set a cooldown period to interrupt prompting if enough activity
@@ -360,10 +360,10 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
         val hour = triggerDateTime.hour
         val day = triggerDateTime.dayOfWeek
-        val hourLimit = if (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) 5 else 4
+        val hourLimit = if (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) 6 else 5
 
         if (binding.chipAwake.isChecked) {
-            val hoursAllowed = hour in 2..hourLimit
+            val hoursAllowed = hour in 0..hourLimit
             val isAwakeEventAllowed =
                 hoursAllowed && promptMonitor.isAwakeEventAllowed(viewModel.lastTimestamp.value)
 
@@ -467,6 +467,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 testManager.stopPlayingAll(binding.playStatus)
             }
             checkShouldStartInterruptCoolDown()
+            binding.seekBar.progress = 0
+            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0)
         }
 
         binding.btnReset.setOnClickListener {
@@ -513,7 +515,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             binding.chipMid.isChecked = true
             binding.chipMild.isChecked = true
             binding.chipRem.isChecked = true
-            binding.chipAwake.isChecked = false
+            binding.chipAwake.isChecked = true
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, RESET_VOL, 0)
         }
 

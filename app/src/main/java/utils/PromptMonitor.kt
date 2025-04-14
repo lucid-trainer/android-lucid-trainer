@@ -34,14 +34,14 @@ class PromptMonitor {
         const val PROMPT_PERIOD = 20L  //the period in which a new prompt chain can run
         const val MIN_PROMPT_COOL_DOWN_PERIOD = 5L //periods between allowed prompt chains
         const val MAX_PROMPT_COOL_DOWN_PERIOD = 15L //periods between allowed prompt chains
-        const val MIN_PROMPT_COUNT = 4
-        const val MAX_PROMPT_COUNT = 10
+        const val MIN_PROMPT_COUNT = 2
+        const val MAX_PROMPT_COUNT = 12
         const val INTERRUPT_COOL_DOWN_PERIOD = 10L //period that prompts are quited after movement
         const val ACTIVITY_COOL_DOWN_PERIOD = 10L
         const val SLEEP_COOL_DOWN_PERIOD = 50L
         const val IN_AWAKE_PERIOD = 6L
         const val BETWEEN_AWAKE_PERIOD = 70L
-        const val SECONDS_BETWEEN_PROMPTS = 90L
+        const val SECONDS_BETWEEN_PROMPTS = 100L
     }
 
     private val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
@@ -191,7 +191,7 @@ class PromptMonitor {
         val day = triggerDateTime.dayOfWeek
         val hourLimit = if(day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) 7 else 6
 
-        val allowedFirstPartOfNight = hour in 1..3
+        val allowedFirstPartOfNight = hour in 0..3
                 && isAwakeEventBeforePeriod(lastTimestamp, 20)
         val allowedSecondPartOfNight = hour in 4 .. hourLimit
                 && isAwakeEventBeforePeriod(lastTimestamp, 10)

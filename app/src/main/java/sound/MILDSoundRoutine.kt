@@ -11,14 +11,15 @@ class MILDSoundRoutine(override var playTier: Int, override var bgRawId: Int, ov
 
     private val fileManager = FileManager.getInstance()!!
 
+    private val promptDir = PromptSoundRoutine.promptDir
+
     override fun getRoutine(): List<Sound> {
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()
 
         val mildDir = "$ROOT_DIR/$MILD_DIR"
-        routine.add(Sound(0, 70, "$mildDir/instruction.ogg"))
+        routine.add(Sound(0, 150, "$mildDir/instruction.ogg"))
         //Log.d("MainActivity", "mildDir=$mildDir, count = ${fileManager.getFilesFromDirectory(mildDir).size} ")
 
-        addStartSound(routine)
         addForegroundSounds(routine)
 
         return routine
@@ -33,62 +34,52 @@ class MILDSoundRoutine(override var playTier: Int, override var bgRawId: Int, ov
     }
 
     override fun getAltBGSounds(): List<String> {
-        val altBGSounds : MutableList<String> = emptyList<String>().toMutableList()
 
-        val dir = "/$ROOT_DIR/$THEMES_DIR/$theme/$ALT_BACKGROUND_DIR"
-        //Log.d("MainActivity", "dir=$dir, count = ${fileManager.getFilesFromDirectory(dir).size} ")
-        val files = fileManager.getFilesFromDirectory(dir).shuffled().slice(0..9)
-        Log.d("MainActivity", "bg files = $files")
+        val bgSounds : MutableList<String> = emptyList<String>().toMutableList()
 
-        for (i in 0..9) {
-            altBGSounds.add("$dir/${files[i]}")
-        }
+        val altBgFile =
+            fileManager.getFilesFromDirectory(promptDir).filter { it.startsWith("alt_background_") }
+                .shuffled().last()
 
-        return altBGSounds
+        bgSounds.add("$promptDir/$altBgFile")
+
+        return bgSounds
     }
 
     private fun addForegroundSounds(routine: MutableList<Sound>) {
-        var dir = "$ROOT_DIR/$THEMES_DIR/$theme/$FOREGROUND_DIR"
 
-        val limit = when(playTier) {
-            1 -> 8
-            else -> 12
+        var fileVolAdjust = if(playTier == 1) .9F else if(playTier == 2) 1F else 1.2F
+
+        fileVolAdjust = if(playTier == 1) .8F else if(playTier == 2) .9F else 1F
+        Log.d("MainActivity", "For prompt routine - playTier = $playTier, fileVolAdjust = $fileVolAdjust")
+
+        for(i in 1..10) {
+            if(i == 2) {
+                routine.add(Sound(0, 5, "$promptDir/vol_adjust_1.ogg", false, 1.1F))
+            } else if(i == 4) {
+                routine.add(Sound(0, 5, "$promptDir/vol_adjust_2.ogg", false, .9F))
+            } else if (i == 5) {
+                routine.add(Sound(0, 5, "$promptDir/vol_adjust_3.ogg", false, .75F))
+            }
+            routine.add(Sound(0, 30, "$promptDir/foreground.ogg", false, getVolAdjust(i)))
         }
-
-        //Log.d("MainActivity", "altfg dir=$dir, count = ${fileManager.getFilesFromDirectory(dir).size} ")
-
-        val files = fileManager.getUnusedFilesFromDirectory(dir, limit).shuffled().slice(0 until limit)
-
-        var i = 1;
-        for (file in files) {
-            routine.add(Sound(0, 20, "$dir/$file",false, getVolAdjust(i)))
-            i++
-        }
-
-        fileManager.addFilesUsed(dir, files)
-    }
-
-    private fun addStartSound(routine: MutableList<Sound>) {
-        var dir = "$ROOT_DIR/$THEMES_DIR/$theme/$START_DIR"
-        routine.add(Sound(0, 20, "$dir/start.ogg",false))
     }
 
     override fun getVolAdjust(fileCount: Int): Float {
 
         return when {
             fileCount <= 1 -> .9F
-            fileCount <= 2 -> .85F
-            fileCount <= 3 -> .8F
-            fileCount <= 4 -> .75F
-            fileCount <= 5 -> .7F
-            fileCount <= 6 -> .65F
-            fileCount <= 7 -> .6F
-            fileCount <= 8 -> .55F
-            fileCount <= 9 -> .5F
-            fileCount <= 10 -> .45F
-            else -> .4F
+            fileCount <= 2 -> .8F
+            fileCount <= 3 -> .7F
+            fileCount <= 4 -> .65F
+            fileCount <= 5 -> .6F
+            fileCount <= 6 -> .55F
+            fileCount <= 7 -> .5F
+            fileCount <= 8 -> .45F
+            else -> .35F
         }
     }
+
 
     //we always want to start a prompt by resetting the background
     override fun fadeDownBg() : Boolean {

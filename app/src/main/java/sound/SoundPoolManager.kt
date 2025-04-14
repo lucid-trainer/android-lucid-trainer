@@ -172,9 +172,10 @@ class SoundPoolManager {
             }
 
             "wp", "mp" -> {
-                fgVolume *= .6F
+                val tierAdj = if(playTier == 3) .85F else if(playTier == 2) .7F else .55F
+                val tierAltAdj = if(playTier == 3) 1.2F else if(playTier == 2) 1.1F else .8F
 
-                val tierAltAdj = if(playTier == 3) 1.2F else if(playTier == 2) 1.1F else 1F
+                fgVolume *= tierAdj
                 altBgVolume *= tierAltAdj
 
                 val fgLabel = if(type == "wp") "WILD" else "MILD"

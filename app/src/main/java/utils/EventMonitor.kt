@@ -1,8 +1,13 @@
 package utils
 
+import android.util.Log
 import database.Reading
 
 object EventMonitor {
+
+    private var triggerAvgHeartRate = 0.0
+    private var triggerAvgHeartRateCnt = 0
+    private var stepHrIncrease: Boolean = false
 
     fun getSleepStage(workingReadingList:  ArrayList<Reading>) : String {
 
@@ -10,9 +15,7 @@ object EventMonitor {
         var hour = workingReadingList.last().dateTime?.hour
 
         val stepHrVal = 2.75
-
         val stepHrVarLow = .45
-
         val stepHrVarHigh = .75
 
         if (workingReadingList.size >= 15) {
@@ -35,10 +38,20 @@ object EventMonitor {
 
             //hr trigger
             val avgHeartRate =
-                workingReadingList.map { it -> it.heartRate }.takeLast(15).take(10).average()
+                workingReadingList.map { it -> it.heartRate }.takeLast(15).take(10).filter{it > 0.0}.average()
             val recentHeartRate =  workingReadingList.map { it -> it.heartRate }.takeLast(5)
-            val stepHrIncrease = recentHeartRate.filter { it > avgHeartRate + 1 }.size >= 2 &&
-                    recentHeartRate.any { it > avgHeartRate + stepHrVal } && extendedDeepCnt > 0
+
+            if(triggerAvgHeartRateCnt == 0) {
+                val hrList = recentHeartRate.joinToString(",")
+                //Log.d("MainActivity", "${workingReadingList.last().timestamp} trigger REM avgHR=$avgHeartRate list = $hrList:")
+                stepHrIncrease = recentHeartRate.filter { it > avgHeartRate + 1 }.size >= 2 &&
+                        recentHeartRate.any { it > avgHeartRate + stepHrVal } && extendedDeepCnt > 0
+            } else {
+                //Log.d("MainActivity", "${workingReadingList.last().timestamp} " +
+                //        "follow-up REM avgHR=$triggerAvgHeartRate list = ${recentHeartRate.last()}")
+                stepHrIncrease = recentHeartRate.last() > triggerAvgHeartRate + 1.25
+                triggerAvgHeartRateCnt -= 1
+            }
 
             //hrVar trigger
             val avgHeartVarRate =
@@ -57,13 +70,18 @@ object EventMonitor {
                 sleepStage = "RESTLESS"
             } else if(recentMove == 0 && (stepHrIncrease || stepHrVarIncrease)) {
                 sleepStage = "REM ASLEEP"
+                if(stepHrIncrease && triggerAvgHeartRateCnt == 0) {
+                    //Log.d("MainActivity", "${workingReadingList.last().timestamp} setting triggerAvgHeartRateCnt")
+                    triggerAvgHeartRate = avgHeartRate
+                    triggerAvgHeartRateCnt = 20
+                }
             } else if (deepCnt == 0 && lightCnt == 0) {
                 sleepStage = "DEEP ASLEEP"
             } else if ((deepCnt > 0 && lightCnt == 0) || recentMove > 1) {
                 sleepStage = "ASLEEP"
             }
 
-            //Log.d("EventSleepStage", "${workingReadingList.last().timestamp} setting sleep stage to $sleepStage")
+            //Log.d("MainActivity", "${workingReadingList.last().timestamp} setting sleep stage to $sleepStage")
 
         }
 
@@ -77,7 +95,7 @@ object EventMonitor {
             val lastActivityReading = workingReadingList.map { it -> it.accelMovement }.last()
             if(lastActivityReading >= .325) {
                 lastActivity = "HIGH"
-            } else if (lastActivityReading >= .2) {
+            } else if (lastActivityReading >= .225) {
                 lastActivity = "MEDIUM"
             } else if (lastActivityReading >= .1) {
                 lastActivity = "LIGHT"
