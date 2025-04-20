@@ -1,5 +1,6 @@
 package presentation
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
 import android.content.BroadcastReceiver
@@ -115,6 +116,10 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private val deviceDocumentRepository = DeviceDocumentsRepository(
         AppConfig.ApiService()
     )
+
+    // Requesting permission to RECORD_AUDIO
+    private var permissionToRecordAccepted = false
+    private var permissions: Array<String> = arrayOf(Manifest.permission.RECORD_AUDIO)
 
     @SuppressLint("SourceLockedOrientationActivity")
     override fun onCreate(savedInstanceState: Bundle?) {

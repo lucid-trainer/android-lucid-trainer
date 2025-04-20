@@ -67,12 +67,14 @@ class PromptMonitor {
         var eventsDisplay = ""
 
         if (awakeEventList.isNotEmpty()) {
-            val formatAwakeEvents = awakeEventList.map { dateTime -> dateTime.format(formatter) }
+            val copyAwakeEventList = awakeEventList.toList()
+            val formatAwakeEvents = copyAwakeEventList.map { dateTime -> dateTime.format(formatter) }
             eventsDisplay += "ActiveEvents: $formatAwakeEvents \n"
         }
 
         if(promptTriggerAndEventCount.isNotEmpty()) {
-            val formatTriggerAndCounts = promptTriggerAndEventCount.map { triggerAndCount -> triggerAndCount.first.format(formatter) + "[" +
+            val copyTriggerAndEventCount = promptTriggerAndEventCount.toList()
+            val formatTriggerAndCounts = copyTriggerAndEventCount.map { triggerAndCount -> triggerAndCount.first.format(formatter) + "[" +
                 triggerAndCount.second + "]"}
             eventsDisplay += "PromptEvents: $formatTriggerAndCounts \n"
         }
@@ -191,7 +193,7 @@ class PromptMonitor {
         val day = triggerDateTime.dayOfWeek
         val hourLimit = if(day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) 7 else 6
 
-        val allowedFirstPartOfNight = hour in 0..3
+        val allowedFirstPartOfNight = hour in 2..3
                 && isAwakeEventBeforePeriod(lastTimestamp, 20)
         val allowedSecondPartOfNight = hour in 4 .. hourLimit
                 && isAwakeEventBeforePeriod(lastTimestamp, 10)
