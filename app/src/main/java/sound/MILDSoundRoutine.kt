@@ -17,7 +17,7 @@ class MILDSoundRoutine(override var playTier: Int, override var bgRawId: Int, ov
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()
 
         val mildDir = "$ROOT_DIR/$MILD_DIR"
-        routine.add(Sound(0, 150, "$mildDir/instruction.ogg"))
+        routine.add(Sound(0, 180, "$mildDir/instruction.ogg"))
         //Log.d("MainActivity", "mildDir=$mildDir, count = ${fileManager.getFilesFromDirectory(mildDir).size} ")
 
         addForegroundSounds(routine)
@@ -69,14 +69,14 @@ class MILDSoundRoutine(override var playTier: Int, override var bgRawId: Int, ov
 
         return when {
             fileCount <= 1 -> .9F
-            fileCount <= 2 -> .8F
-            fileCount <= 3 -> .7F
-            fileCount <= 4 -> .65F
-            fileCount <= 5 -> .6F
-            fileCount <= 6 -> .55F
-            fileCount <= 7 -> .5F
-            fileCount <= 8 -> .45F
-            else -> .35F
+            fileCount <= 2 -> .82F
+            fileCount <= 3 -> .74F
+            fileCount <= 4 -> .66F
+            fileCount <= 5 -> .58F
+            fileCount <= 6 -> .5F
+            fileCount <= 7 -> .42F
+            fileCount <= 8 -> .36F
+            else -> .3F
         }
     }
 

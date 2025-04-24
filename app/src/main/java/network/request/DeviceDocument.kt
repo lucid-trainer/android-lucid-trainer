@@ -13,5 +13,5 @@ data class DeviceDocument (
     val promptVolume: Float,
     val intensity: Int,
     val prompt_allowed: Boolean,
-    val debugLog: String
+    var debugLog: String
 )

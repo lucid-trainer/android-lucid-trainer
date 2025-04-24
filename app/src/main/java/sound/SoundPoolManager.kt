@@ -172,8 +172,8 @@ class SoundPoolManager {
             }
 
             "wp", "mp" -> {
-                val tierAdj = if(playTier == 3) .85F else if(playTier == 2) .7F else .55F
-                val tierAltAdj = if(playTier == 3) 1.2F else if(playTier == 2) 1.1F else .8F
+                val tierAdj = if(playTier == 3) .85F else if(playTier == 2) .6F else .4F
+                val tierAltAdj = if(playTier == 3) 1F else if(playTier == 2) .7F else .5F
 
                 fgVolume *= tierAdj
                 altBgVolume *= tierAltAdj
@@ -518,7 +518,7 @@ class SoundPoolManager {
                 delay(timeMillis = 10000)
                 //mild has an intro file and then long delay so hold off playing alt bg until then
                 val delayBetween = if(soundRoutine is MILDSoundRoutine) 120_000L
-                   else if(soundRoutine is PromptSoundRoutine) 5_000L else 20_000L
+                   else if(soundRoutine is PromptSoundRoutine) 10_000L else 20_000L
 
                 val startSounds = soundRoutine.getStartSounds()
 

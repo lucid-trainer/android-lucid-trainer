@@ -1,6 +1,5 @@
 package presentation
 
-import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
 import android.content.BroadcastReceiver
@@ -10,6 +9,7 @@ import android.content.IntentFilter
 import android.content.pm.ActivityInfo
 import android.graphics.Color
 import android.media.AudioManager
+import android.media.MediaRecorder
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -19,10 +19,12 @@ import android.widget.SeekBar.OnSeekBarChangeListener
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.children
 import androidx.core.view.isVisible
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.chip.ChipGroup
 import com.lucidtrainer.R
 import com.lucidtrainer.databinding.ActivityMainBinding
 import database.ReadingDatabase
@@ -40,10 +42,12 @@ import sound.SoundPoolManager
 import utils.AppConfig
 import utils.FileManager
 import utils.PromptMonitor
+import utils.RecordingManager
 import utils.SpeechManager
 import utils.TestManager
 import viewmodel.DocumentViewModel
 import viewmodel.DocumentViewModelFactory
+import java.io.IOException
 import java.time.DayOfWeek
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -95,6 +99,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private lateinit var soundPoolManager: SoundPoolManager
     private lateinit var fileManager: FileManager
     private lateinit var speechManager: SpeechManager
+    private lateinit var recordingManager: RecordingManager
     private lateinit var testManager: TestManager
 
     private var lastEventTimestamp = ""
@@ -113,13 +118,12 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     //for testing prompting
     private var isPromptTesting = false
 
+
     private val deviceDocumentRepository = DeviceDocumentsRepository(
         AppConfig.ApiService()
     )
 
-    // Requesting permission to RECORD_AUDIO
-    private var permissionToRecordAccepted = false
-    private var permissions: Array<String> = arrayOf(Manifest.permission.RECORD_AUDIO)
+
 
     @SuppressLint("SourceLockedOrientationActivity")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -136,6 +140,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         speechManager = SpeechManager.getInstance(applicationContext)
 
         soundPoolManager = SoundPoolManager.getInstance(application)
+
+        recordingManager = RecordingManager.getInstance(soundPoolManager)
 
         testManager = TestManager.getInstance(soundPoolManager, promptMonitor)
 
@@ -173,8 +179,13 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 clearSessionState()
                 viewModel.setFlowEnabled(true)
                 viewModel.getNewReadings()
+
+                viewControlsToggle(false)
+
             } else {
                 viewModel.setFlowEnabled(false)
+
+                viewControlsToggle(true)
             }
         }
 
@@ -606,9 +617,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
         if (binding.chipWild.isChecked) {
             pType = "w"
-
-            //manual wilds should be higher tier/longer playing
-            playTier = 3
             pMessage = WILD_MESSAGE
         }
 
@@ -626,6 +634,15 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             } else {
                 //it's an auto play event so we want a low tier sound routine
                 playTier = 1
+
+                //we'll kick off the auto record feature
+                val recordFileName = "${externalCacheDir?.absolutePath}/${viewModel.lastTimestamp.value}.3gp"
+
+                val document = getDeviceDocument(MainActivity.EVENT_LABEL_AWAKE, true)
+                document.debugLog = "recording to file $recordFileName"
+                logEvent(document)
+
+                recordingManager.startRecordingTimer(recordFileName)
             }
         }
 
@@ -688,8 +705,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             if (soundList.contains("s")) {
                 promptMessage = SSILD_MESSAGE
             } else if (soundList.contains("wa")) {
-                //wilds initiated from watch should be higher tier/longer
-                playTier = 3
                 promptMessage = WILD_MESSAGE
             }
 
@@ -885,6 +900,27 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
     }
 
+    private fun viewControlsToggle(enabled : Boolean) {
+        binding.bgNoiseSpin.isEnabled = enabled
+        binding.chipGroup.setChildrenEnabled(enabled)
+        binding.chipGroupAuto.setChildrenEnabled(enabled)
+        binding.chipGroupPod.setChildrenEnabled(enabled)
+        binding.chipGroupVol.setChildrenEnabled(enabled)
+        binding.btnNoise.isEnabled = enabled
+        binding.btnPrompt.isEnabled = enabled
+        binding.btnStop.isEnabled = enabled
+        binding.btnReset.isEnabled = enabled
+        binding.btnClearDb.isEnabled = enabled
+        binding.btnDefaultVol.isEnabled = enabled
+        binding.seekBar.isEnabled = enabled
+    }
+
+    private fun ChipGroup.setChildrenEnabled(enable: Boolean) {
+        children.forEach { it.isEnabled = enable }
+    }
+
+
+
     override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
         val bgChoice = parent?.getItemAtPosition(position)
 
@@ -917,5 +953,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     override fun onNothingSelected(parent: AdapterView<*>?) {
         //do nothing
     }
+
+
 
 }

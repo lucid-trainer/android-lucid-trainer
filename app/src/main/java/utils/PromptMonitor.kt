@@ -40,7 +40,7 @@ class PromptMonitor {
         const val ACTIVITY_COOL_DOWN_PERIOD = 10L
         const val SLEEP_COOL_DOWN_PERIOD = 50L
         const val IN_AWAKE_PERIOD = 6L
-        const val BETWEEN_AWAKE_PERIOD = 70L
+        const val BETWEEN_AWAKE_PERIOD = 30L
         const val SECONDS_BETWEEN_PROMPTS = 100L
     }
 

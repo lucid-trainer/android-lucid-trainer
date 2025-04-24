@@ -21,7 +21,7 @@ class MildPromptSoundRoutine (
 
         val bgSounds : MutableList<String> = emptyList<String>().toMutableList()
 
-        val altBgFile =
+        var altBgFile =
             fileManager.getFilesFromDirectory(promptDir).filter { it.startsWith("alt_background_") }
                 .shuffled().last()
 
@@ -44,7 +44,7 @@ class MildPromptSoundRoutine (
                 fileManager.getFilesFromDirectory(promptDir).filter { it.startsWith("random_") }
                     .shuffled().last()
 
-            val fileVolAdjust = if(playTier == 1) .9F else if(playTier == 2) 1F else 1.2F
+            val fileVolAdjust = if(playTier == 1) .9F else if(playTier == 2) 1F else 1.1F
             routine.add(Sound(0, 0, "$promptDir/$promptFile",false, fileVolAdjust))
         }
 
