@@ -6,7 +6,8 @@ const val FOREGROUND_DIR = "fg"
 const val ALT_BACKGROUND_DIR = "bg"
 const val PROMPT_DIR = "prompt"
 const val START_DIR = "start"
-const val CLIP_DIR = "clip"
+const val CLIP1_DIR = "clip1"
+const val CLIP2_DIR = "clip2"
 const val MILD_DIR = "mild"
 
 interface SoundRoutine {

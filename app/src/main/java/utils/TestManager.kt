@@ -53,6 +53,7 @@ class TestManager {
     fun testPrompting(promptType : String, mBgRawId: Int, playStatus: TextView) {
 
         val scope = CoroutineScope(Dispatchers.Default)
+        val playTier = 3
 
         promptMonitor.adjPromptVolumeCnt = 0
 
@@ -68,10 +69,10 @@ class TestManager {
 
                     //simulate the next prompt in a chain
                     soundPoolManager.playSoundList(soundList, mBgRawId,
-                        MainActivity.EVENT_LABEL_PROMPT, playStatus, 3, i)
+                        MainActivity.EVENT_LABEL_PROMPT, playStatus, playTier, i)
 
                     //simulate activity trigger adjustment down in volume
-                    val activityList = listOf(2, 4, 7, 8)
+                    val activityList = listOf(2, 4, 7, 9)
                     if(i in activityList) {
                         promptMonitor.adjPromptVolumeCnt += 1
                         val sound = promptMonitor.getVolAdjustSound()
@@ -79,7 +80,7 @@ class TestManager {
 
                         val adjustVal = .15F * promptMonitor.adjPromptVolumeCnt
                         soundPoolManager.activeFgVolAdj = 1F - adjustVal
-                        Log.d("MainActivity", "next prompt should be ${soundPoolManager.activeFgVolAdj} lower");
+                        Log.d("MainActivity", "next prompt should be ${soundPoolManager.activeFgVolAdj} of starting volume");
                     }
 
                     Log.d("MainActivity", "waiting 90 seconds to start next test prompt");

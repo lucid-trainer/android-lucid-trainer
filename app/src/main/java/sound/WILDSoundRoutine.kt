@@ -39,9 +39,9 @@ class WILDSoundRoutine(override var playTier: Int, override var bgRawId: Int, ov
 
         addForegroundSounds(routine)
 
-        addClipSound(routine)
-
         addPromptSound(routine)
+
+        addClipSounds(routine)
 
         return routine
     }
@@ -52,40 +52,30 @@ class WILDSoundRoutine(override var playTier: Int, override var bgRawId: Int, ov
 
         routine.add(Sound(0, 30, "$promptDir/silence.ogg"))
 
-        val limit = when(playTier) {
-            2 -> 10
-            3 -> 20
-            else -> 6
-        }
-
-        Log.d("MainActivity", "WILD fg limit = $limit for $playTier")
-
+        val limit = 5
         val files = fileManager.getUnusedFilesFromDirectory(dir, limit).shuffled().slice(0 until limit)
 
-        var i = 1;
         for (file in files) {
-            if(i == 1) {
-                routine.add(Sound(0, 20, "$dir/$file", "ON"))
-            } else {
-                routine.add(Sound(0, 20, "$dir/$file"))
-            }
-            i++
+            routine.add(Sound(0, 20, "$dir/$file"))
         }
 
         fileManager.addFilesUsed(dir, files)
     }
 
-    private fun addClipSound(routine: MutableList<Sound>) {
+    private fun addClipSounds(routine: MutableList<Sound>) {
         //add a longer more distinct main sound clip towards the end and adjust volume on it
         var startDir = "$ROOT_DIR/$THEMES_DIR/$theme"
 
         //start with a radio tuning sound
-        routine.add(2, Sound(0, 0, "$startDir/start/tune.ogg"))
+        routine.add(Sound(0, 0, "$startDir/start/tune.ogg"))
 
-        val clipFile = fileManager.getUnusedFilesFromDirectory("$startDir/$CLIP_DIR", 1).shuffled().last()
-        routine.add(3, Sound(0, 20, "$startDir/$CLIP_DIR/$clipFile", "OFF"))
+        val clip1File = fileManager.getUnusedFilesFromDirectory("$startDir/$CLIP1_DIR", 1).shuffled().last()
+        routine.add(Sound(0, 20, "$startDir/$CLIP1_DIR/$clip1File"))
+        fileManager.addFileUsed("$startDir/$CLIP1_DIR", clip1File)
 
-        fileManager.addFileUsed("$startDir/$CLIP_DIR", clipFile)
+        val clip2File = fileManager.getUnusedFilesFromDirectory("$startDir/$CLIP2_DIR", 1).shuffled().last()
+        routine.add(Sound(0, 20, "$startDir/$CLIP2_DIR/$clip2File"))
+        fileManager.addFileUsed("$startDir/$CLIP2_DIR", clip2File)
     }
 
     private fun addPromptSound(routine: MutableList<Sound>) {
@@ -94,6 +84,6 @@ class WILDSoundRoutine(override var playTier: Int, override var bgRawId: Int, ov
         val promptFile =
             fileManager.getFilesFromDirectory(promptDir).filter { it.startsWith("random_") }
                 .shuffled().last()
-        routine.add(4, Sound(0, 20, "$promptDir/$promptFile"))
+        routine.add(Sound(0, 20, "$promptDir/$promptFile"))
     }
 }

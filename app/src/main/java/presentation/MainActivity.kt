@@ -297,7 +297,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 soundPoolManager.activeFgVolAdj = currFgVolAdj
                 Log.d("MainActivity", "prompt volume now ${soundPoolManager.activeFgVolAdj}")
                 val soundFile = promptMonitor.getVolAdjustSound()
-                soundPoolManager.playSound(soundFile, .5F)
+                soundPoolManager.playSound(soundFile, .4F)
             }
 
             if(lastActivityValue != "TRACE" && lastActivityValue != "LIGHT" && hoursAllowed && !isInActivityPeriod && !isPromptRunning) {

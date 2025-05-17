@@ -134,11 +134,11 @@ class SoundPoolManager {
 
         //set the initial volumes based on background sound
         var (fgVolume, altBgVolume) = when (bgRawId) {
-            R.raw.green, R.raw.pink -> .52F to .48F
-            R.raw.boxfan, R.raw.metal_fan -> .37F to .34F
-            R.raw.ac -> .35F to .3F
-            R.raw.brown, R.raw.waves -> .12F to .1F
-            else -> .45F to .5F
+            R.raw.green, R.raw.pink -> .52F to .4F
+            R.raw.boxfan, R.raw.metal_fan -> .37F to .27F
+            R.raw.ac -> .35F to .28F
+            R.raw.brown, R.raw.waves -> .12F to .09F
+            else -> .45F to .35F
         }
 
         //add the low/mid/high adjustment
@@ -173,11 +173,14 @@ class SoundPoolManager {
             }
 
             "wp", "mp" -> {
-                val tierAdj = if(playTier == 3) .85F else if(playTier == 2) .6F else .4F
-                val tierAltAdj = if(playTier == 3) 1F else if(playTier == 2) .7F else .5F
+                val tierAdj = if(playTier == 3) .9F else if(playTier == 2) .65F else .4F
 
                 fgVolume *= tierAdj
-                altBgVolume *= tierAltAdj
+
+                //alt bg volume for prompts will be faded up along with backgound but for prompts we want to more match
+                //foreground, so set to start at higher level
+                altBgVolume += .4F*altBgVolume
+                altBgVolume *= tierAdj
 
                 val fgLabel = if(type == "wp") "WILD" else "MILD"
                 MildPromptSoundRoutine(playTier, bgRawId, bgVolume, altBgVolume, fgVolume, eventLabel, bgLabel, MILD_THEME, fgLabel, promptCount)
@@ -289,7 +292,7 @@ class SoundPoolManager {
                     if(soundRoutine.fadeDownFg()) {
                         //start a fade down on the playing fg sound (for long play files like podcasts)
                         val routineSize = soundRoutine.getRoutine().size
-                        val delay = if(soundRoutine is PodSoundRoutine || routineSize > 20) 50_000L
+                        val delay = if(soundRoutine is PodSoundRoutine || soundRoutine is WILDSoundRoutine) 50_000L
                             else if(routineSize > 10) 30_000 else 20_000
                         volumeManager.fadeForegroundDown(25, startingFgVolume, startingFgVolume * .5F, delay)
                     }

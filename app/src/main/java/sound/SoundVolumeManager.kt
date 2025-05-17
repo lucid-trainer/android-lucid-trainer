@@ -52,7 +52,7 @@ class SoundVolumeManager() {
     }
 
     suspend fun fadeDownBackgroundForRoutine(soundRoutine: SoundRoutine) : Float {
-        var finishVolume = currBgVol * .5F
+        var finishVolume = currBgVol * .2F
 
         return when(soundRoutine) {
             is PromptSoundRoutine -> {
@@ -96,6 +96,7 @@ class SoundVolumeManager() {
     fun fadeForegroundDown(fadeDownCnt: Int, startVolume: Float, finishVolume: Float, fadeDownDelay: Long = 50000L ) : Float {
         val scope = CoroutineScope(Dispatchers.Default)
         var lastFgVol = startVolume
+        val beginAltBgVol = currAltBgVol
 
         fadeFgJob = scope.launch {
             for (i in 1..fadeDownCnt) {
@@ -110,6 +111,8 @@ class SoundVolumeManager() {
                 val fgFadeDownAmount = (startVolume - finishVolume) * cntFactor
                 currFgVol = startVolume - fgFadeDownAmount
                 mSoundPoolCompat.setVolume(SoundPoolManager.mFgId, currFgVol, currFgVol)
+
+                currAltBgVol = (currAltBgVol - (currAltBgVol * .03F)) //eh, just drop the alt bg vol a little each iteration
 
                 lastFgVol = currFgVol
                 //Log.d("MainActivity", "for loop $i subtracting $fgFadeDownAmount to fg currVol $currFgVol with target $finishVolume")
