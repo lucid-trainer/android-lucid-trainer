@@ -34,7 +34,6 @@ class MildPromptSoundRoutine (
     override fun getRoutine(): List<Sound> {
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()
 
-
         //for a prompt routine, keep around a minute in total length as they are chained and can be blocked if one
         //is running and another tries to start. The minimum time between prompts is managed in the PromptMonitor
         //SECONDS_BETWEEN_PROMPTS setting
@@ -47,7 +46,7 @@ class MildPromptSoundRoutine (
             routine.add(Sound(0, 0, "$promptDir/$promptFile"))
         }
 
-        routine.add(Sound(0, 7, "$promptDir/silence.ogg", "ON"))
+        routine.add(Sound(0, 7, "$promptDir/silence.ogg", 0F,"ON"))
 
         routine.add(Sound(0, 0, "$promptDir/foreground.ogg"))
 

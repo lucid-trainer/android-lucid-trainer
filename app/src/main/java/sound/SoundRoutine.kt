@@ -23,6 +23,7 @@ interface SoundRoutine {
     fun getStartSounds(): List<String>  //returns a list of sounds to play at the start of the routine
     fun getAltBGSounds() : List<String> //returns a list of alt background sounds to play in a loop on top of white noise
     fun getRoutine() : List<Sound> //returns a list of foreground sound files to play on top of background and alt background layers
+    fun executeAfterPlay() {}
     fun fadeDownBg() : Boolean = true //whether the routine supports initial fade down of background before starting
     fun fadeDownFg() : Boolean = true //wheth the routine includes initial fade down of foreground as playing (such as podcast routine with one long playing sound)
 

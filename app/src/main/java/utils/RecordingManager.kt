@@ -48,7 +48,7 @@ class RecordingManager {
 
         if (rcJob == null || rcJob!!.isCompleted) {
             rcJob = scope.launch {
-                delay(timeMillis = 120_000)
+                delay(timeMillis = 80_000)
 
                 soundPoolManager.playSound("lt_sounds/record/record_soon.ogg", .45F)
 

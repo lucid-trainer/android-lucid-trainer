@@ -65,7 +65,7 @@ class SoundVolumeManager() {
             }
 
             is MILDSoundRoutine -> {
-                finishVolume = currBgVol * .7F
+                finishVolume = currBgVol * .15F
                 fadeBackgroundDown(20, 600, finishVolume)
             }
 
@@ -93,12 +93,14 @@ class SoundVolumeManager() {
         return currBgVol
     }
 
-    fun fadeForegroundDown(fadeDownCnt: Int, startVolume: Float, finishVolume: Float, fadeDownDelay: Long = 50000L ) : Float {
+    fun fadeForegroundDown(fadeDownCnt: Int, startVolume: Float, finishVolume: Float, fadeDownStartDelay: Long, fadeDownDelay: Long = 50000L) : Float {
         val scope = CoroutineScope(Dispatchers.Default)
         var lastFgVol = startVolume
         val beginAltBgVol = currAltBgVol
 
         fadeFgJob = scope.launch {
+            if (fadeDownStartDelay > 0) delay(timeMillis = fadeDownStartDelay)
+
             for (i in 1..fadeDownCnt) {
                 yield()
                 if (isFGSoundStopped) {
@@ -115,7 +117,7 @@ class SoundVolumeManager() {
                 currAltBgVol = (currAltBgVol - (currAltBgVol * .03F)) //eh, just drop the alt bg vol a little each iteration
 
                 lastFgVol = currFgVol
-                //Log.d("MainActivity", "for loop $i subtracting $fgFadeDownAmount to fg currVol $currFgVol with target $finishVolume")
+                Log.d("MainActivity", "for loop $i subtracting $fgFadeDownAmount to fg currVol $currFgVol with target $finishVolume")
             }
             //re-initialize volume
             currFgVol = 1F
@@ -126,7 +128,7 @@ class SoundVolumeManager() {
         return lastFgVol
     }
 
-    fun fadeBackgroundUp(fadeUpCnt: Int, fadeUpDelay: Long, finishVolume: Float, startVolume: Float) {
+    fun fadeBackgroundUp(fadeUpCnt: Int, fadeUpDelay: Long, finishVolume: Float, startVolume: Float, fadeUpStartDelay: Long) {
         //the background sound should already be running, slowly up the volume
         val scope = CoroutineScope(Dispatchers.Default)
         fadeBgJob = scope.launch {
@@ -137,11 +139,13 @@ class SoundVolumeManager() {
 
             currBgVol = startVolume
 
+            if (fadeUpStartDelay > 0) delay(timeMillis = fadeUpStartDelay)
+
             for (i in 1..fadeUpCnt) {
                 delay(timeMillis = fadeUpDelay)
 
                 currBgVol += fadeUpAmount
-                //Log.d("MainActivity", "for loop $i adding $fadeUpAmount to get currVol $currBgVol with target $finishVolume")
+                Log.d("MainActivity", "for loop $i adding $fadeUpAmount to get currVol $currBgVol with target $finishVolume")
                 setBgVol(currBgVol)
 
                 //adjust the alt Bg volume back up a little each time as well.  We turned it down by half, this should restore it back

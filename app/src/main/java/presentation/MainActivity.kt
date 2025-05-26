@@ -297,7 +297,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 soundPoolManager.activeFgVolAdj = currFgVolAdj
                 Log.d("MainActivity", "prompt volume now ${soundPoolManager.activeFgVolAdj}")
                 val soundFile = promptMonitor.getVolAdjustSound()
-                soundPoolManager.playSound(soundFile, .4F)
+                soundPoolManager.playSound(soundFile, 1F)
             }
 
             if(lastActivityValue != "TRACE" && lastActivityValue != "LIGHT" && hoursAllowed && !isInActivityPeriod && !isPromptRunning) {
@@ -375,11 +375,13 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
         val hour = triggerDateTime.hour
+        val minute = triggerDateTime.minute
         val day = triggerDateTime.dayOfWeek
-        val hourLimit = if (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) 6 else 5
+        val hourLimit = 5
+        val minLimit = if (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) 45 else 15
 
         if (binding.chipAwake.isChecked) {
-            val hoursAllowed = hour in 0..hourLimit
+            val hoursAllowed = (hour in 0 until hourLimit) || (hour == hourLimit && minute <= minLimit)
             val isAwakeEventAllowed =
                 hoursAllowed && promptMonitor.isAwakeEventAllowed(viewModel.lastTimestamp.value)
 
@@ -610,7 +612,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         //default is a middle tier routine
         var playTier = 2
 
-        var pType = "m"  //default to mild
+        var pType = "w"  //default to wild
         if (binding.chipSsild.isChecked) {
             pType = "s"
             pMessage = SSILD_MESSAGE
@@ -635,14 +637,17 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 //it's an auto play event so we want a low tier sound routine
                 playTier = 1
 
+                //MILDS can be played on auto events
+                if (binding.chipMild.isChecked) pType = "m"
+
                 //we'll kick off the auto record feature
-                val recordFileName = "${externalCacheDir?.absolutePath}/${viewModel.lastTimestamp.value}.3gp"
-
-                val document = getDeviceDocument(MainActivity.EVENT_LABEL_AWAKE, true)
-                document.debugLog = "recording to file $recordFileName"
-                logEvent(document)
-
-                recordingManager.startRecordingTimer(recordFileName)
+//                val recordFileName = "${externalCacheDir?.absolutePath}/${viewModel.lastTimestamp.value}.3gp"
+//
+//                val document = getDeviceDocument(MainActivity.EVENT_LABEL_AWAKE, true)
+//                document.debugLog = "recording to file $recordFileName"
+//                logEvent(document)
+//
+//                recordingManager.startRecordingTimer(recordFileName)
             }
         }
 

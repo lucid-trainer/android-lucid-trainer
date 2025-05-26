@@ -16,6 +16,7 @@ class FileManager(val sharedPreferences : SharedPreferences) {
 
     private val ex = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
 
+    var promptClipCnt = 1
 
     companion object {
 
@@ -149,6 +150,20 @@ class FileManager(val sharedPreferences : SharedPreferences) {
         } else {
             null
         }
+    }
+
+    fun getPromptClipCount(): Int {
+        Log.d("MainActivity", "ClipCnt is $promptClipCnt")
+        return promptClipCnt
+    }
+
+    fun updatePromptClipCount() {
+        if (promptClipCnt == 4) {
+            promptClipCnt = 1
+        } else {
+            promptClipCnt += 1
+        }
+        Log.d("MainActivity", "ClipCnt updated to $promptClipCnt")
     }
 
 }

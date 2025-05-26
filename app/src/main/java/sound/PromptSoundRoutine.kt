@@ -8,7 +8,7 @@ interface PromptSoundRoutine  : SoundRoutine {
         const val promptDir = "$ROOT_DIR/$PROMPT_DIR"
 
         fun getVolAdjustSound(num : Int) : String {
-            return "$promptDir/vol_adjust_$num.ogg"
+            return "$promptDir/vol_adjust.ogg"
         }
     }
 

@@ -12,12 +12,16 @@ class MILDSoundRoutine(override var playTier: Int, override var bgRawId: Int, ov
     private val fileManager = FileManager.getInstance()!!
 
     private val promptDir = PromptSoundRoutine.promptDir
+    private val mildDir = "$ROOT_DIR/$MILD_DIR"
+
+    private val clipCnt = fileManager.getPromptClipCount()
+    private val mildClipFile = "mild_clip_$clipCnt.ogg"
 
     override fun getRoutine(): List<Sound> {
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()
 
-        val mildDir = "$ROOT_DIR/$MILD_DIR"
-        routine.add(Sound(0, 180, "$mildDir/instruction.ogg"))
+
+       routine.add(Sound(0, 120, "$mildDir/instruction.ogg"))
         //Log.d("MainActivity", "mildDir=$mildDir, count = ${fileManager.getFilesFromDirectory(mildDir).size} ")
 
         addForegroundSounds(routine)
@@ -26,35 +30,35 @@ class MILDSoundRoutine(override var playTier: Int, override var bgRawId: Int, ov
     }
 
     override fun getStartSounds(): List<String> {
-        val startSounds : MutableList<String> = emptyList<String>().toMutableList()
-
-        startSounds.add("$ROOT_DIR/$THEMES_DIR/$theme/$START_DIR/silence.ogg")
-
-        return startSounds
+        return emptyList()
     }
 
     override fun getAltBGSounds(): List<String> {
 
         val bgSounds : MutableList<String> = emptyList<String>().toMutableList()
 
-        val altBgFile =
-            fileManager.getFilesFromDirectory(promptDir).filter { it.startsWith("alt_background_") }
-                .shuffled().last()
+        val files = fileManager.getFilesFromDirectory(promptDir).filter { it.startsWith("alt_background_") }.shuffled()
 
-        bgSounds.add("$promptDir/$altBgFile")
+        for (file in files) {
+            bgSounds.add("$promptDir/$file")
+        }
 
         return bgSounds
     }
 
+    override fun executeAfterPlay() {
+        fileManager.updatePromptClipCount()
+    }
+
     private fun addForegroundSounds(routine: MutableList<Sound>) {
 
-        for(i in 1..10) {
+        routine.add(Sound(0, 10, "$mildDir/$mildClipFile", 1.2F))
+
+        routine.add(Sound(0, 30, "$promptDir/foreground.ogg", 0F,"ON"))
+
+        for(i in 1..8) {
             if(i == 2) {
-                routine.add(Sound(0, 5, "$promptDir/vol_adjust_1.ogg"))
-            } else if(i == 4) {
-                routine.add(Sound(0, 5, "$promptDir/vol_adjust_2.ogg"))
-            } else if (i == 5) {
-                routine.add(Sound(0, 5, "$promptDir/vol_adjust_3.ogg"))
+                routine.add(Sound(0, 5, "$promptDir/vol_adjust.ogg", 1.2F))
             }
             routine.add(Sound(0, 30, "$promptDir/foreground.ogg"))
         }

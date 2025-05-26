@@ -25,7 +25,7 @@ class PodSoundRoutine(override var playTier: Int, override var bgRawId: Int, ove
         //Log.d("PodRoutine", "adding $ROOT_DIR/$POD_DIR/pod_$playCount.mp3")
 
         //we'll use playCount here to pick which podcast to play
-        routine.add(Sound(0, 5, "$ROOT_DIR/$POD_DIR/pod_$playTier.mp3", "OFF"))
+        routine.add(Sound(0, 5, "$ROOT_DIR/$POD_DIR/pod_$playTier.mp3", 0F,"OFF"))
         return routine
     }
 

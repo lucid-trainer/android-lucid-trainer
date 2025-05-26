@@ -11,6 +11,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
+import presentation.MainActivity
 import utils.FileManager
 import utils.SpeechManager
 
@@ -173,7 +174,7 @@ class SoundPoolManager {
             }
 
             "wp", "mp" -> {
-                val tierAdj = if(playTier == 3) .9F else if(playTier == 2) .65F else .4F
+                val tierAdj = if(playTier == 3) .8F else if(playTier == 2) .65F else .4F
 
                 fgVolume *= tierAdj
 
@@ -188,6 +189,8 @@ class SoundPoolManager {
 
             //default is "w", a manual WILD sound routine
             else -> {
+                fgVolume *= 1.25F
+                altBgVolume *= 1.1F
                 WILDSoundRoutine(playTier, bgRawId, bgVolume, altBgVolume, fgVolume, eventLabel, bgLabel, randomTheme)
             }
         }
@@ -282,7 +285,6 @@ class SoundPoolManager {
                     var playedSoundCnt = 0
                     var idxCnt = soundRoutine.getRoutine().size
 
-
 //                    var startingFgVolume = if(soundRoutine.fadeDownFg() && volumeManager.isFgFadeDownRunning())
 //                        volumeManager.currFgVol else soundRoutine.fgVolume
 //                    startingFgVolume *= activeFgVolAdj //activity can trigger an adjustment to turn the fg volume down (just prompts for now)
@@ -292,9 +294,17 @@ class SoundPoolManager {
                     if(soundRoutine.fadeDownFg()) {
                         //start a fade down on the playing fg sound (for long play files like podcasts)
                         val routineSize = soundRoutine.getRoutine().size
-                        val delay = if(soundRoutine is PodSoundRoutine || soundRoutine is WILDSoundRoutine) 50_000L
-                            else if(routineSize > 10) 30_000 else 20_000
-                        volumeManager.fadeForegroundDown(25, startingFgVolume, startingFgVolume * .5F, delay)
+                        val loopDelay = when(soundRoutine) {
+                            is PodSoundRoutine, is WILDSoundRoutine -> 50_00L
+
+                            is MILDSoundRoutine -> 20_000L
+                            
+                            else  -> if(routineSize > 10) 30_000L else 20_000L
+                        }
+
+                        val startDelay = if(soundRoutine is MILDSoundRoutine) 540_000L else 60_000L
+
+                        volumeManager.fadeForegroundDown(25, startingFgVolume, startingFgVolume * .5F, startDelay, loopDelay)
                     }
 
                     for (sound in soundRoutine.getRoutine()) {
@@ -305,6 +315,11 @@ class SoundPoolManager {
                             var filePath = ""
 
                             var currVolume = if(volumeManager.isFgFadeDownRunning()) volumeManager.currFgVol else startingFgVolume
+
+                            if (sound.volAdjust != 0F) {
+                                Log.d("MainActivity", "setting currVolume $currVolume to ${currVolume * sound.volAdjust}")
+                                currVolume *= sound.volAdjust
+                            }
 
                             //a sound can be set up to start or stop alt background play
                             if(sound.toggleAltBg != null) {
@@ -350,6 +365,8 @@ class SoundPoolManager {
 
                     stopPlayingAltBackground()
                     lastBgRawId = -9999
+
+                    soundRoutine.executeAfterPlay()
                 }
 
                 if(lastBgLabel.isEmpty()) {
@@ -387,8 +404,8 @@ class SoundPoolManager {
                 if(volumeManager.isBGSoundStopped) {
                     playBackgroundSound(soundRoutine.bgRawId, soundRoutine.bgVolume, textView, soundRoutine.bgVolume)
                 }
-                playAltBackgroundSound(soundRoutine, textView)
-                playBackgroundSound(soundRoutine.bgRawId, startVolume, textView, 1F, 20, 30000)
+                //skip playing alt background sound to start, it will be enabled mid play
+                playBackgroundSound(soundRoutine.bgRawId, startVolume, textView, 1F, 20, 30_000, 480_000)
             }
 
             is PromptSoundRoutine  -> {
@@ -413,7 +430,7 @@ class SoundPoolManager {
         }
     }
 
-    fun playBackgroundSound(bgRawId: Int, startVolume: Float, textView: TextView, targetVolume: Float, fadeUpCnt: Int = 0, fadeUpDelay: Long = 50000) {
+    fun playBackgroundSound(bgRawId: Int, startVolume: Float, textView: TextView, targetVolume: Float, fadeUpCnt: Int = 0, fadeUpDelay: Long = 50000, fadeUpStartDelay: Long = 0) {
         val scope = CoroutineScope(Dispatchers.Default)
         volumeManager.isBGSoundStopped = false
 
@@ -423,7 +440,7 @@ class SoundPoolManager {
             //Log.d("MainActivity", "fade up the background from $startVolume to $finishVolume")
             volumeManager.currAltBgVol *= .7F //set the alt background to a lower level to fade up as well
             //Log.d("MainActivity", "484: setting currAltBgVol to $currAltBgVol")
-            volumeManager.fadeBackgroundUp(fadeUpCnt, fadeUpDelay, finishVolume, startVolume)
+            volumeManager.fadeBackgroundUp(fadeUpCnt, fadeUpDelay, finishVolume, startVolume, fadeUpStartDelay)
         } else {
             loadAndPlayBackgroundRoutine(scope, bgRawId, finishVolume)
         }
@@ -461,10 +478,6 @@ class SoundPoolManager {
         }
     }
 
-//    private fun setBgVol(currBgVol: Float) {
-//        mSoundPoolCompat.setVolume(mBgId, currBgVol, currBgVol)
-//    }
-
     private suspend fun playAltBackgroundSound(soundRoutine: SoundRoutine, textView: TextView, playStart : Boolean = true) {
         val scope = CoroutineScope(Dispatchers.Default)
 
@@ -475,8 +488,7 @@ class SoundPoolManager {
             altBgJob = scope.launch {
                 delay(timeMillis = 10000)
                 //mild has an intro file and then long delay so hold off playing alt bg until then
-                val delayBetween = if(soundRoutine is MILDSoundRoutine) 120_000L
-                   else if(soundRoutine is PromptSoundRoutine) 10_000L else 20_000L
+                val delayBetween = if(soundRoutine is PromptSoundRoutine) 10_000L else 20_000L
 
                 val startSounds = soundRoutine.getStartSounds()
 
@@ -493,6 +505,8 @@ class SoundPoolManager {
                         val volume = volumeManager.currAltBgVol * activeFgVolAdj
                         playAltSounds(altBGSounds, volume , delayBetween)
                     } while (!volumeManager.isBGSoundStopped)
+                } else {
+                    Log.d("MainActivity", "no alt bg sounds")
                 }
             }
         }
