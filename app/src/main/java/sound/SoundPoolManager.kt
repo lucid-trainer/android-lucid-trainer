@@ -174,7 +174,7 @@ class SoundPoolManager {
             }
 
             "wp", "mp" -> {
-                val tierAdj = if(playTier == 3) .8F else if(playTier == 2) .65F else .4F
+                val tierAdj = if(playTier == 3) .7F else if(playTier == 2) .55F else .35F
 
                 fgVolume *= tierAdj
 
@@ -302,7 +302,7 @@ class SoundPoolManager {
                             else  -> if(routineSize > 10) 30_000L else 20_000L
                         }
 
-                        val startDelay = if(soundRoutine is MILDSoundRoutine) 540_000L else 60_000L
+                        val startDelay = if(soundRoutine is MILDSoundRoutine) 660_000L else 60_000L
 
                         volumeManager.fadeForegroundDown(25, startingFgVolume, startingFgVolume * .5F, startDelay, loopDelay)
                     }
@@ -405,7 +405,7 @@ class SoundPoolManager {
                     playBackgroundSound(soundRoutine.bgRawId, soundRoutine.bgVolume, textView, soundRoutine.bgVolume)
                 }
                 //skip playing alt background sound to start, it will be enabled mid play
-                playBackgroundSound(soundRoutine.bgRawId, startVolume, textView, 1F, 20, 30_000, 480_000)
+                playBackgroundSound(soundRoutine.bgRawId, startVolume, textView, 1F, 20, 30_000, 600_000)
             }
 
             is PromptSoundRoutine  -> {

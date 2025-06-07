@@ -65,7 +65,7 @@ class SoundVolumeManager() {
             }
 
             is MILDSoundRoutine -> {
-                finishVolume = currBgVol * .15F
+                finishVolume = currBgVol * .17F
                 fadeBackgroundDown(20, 600, finishVolume)
             }
 

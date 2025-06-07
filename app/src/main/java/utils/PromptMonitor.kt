@@ -368,9 +368,9 @@ class PromptMonitor {
             val isWeekend = day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY
 
             playTier = if (isWeekend) {
-                if(hour == 7) 1 else if(hour == 6) 2 else 3
+                if(hour >= 6) 1 else if(hour >= 3) 2 else 3
             } else {
-                if(hour == 6) 1 else if(hour == 5) 2 else 3
+                if(hour >= 5) 1 else if(hour >= 3) 2 else 3
             }
         }
 

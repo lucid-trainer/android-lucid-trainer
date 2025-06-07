@@ -76,15 +76,15 @@ class TestManager {
                     if(i in activityList) {
                         promptMonitor.adjPromptVolumeCnt += 1
                         val sound = promptMonitor.getVolAdjustSound()
-                        soundPoolManager.playSound(sound, .45F)
+                        soundPoolManager.playSound(sound, .5F)
 
                         val adjustVal = .15F * promptMonitor.adjPromptVolumeCnt
                         soundPoolManager.activeFgVolAdj = 1F - adjustVal
                         Log.d("MainActivity", "next prompt should be ${soundPoolManager.activeFgVolAdj} of starting volume");
                     }
 
-                    Log.d("MainActivity", "waiting 90 seconds to start next test prompt");
-                    delay(timeMillis = 90000)
+                    Log.d("MainActivity", "waiting 70 seconds to start next test prompt");
+                    delay(timeMillis = 70000)
                     yield()
 
                 }

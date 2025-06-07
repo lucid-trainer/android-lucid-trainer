@@ -282,23 +282,30 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                     viewModel.lastActiveEventTimestamp!! > lastActiveEventTimestamp))
         ) {
 
-            lastActiveEventTimestamp = viewModel.lastActiveEventTimestamp
             val triggerTimestamp = LocalDateTime.parse(viewModel.lastTimestamp.value)
             val hour = triggerTimestamp.hour
             val hoursAllowed = hour in 22..23 || hour in 0..8
-            val lastActivityValue = viewModel.lastActivityValue
-            val isInActivityPeriod =
-                promptMonitor.isInActivityPeriod(viewModel.lastTimestamp.value, 3L)
-            val isPromptRunning = promptMonitor.promptEventWaiting != null
+
+            val isRecentActivityEvent = lastActiveEventTimestamp != null &&
+                    triggerTimestamp <= lastActiveEventTimestamp!!.plusSeconds(90)
+            lastActiveEventTimestamp = viewModel.lastActiveEventTimestamp
 
             //toggle the volume down if in prompt period
             val currFgVolAdj = promptMonitor.getActivityVolAdjust()
             if(currFgVolAdj < soundPoolManager.activeFgVolAdj) {
                 soundPoolManager.activeFgVolAdj = currFgVolAdj
                 Log.d("MainActivity", "prompt volume now ${soundPoolManager.activeFgVolAdj}")
+
+                val vol = if(isRecentActivityEvent) .15F else .5F
+
                 val soundFile = promptMonitor.getVolAdjustSound()
-                soundPoolManager.playSound(soundFile, 1F)
+                soundPoolManager.playSound(soundFile, vol)
             }
+
+            val lastActivityValue = viewModel.lastActivityValue
+            val isInActivityPeriod =
+                promptMonitor.isInActivityPeriod(viewModel.lastTimestamp.value, 3L)
+            val isPromptRunning = promptMonitor.promptEventWaiting != null
 
             if(lastActivityValue != "TRACE" && lastActivityValue != "LIGHT" && hoursAllowed && !isInActivityPeriod && !isPromptRunning) {
                 //we'll read out the time for any elevated activity
@@ -378,7 +385,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         val minute = triggerDateTime.minute
         val day = triggerDateTime.dayOfWeek
         val hourLimit = 5
-        val minLimit = if (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) 45 else 15
+        val minLimit = if (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) 50 else 20
 
         if (binding.chipAwake.isChecked) {
             val hoursAllowed = (hour in 0 until hourLimit) || (hour == hourLimit && minute <= minLimit)

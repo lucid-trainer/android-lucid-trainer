@@ -56,9 +56,9 @@ class MILDSoundRoutine(override var playTier: Int, override var bgRawId: Int, ov
 
         routine.add(Sound(0, 30, "$promptDir/foreground.ogg", 0F,"ON"))
 
-        for(i in 1..8) {
+        for(i in 1..6) {
             if(i == 2) {
-                routine.add(Sound(0, 5, "$promptDir/vol_adjust.ogg", 1.2F))
+                routine.add(Sound(0, 5, "$promptDir/prompt.ogg", 1.2F))
             }
             routine.add(Sound(0, 30, "$promptDir/foreground.ogg"))
         }

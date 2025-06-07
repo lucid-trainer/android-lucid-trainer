@@ -43,7 +43,11 @@ class MildPromptSoundRoutine (
                 fileManager.getFilesFromDirectory(promptDir).filter { it.startsWith("random_") }
                     .shuffled().last()
 
-            routine.add(Sound(0, 0, "$promptDir/$promptFile"))
+            routine.add(Sound(0, 0, "$promptDir/$promptFile", 1.2F))
+        }
+
+        if(promptCount == 3 || promptCount == 6) {
+            routine.add(Sound(0, 5, "$promptDir/prompt.ogg", 1.5F))
         }
 
         routine.add(Sound(0, 7, "$promptDir/silence.ogg", 0F,"ON"))
