@@ -104,11 +104,6 @@ class SoundPoolManager {
         Log.d("MainActivity", "soundList = $soundList")
         for(soundType in soundList) {
             when(soundType) {
-                "s" -> {
-                    soundRoutines.add(
-                        SSILDSoundRoutine(playTier, bgRawId, .3F, 0F, .7F, eventLabel, bgLabel))
-                }
-
                 "p" -> {
                     val soundRoutine = getPodcastSoundRoutine(bgRawId, playTier, eventLabel, bgLabel)
                     soundRoutines.add(soundRoutine)
@@ -173,6 +168,13 @@ class SoundPoolManager {
                 WILDSoundRoutine(playTier, bgRawId, bgVolume, altBgVolume, fgVolume, eventLabel, bgLabel, randomTheme)
             }
 
+            "s", "sa" -> {
+                fgVolume *= .65F
+                altBgVolume *= .5F
+
+                SSILDSoundRoutine(playTier, bgRawId, bgVolume, altBgVolume, fgVolume, eventLabel, bgLabel, MILD_THEME)
+            }
+
             "wp", "mp" -> {
                 val tierAdj = if(playTier == 3) .7F else if(playTier == 2) .55F else .35F
 
@@ -185,6 +187,20 @@ class SoundPoolManager {
 
                 val fgLabel = if(type == "wp") "WILD" else "MILD"
                 MildPromptSoundRoutine(playTier, bgRawId, bgVolume, altBgVolume, fgVolume, eventLabel, bgLabel, MILD_THEME, fgLabel, promptCount)
+            }
+
+            "sp" -> {
+                val tierAdj = if(playTier == 3) .65F else if(playTier == 2) .5F else .35F
+
+                fgVolume *= tierAdj
+
+                //alt bg volume for prompts will be faded up along with backgound but for prompts we want to more match
+                //foreground, so set to start at higher level
+                altBgVolume += .4F*altBgVolume
+                altBgVolume *= tierAdj
+
+                val fgLabel = "SILD"
+                SSILDPromptSoundRoutine(playTier, bgRawId, bgVolume, altBgVolume, fgVolume, eventLabel, bgLabel, MILD_THEME, fgLabel, promptCount)
             }
 
             //default is "w", a manual WILD sound routine
@@ -406,6 +422,15 @@ class SoundPoolManager {
                 }
                 //skip playing alt background sound to start, it will be enabled mid play
                 playBackgroundSound(soundRoutine.bgRawId, startVolume, textView, 1F, 20, 30_000, 600_000)
+            }
+
+            is SSILDSoundRoutine  -> {
+                //Log.d("MainActivity", "in start background routine")
+                if(volumeManager.isBGSoundStopped) {
+                    playBackgroundSound(soundRoutine.bgRawId, soundRoutine.bgVolume, textView, soundRoutine.bgVolume)
+                }
+                //skip playing alt background sounds for SSILD
+                playBackgroundSound(soundRoutine.bgRawId, startVolume, textView, 1F, 20, 30_000, 360_000)
             }
 
             is PromptSoundRoutine  -> {

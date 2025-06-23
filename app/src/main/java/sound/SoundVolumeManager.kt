@@ -59,7 +59,7 @@ class SoundVolumeManager() {
                 val promptCount = soundRoutine.promptCount
                 finishVolume = when(promptCount) {
                     1 -> currBgVol * .7F
-                    else -> currBgVol * .85F
+                    else -> currBgVol * .8F
                 }
                 fadeBackgroundDown(20, 600, finishVolume)
             }

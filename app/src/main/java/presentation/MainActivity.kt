@@ -477,7 +477,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 val text = "You need to choose a sound routine"
                 Toast.makeText(application, text, Toast.LENGTH_LONG).show()
             } else if(isPromptTesting) {
-                val pType = if(binding.chipWild.isChecked) "w" else "m"
+                val pType = if(binding.chipSsild.isChecked) "s" else "m"
                 testManager.testPrompting(pType, mBgRawId, binding.playStatus)
             } else {
                 resetNoisyReceiver()
@@ -538,7 +538,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             binding.seekBar.progress = RESET_VOL
             binding.bgNoiseSpin.setSelection(1)
             binding.chipMid.isChecked = true
-            binding.chipMild.isChecked = true
+            binding.chipSsild.isChecked = true
             binding.chipRem.isChecked = true
             binding.chipAwake.isChecked = true
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, RESET_VOL, 0)

@@ -9,6 +9,7 @@ const val START_DIR = "start"
 const val CLIP1_DIR = "clip1"
 const val CLIP2_DIR = "clip2"
 const val MILD_DIR = "mild"
+const val SSILD_DIR = "ssild"
 
 interface SoundRoutine {
     var playTier : Int  //used within each routine to control volume level, sound files retrieved, etc.

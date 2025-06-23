@@ -7,6 +7,9 @@ class SSILDSoundRoutine(override var playTier: Int, override var bgRawId: Int,ov
     override var bgLabel : String, override val theme: String = "", override val fgLabel : String = "SSILD"
 ) : SoundRoutine {
 
+    private val ssildDir = "$ROOT_DIR/$SSILD_DIR"
+    private val promptDir = PromptSoundRoutine.promptDir
+
     override fun getStartSounds(): List<String> {
         return emptyList()
     }
@@ -18,47 +21,28 @@ class SSILDSoundRoutine(override var playTier: Int, override var bgRawId: Int,ov
     override fun getRoutine(): List<Sound> {
         val routine : MutableList<Sound> = emptyList<Sound>().toMutableList()
 
-        //short routine
-        routine.add(Sound(R.raw.ssild_intro, 1))
-        routine.add(Sound(R.raw.ssild_round_1, 3))
-        routine.add(Sound(R.raw.ssild_hear, 3))
-        routine.add(Sound(R.raw.ssild_feel, 3))
-        routine.add(Sound(R.raw.ssild_round_2, 3))
-        routine.add(Sound(R.raw.ssild_hear, 3))
-        routine.add(Sound(R.raw.ssild_feel, 3))
+        //intro
+        routine.add(Sound(0, 10, "$ssildDir/ssild_intro.ogg", 0F))
+        routine.add(Sound(0, 10, "$ssildDir/ssild_sight.ogg", 0F))
+        routine.add(Sound(0, 10, "$ssildDir/ssild_hear.ogg", 0F))
+        routine.add(Sound(0, 10, "$ssildDir/ssild_feel.ogg", 0F))
 
-        if(playTier > 2) {
-            routine.add(Sound(R.raw.ssild_round_3, 3))
-
-            routine.add(Sound(R.raw.ssild_hear, 3))
-            routine.add(Sound(R.raw.ssild_feel, 3))
+        //quick rounds
+        routine.add(Sound(0, 10, "$ssildDir/ssild_fast_cycle.ogg", 0F))
+        repeat(5) {
+            routine.add(Sound(0, 3, "$ssildDir/ssild_sight_short.ogg", 0F))
+            routine.add(Sound(0, 3, "$ssildDir/ssild_hear_short.ogg", 0F))
+            routine.add(Sound(0, 3, "$ssildDir/ssild_feel_short.ogg", 0F))
         }
 
-        if(playTier > 3) {
-            routine.add(Sound(R.raw.ssild_round_4, 3))
-            routine.add(Sound(R.raw.ssild_hear, 3))
-            routine.add(Sound(R.raw.ssild_feel, 3))
-        }
+        routine.add(Sound(0, 10, "$promptDir/silence.ogg", 0F))
 
-        //long routine
-        routine.add(Sound(R.raw.ssild_long_cycles, 0))
-        routine.add(Sound(R.raw.ssild_round_1, 25))
-        routine.add(Sound(R.raw.ssild_hear, 25))
-        routine.add(Sound(R.raw.ssild_feel, 25))
-        routine.add(Sound(R.raw.ssild_round_2, 25))
-        routine.add(Sound(R.raw.ssild_hear, 25))
-        routine.add(Sound(R.raw.ssild_feel, 25))
-
-        if(playTier > 2) {
-            routine.add(Sound(R.raw.ssild_round_3, 25))
-            routine.add(Sound(R.raw.ssild_hear, 25))
-            routine.add(Sound(R.raw.ssild_feel, 25))
-        }
-
-        if(playTier > 3) {
-            routine.add(Sound(R.raw.ssild_round_4, 25))
-            routine.add(Sound(R.raw.ssild_hear, 25))
-            routine.add(Sound(R.raw.ssild_feel, 25))
+        //slow rounds
+        routine.add(Sound(0, 10, "$ssildDir/ssild_slow_cycle.ogg", 0F))
+        repeat(4) {
+            routine.add(Sound(0, 20, "$ssildDir/ssild_sight_short.ogg", 0F))
+            routine.add(Sound(0, 20, "$ssildDir/ssild_hear_short.ogg", 0F))
+            routine.add(Sound(0, 20, "$ssildDir/ssild_feel_short.ogg", 0F))
         }
 
         return routine
