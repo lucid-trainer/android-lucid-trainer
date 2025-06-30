@@ -40,11 +40,11 @@ class SSILDPromptSoundRoutine (
         //SECONDS_BETWEEN_PROMPTS setting
 
         if(promptCount == 1) {
-            routine.add(Sound(0, 3, "$ssildDir/ssild_sight_short.ogg", 1.8F))
+            routine.add(Sound(0, 3, "$ssildDir/ssild_sight_short.ogg", 2F))
+        } else if(promptCount == 2) {
+            routine.add(Sound(0, 3, "$ssildDir/ssild_hear_short.ogg", 2F))
         } else if(promptCount == 3) {
-            routine.add(Sound(0, 3, "$ssildDir/ssild_hear_short.ogg", 1.8F))
-        } else {
-            routine.add(Sound(0, 3, "$ssildDir/ssild_feel_short.ogg", 1.8F))
+            routine.add(Sound(0, 3, "$ssildDir/ssild_feel_short.ogg", 2F))
         }
 
         routine.add(Sound(0, 7, "$promptDir/silence.ogg", 0F,"ON"))

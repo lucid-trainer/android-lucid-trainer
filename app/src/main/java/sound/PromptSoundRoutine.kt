@@ -14,9 +14,8 @@ interface PromptSoundRoutine  : SoundRoutine {
 
     val promptCount: Int
 
-    //we always want to start a prompt by resetting the background
     override fun fadeDownBg() : Boolean {
-        return true
+        return false
     }
 
 }

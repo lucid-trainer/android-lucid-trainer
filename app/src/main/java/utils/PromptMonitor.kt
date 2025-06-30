@@ -3,7 +3,6 @@ package utils
 import android.util.Log
 import presentation.MainActivity.Companion.EVENT_LABEL_REM
 import sound.PromptSoundRoutine
-import java.time.DayOfWeek
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -35,12 +34,12 @@ class PromptMonitor {
         const val MIN_PROMPT_COOL_DOWN_PERIOD = 5L //periods between allowed prompt chains
         const val MAX_PROMPT_COOL_DOWN_PERIOD = 15L //periods between allowed prompt chains
         const val MIN_PROMPT_COUNT = 2
-        const val MAX_PROMPT_COUNT = 10
+        const val MAX_PROMPT_COUNT = 5
         const val INTERRUPT_COOL_DOWN_PERIOD = 10L //period that prompts are quited after movement
         const val ACTIVITY_COOL_DOWN_PERIOD = 10L
         const val SLEEP_COOL_DOWN_PERIOD = 50L
-        const val IN_AWAKE_PERIOD = 6L
-        const val BETWEEN_AWAKE_PERIOD = 30L
+        const val IN_AWAKE_PERIOD = 40L
+        const val BETWEEN_AWAKE_PERIOD = 50L
         const val SECONDS_BETWEEN_PROMPTS = 100L
     }
 
@@ -190,8 +189,7 @@ class PromptMonitor {
     fun getPromptHoursAllowed(lastTimestamp: String?, logOnly: Boolean = false): Boolean {
         val triggerDateTime = LocalDateTime.parse(lastTimestamp)
         val hour = triggerDateTime.hour
-        val day = triggerDateTime.dayOfWeek
-        val hourLimit = if(day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) 6 else 5
+        val hourLimit = 6
 
         val allowedFirstPartOfNight = hour in 2..3
                 && isAwakeEventBeforePeriod(lastTimestamp, 20)
@@ -237,7 +235,7 @@ class PromptMonitor {
             startPromptAllowPeriod = triggerDateTime
             addNewTriggerAndEventCount(triggerDateTime)
         } else if(currentPromptList.size < MAX_PROMPT_COUNT){
-            repeat(2) {
+            repeat(1) {
                 val lastPromptTime = currentPromptList.last()
                 val nextPromptTime = if(lastPromptTime > triggerDateTime) lastPromptTime.plusSeconds(SECONDS_BETWEEN_PROMPTS)
                        else triggerDateTime.plusSeconds(60)
@@ -298,16 +296,9 @@ class PromptMonitor {
         val current = LocalDateTime.now()
         val hour = current.hour
         val minute = current.minute
-
-        val day = current.dayOfWeek
-        val isWeekend = day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY
-
-        var alarmTimes = if(isWeekend) arrayListOf(Pair(8,10), Pair(8,15))
-            else arrayListOf(Pair(6,45), Pair(6,50), Pair(6,55), Pair(7,5), Pair(7,10))
+        var alarmTimes = arrayListOf(Pair(8,15), Pair(8,25))
 
         //Log.d("MainActivity","${viewModel.lastTimestamp.value} hour=$hour minute=$minute alarmHour=$alarmHour")
-
-
         for(alarmTime in alarmTimes) {
             val (first, second) = alarmTime
             if(first == hour && second == minute && (lastAlarmEvent == null || lastAlarmEvent!! != alarmTime)) {
@@ -365,13 +356,8 @@ class PromptMonitor {
         if(triggerDateTime != null) {
             val hour = triggerDateTime.hour
             val day = triggerDateTime.dayOfWeek
-            val isWeekend = day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY
 
-            playTier = if (isWeekend) {
-                if(hour >= 6) 1 else if(hour >= 3) 2 else 3
-            } else {
-                if(hour >= 5) 1 else if(hour >= 3) 2 else 3
-            }
+            playTier = if(hour >= 6) 1 else if(hour >= 3) 2 else 3
         }
 
         Log.d("MainActivity","prompt monitor sets playTier = $playTier")

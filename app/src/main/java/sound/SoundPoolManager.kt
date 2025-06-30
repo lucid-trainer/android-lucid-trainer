@@ -37,7 +37,7 @@ class SoundPoolManager {
     companion object {
         const val ROOT_SOUNDS_DIR = "lt_sounds"
         const val THEMES_DIR = "themes"
-        const val MILD_THEME = "mild_theme"
+        const val STANDARD_THEME = "standard_theme"
 
         @Volatile
         private var INSTANCE: SoundPoolManager? = null
@@ -142,7 +142,7 @@ class SoundPoolManager {
         altBgVolume *= allVolAdj
         val bgVolume = 1F * allVolAdj
 
-        val randomTheme = fileManager.getAllDirectoriesFromPath("$ROOT_SOUNDS_DIR/$THEMES_DIR").filter {!it.equals(MILD_THEME)}.shuffled().last()
+        val randomTheme = fileManager.getAllDirectoriesFromPath("$ROOT_SOUNDS_DIR/$THEMES_DIR").filter {!it.equals(STANDARD_THEME)}.shuffled().last()
 
         //get the appropriate sound routine, adjusting volumes further depending on type
         val soundRoutine = when (type) {
@@ -151,14 +151,14 @@ class SoundPoolManager {
                 fgVolume *= .75F
                 altBgVolume *= .6F
 
-                MILDSoundRoutine(playTier, bgRawId, bgVolume, altBgVolume, fgVolume, eventLabel, bgLabel, MILD_THEME)
+                MILDSoundRoutine(playTier, bgRawId, bgVolume, altBgVolume, fgVolume, eventLabel, bgLabel, STANDARD_THEME)
             }
 
             "ma" -> {
                 fgVolume *= .65F
                 altBgVolume *= .5F
 
-                MILDSoundRoutine(1, bgRawId, bgVolume, altBgVolume, fgVolume, eventLabel, bgLabel, MILD_THEME)
+                MILDSoundRoutine(1, bgRawId, bgVolume, altBgVolume, fgVolume, eventLabel, bgLabel, STANDARD_THEME)
             }
 
             "wa" -> {
@@ -168,39 +168,38 @@ class SoundPoolManager {
                 WILDSoundRoutine(playTier, bgRawId, bgVolume, altBgVolume, fgVolume, eventLabel, bgLabel, randomTheme)
             }
 
-            "s", "sa" -> {
-                fgVolume *= .65F
-                altBgVolume *= .5F
+            "s" -> {
+                fgVolume *= .8F
+                altBgVolume *= .7F
 
-                SSILDSoundRoutine(playTier, bgRawId, bgVolume, altBgVolume, fgVolume, eventLabel, bgLabel, MILD_THEME)
+                SSILDSoundRoutine(playTier, bgRawId, bgVolume, altBgVolume, fgVolume, eventLabel, bgLabel, STANDARD_THEME)
+            }
+
+            "sa" -> {
+                fgVolume *= .75F
+                altBgVolume *= .6F
+
+                SSILDSoundRoutine(playTier, bgRawId, bgVolume, altBgVolume, fgVolume, eventLabel, bgLabel, STANDARD_THEME)
             }
 
             "wp", "mp" -> {
                 val tierAdj = if(playTier == 3) .7F else if(playTier == 2) .55F else .35F
 
                 fgVolume *= tierAdj
-
-                //alt bg volume for prompts will be faded up along with backgound but for prompts we want to more match
-                //foreground, so set to start at higher level
-                altBgVolume += .4F*altBgVolume
                 altBgVolume *= tierAdj
 
                 val fgLabel = if(type == "wp") "WILD" else "MILD"
-                MildPromptSoundRoutine(playTier, bgRawId, bgVolume, altBgVolume, fgVolume, eventLabel, bgLabel, MILD_THEME, fgLabel, promptCount)
+                MildPromptSoundRoutine(playTier, bgRawId, bgVolume, altBgVolume, fgVolume, eventLabel, bgLabel, STANDARD_THEME, fgLabel, promptCount)
             }
 
             "sp" -> {
-                val tierAdj = if(playTier == 3) .65F else if(playTier == 2) .5F else .35F
+                val tierAdj = if(playTier == 3) .7F else if(playTier == 2) .55F else .4F
 
                 fgVolume *= tierAdj
-
-                //alt bg volume for prompts will be faded up along with backgound but for prompts we want to more match
-                //foreground, so set to start at higher level
-                altBgVolume += .4F*altBgVolume
                 altBgVolume *= tierAdj
 
                 val fgLabel = "SILD"
-                SSILDPromptSoundRoutine(playTier, bgRawId, bgVolume, altBgVolume, fgVolume, eventLabel, bgLabel, MILD_THEME, fgLabel, promptCount)
+                SSILDPromptSoundRoutine(playTier, bgRawId, bgVolume, altBgVolume, fgVolume, eventLabel, bgLabel, STANDARD_THEME, fgLabel, promptCount)
             }
 
             //default is "w", a manual WILD sound routine
@@ -318,7 +317,13 @@ class SoundPoolManager {
                             else  -> if(routineSize > 10) 30_000L else 20_000L
                         }
 
-                        val startDelay = if(soundRoutine is MILDSoundRoutine) 660_000L else 60_000L
+                        val startDelay = when(soundRoutine) {
+                            is MILDSoundRoutine -> 660_000L
+
+                            is SSILDSoundRoutine -> 540_000L
+
+                            else -> 60_000L
+                        }
 
                         volumeManager.fadeForegroundDown(25, startingFgVolume, startingFgVolume * .5F, startDelay, loopDelay)
                     }
@@ -430,7 +435,8 @@ class SoundPoolManager {
                     playBackgroundSound(soundRoutine.bgRawId, soundRoutine.bgVolume, textView, soundRoutine.bgVolume)
                 }
                 //skip playing alt background sounds for SSILD
-                playBackgroundSound(soundRoutine.bgRawId, startVolume, textView, 1F, 20, 30_000, 360_000)
+                val fadeUpStartDelay = if(soundRoutine.playTier == 1) 0L else 540_000L
+                playBackgroundSound(soundRoutine.bgRawId, startVolume, textView, 1F, 20, 30_000, fadeUpStartDelay)
             }
 
             is PromptSoundRoutine  -> {
@@ -439,7 +445,7 @@ class SoundPoolManager {
                     playBackgroundSound(soundRoutine.bgRawId, soundRoutine.bgVolume, textView, soundRoutine.bgVolume)
                 }
                 playAltBackgroundSound(soundRoutine, textView)
-                playBackgroundSound(soundRoutine.bgRawId, startVolume, textView, 1F, 20, 2000)
+                //playBackgroundSound(soundRoutine.bgRawId, startVolume, textView, 1F, 20, 2000)
             }
 
             is PodSoundRoutine -> {

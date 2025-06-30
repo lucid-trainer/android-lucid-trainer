@@ -59,7 +59,7 @@ class TestManager {
 
         if (testJob == null || testJob!!.isCompleted) {
             testJob = scope.launch {
-                for (i in 1..10) {
+                for (i in 1..5) {
                     val soundList = mutableListOf<String>()
                     soundList.add(promptType + "p")
 

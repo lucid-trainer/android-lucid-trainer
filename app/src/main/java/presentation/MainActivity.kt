@@ -9,7 +9,7 @@ import android.content.IntentFilter
 import android.content.pm.ActivityInfo
 import android.graphics.Color
 import android.media.AudioManager
-import android.media.MediaRecorder
+//import android.media.MediaRecorder
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -47,8 +47,6 @@ import utils.SpeechManager
 import utils.TestManager
 import viewmodel.DocumentViewModel
 import viewmodel.DocumentViewModelFactory
-import java.io.IOException
-import java.time.DayOfWeek
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -383,12 +381,11 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
         val hour = triggerDateTime.hour
         val minute = triggerDateTime.minute
-        val day = triggerDateTime.dayOfWeek
-        val hourLimit = 5
-        val minLimit = if (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) 50 else 20
+        val hourLimit = 6
+        val minLimit = 10
 
         if (binding.chipAwake.isChecked) {
-            val hoursAllowed = (hour in 0 until hourLimit) || (hour == hourLimit && minute <= minLimit)
+            val hoursAllowed = (hour in 4 until hourLimit) || (hour == hourLimit && minute <= minLimit)
             val isAwakeEventAllowed =
                 hoursAllowed && promptMonitor.isAwakeEventAllowed(viewModel.lastTimestamp.value)
 
@@ -537,10 +534,10 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         binding.btnDefaultVol.setOnClickListener {
             binding.seekBar.progress = RESET_VOL
             binding.bgNoiseSpin.setSelection(1)
-            binding.chipMid.isChecked = true
+            binding.chipHigh.isChecked = true
             binding.chipSsild.isChecked = true
             binding.chipRem.isChecked = true
-            binding.chipAwake.isChecked = true
+            binding.chipAwake.isChecked = false
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, RESET_VOL, 0)
         }
 
