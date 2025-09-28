@@ -1,5 +1,6 @@
 package presentation
 
+//import android.media.MediaRecorder
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
 import android.content.BroadcastReceiver
@@ -8,8 +9,11 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ActivityInfo
 import android.graphics.Color
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.media.AudioManager
-//import android.media.MediaRecorder
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -28,6 +32,7 @@ import com.google.android.material.chip.ChipGroup
 import com.lucidtrainer.R
 import com.lucidtrainer.databinding.ActivityMainBinding
 import database.ReadingDatabase
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -47,11 +52,12 @@ import utils.SpeechManager
 import utils.TestManager
 import viewmodel.DocumentViewModel
 import viewmodel.DocumentViewModelFactory
+import java.lang.Math.sqrt
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 
-class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
+class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener, SensorEventListener {
 
     // variable to initialize it later
     private lateinit var viewModel: DocumentViewModel
@@ -78,6 +84,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         const val MANUAL_PLAY_MESSAGE = "Manual play"
         const val ACTIVE_EVENT_MESSAGE = "Movement"
+        const val ACTIVE_EVENT_REQUEST_MESSAGE = "Request Active event"
         const val WATCH_EVENT_MESSAGE = "Watch event"
         const val INTERRUPT_MESSAGE = "Movement Interrupt"
 
@@ -99,6 +106,13 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private lateinit var speechManager: SpeechManager
     private lateinit var recordingManager: RecordingManager
     private lateinit var testManager: TestManager
+
+    private var sensorManager: SensorManager? = null
+    private var accelerometer: Sensor? = null
+    private var acceleration = 0f
+    private var currentAcceleration = 0f
+    private var lastAcceleration = 0f
+    private var lastAccelerationEventTimestamp: LocalDateTime? = null
 
     private var lastEventTimestamp = ""
     private var lastActiveEventTimestamp: LocalDateTime? = null
@@ -128,6 +142,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         super.onCreate(savedInstanceState)
 
         audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
+
+        sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager?
+        accelerometer = sensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 
         // instantiate view binding
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -302,7 +319,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
             val lastActivityValue = viewModel.lastActivityValue
             val isInActivityPeriod =
-                promptMonitor.isInActivityPeriod(viewModel.lastTimestamp.value, 3L)
+                promptMonitor.isInActivityPeriod(viewModel.lastTimestamp.value, 180L)
             val isPromptRunning = promptMonitor.promptEventWaiting != null
 
             if(lastActivityValue != "TRACE" && lastActivityValue != "LIGHT" && hoursAllowed && !isInActivityPeriod && !isPromptRunning) {
@@ -378,16 +395,22 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
     private fun checkAndSubmitAwakePromptEvent() {
 
-        val triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
+        var triggerDateTime = LocalDateTime.now()
+        if(viewModel.lastTimestamp.value != null && viewModel.lastTimestamp.value!!.isNotEmpty()) {
+            triggerDateTime = LocalDateTime.parse(viewModel.lastTimestamp.value)
+        }
+
         val hour = triggerDateTime.hour
         val minute = triggerDateTime.minute
         val hourLimit = 6
         val minLimit = 10
 
         if (binding.chipAwake.isChecked) {
-            val hoursAllowed = (hour in 4 until hourLimit) || (hour == hourLimit && minute <= minLimit)
+            var hoursAllowed = (hour in 4 until hourLimit) || (hour == hourLimit && minute <= minLimit)
             val isAwakeEventAllowed =
                 hoursAllowed && promptMonitor.isAwakeEventAllowed(viewModel.lastTimestamp.value)
+
+            Log.d("MainActivity","isAwakeEventAllowed=" + isAwakeEventAllowed)
 
             if (hoursAllowed) {
                 val document = getDeviceDocument(EVENT_LABEL_AWAKE, isAwakeEventAllowed)
@@ -768,7 +791,12 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             return
         }
 
-        val scope = CoroutineScope(Dispatchers.Default)
+        val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
+            Log.e("MainActivity", "startCountdown error + ${throwable.message}")
+            throwable.printStackTrace() // Log the exception to Logcat
+        }
+
+        val scope = CoroutineScope(Dispatchers.Default + coroutineExceptionHandler)
 
         if (apJob == null || apJob!!.isCompleted) {
             apJob = scope.launch {
@@ -963,6 +991,55 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         //do nothing
     }
 
+    override fun onResume() {
+        sensorManager?.registerListener(this, sensorManager!!.getDefaultSensor(
+            Sensor .TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_NORMAL
+        )
+        super.onResume()
+    }
+
+    override fun onPause() {
+        sensorManager!!.unregisterListener(this)
+        super.onPause()
+    }
+
+    override fun onSensorChanged(event: SensorEvent?) {
+        // Fetching x,y,z values
+        val x = event?.values?.get(0)
+        val y = event?.values?.get(1)
+        val z = event?.values?.get(2)
+        lastAcceleration = currentAcceleration
+
+        // Getting current accelerations
+        // with the help of fetched x,y,z values
+        if (x != null && y != null && z != null) {
+           currentAcceleration = sqrt((x * x + y * y + z * z).toDouble()).toFloat()
+        }
+
+        val delta: Float = currentAcceleration - lastAcceleration
+        acceleration = acceleration * 0.9f + delta
+
+        // If the acceleration is above a threshold, we consider it as an active event
+        if (acceleration > 0.8f) {
+            //if this is the first trigger in the last 10 seconds, speak the time
+            if(lastAccelerationEventTimestamp == null || LocalDateTime.now() >= lastAccelerationEventTimestamp!!.plusSeconds(10)) {
+                speechManager.speakTheTimeWithMessage(
+                    ACTIVE_EVENT_MESSAGE, "", .4F
+                )
+                lastAccelerationEventTimestamp = LocalDateTime.now()
+                Log.d("MainActivity", "speaking the time " + ACTIVE_EVENT_MESSAGE)
+
+                //play the prompt if selected
+                if(binding.chipAwake.isChecked && LocalDateTime.now().hour >= 4 && LocalDateTime.now().hour <= 6) {
+                    playPromptsFromEventsOrUI(EVENT_LABEL_AWAKE)
+                    Log.d("MainActivity", "starting countdown timer")
+                }
+            }
+        }
+    }
+
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
+    }
 
 
 }

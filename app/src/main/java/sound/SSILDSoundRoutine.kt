@@ -38,23 +38,29 @@ class SSILDSoundRoutine(override var playTier: Int, override var bgRawId: Int,ov
         //quick rounds
         routine.add(Sound(0, 5, "$ssildDir/ssild_fast_cycle.ogg", 0F))
 
-        val quickLimit = if (playTier == 1) 2 else 3
-        repeat(quickLimit) {
+        val tierLimit = if (playTier == 1) 2 else 3
+        repeat(tierLimit) {
             routine.add(Sound(0, 3, "$ssildDir/ssild_sight_short.ogg", 0F))
             routine.add(Sound(0, 3, "$ssildDir/ssild_hear_short.ogg", 0F))
             routine.add(Sound(0, 3, "$ssildDir/ssild_feel_short.ogg", 0F))
         }
 
-        routine.add(Sound(0, 10, "$promptDir/silence.ogg", 0F))
+        routine.add(Sound(0, 5, "$promptDir/silence.ogg", 0F))
+
+        routine.add(Sound(0, 5, "$ssildDir/ssild_stop_fast.ogg", 0F))
 
         //slow rounds
         routine.add(Sound(0, 10, "$ssildDir/ssild_slow_cycle.ogg", 0F))
         val slowTime = if (playTier == 1) 15 else 20
-        repeat(2) {
+        repeat(tierLimit) {
             routine.add(Sound(0, slowTime, "$ssildDir/ssild_sight_short.ogg", 0F))
             routine.add(Sound(0, slowTime, "$ssildDir/ssild_hear_short.ogg", 0F))
             routine.add(Sound(0, slowTime, "$ssildDir/ssild_feel_short.ogg", 0F))
         }
+
+        routine.add(Sound(0, 5, "$promptDir/silence.ogg", 0F))
+
+        routine.add(Sound(0, 5, "$ssildDir/ssild_stop_slow.ogg", 0F))
 
         //auto suggest phase
         routine.add(Sound(0, 10, "$ssildDir/ssild_auto_suggest.ogg", 0F))
@@ -67,8 +73,6 @@ class SSILDSoundRoutine(override var playTier: Int, override var bgRawId: Int,ov
         if(playTier != 1) {
             addClipSound(routine)
         }
-
-        addForegroundSounds(routine)
 
         return routine
     }
@@ -84,25 +88,6 @@ class SSILDSoundRoutine(override var playTier: Int, override var bgRawId: Int,ov
 //        val clipFile = fileManager.getUnusedFilesFromDirectory("$startDir/$CLIP1_DIR", 1).shuffled().last()
 //        routine.add(Sound(0, 20, "$startDir/$CLIP1_DIR/$clipFile"))
 //        fileManager.addFileUsed("$ssildDir/$CLIP1_DIR", ssildClipFile)
-    }
-
-    private fun addForegroundSounds(routine: MutableList<Sound>) {
-        var dir = "$ROOT_DIR/$THEMES_DIR/$theme/$FOREGROUND_DIR"
-        val promptDir = "$ROOT_DIR/$PROMPT_DIR"
-
-//        val limit = 5
-//        val files = fileManager.getUnusedFilesFromDirectory(dir, limit).shuffled().slice(0 until limit)
-//
-//        for (file in files) {
-//            routine.add(Sound(0, 20, "$dir/$file"))
-//        }
-//        fileManager.addFilesUsed(dir, files)
-
-
-        for(i in 1..3) {
-            routine.add(Sound(0, 30, "$promptDir/foreground.ogg"))
-        }
-
     }
 
     override fun executeAfterPlay() {

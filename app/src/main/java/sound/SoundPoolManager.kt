@@ -169,15 +169,15 @@ class SoundPoolManager {
             }
 
             "s" -> {
-                fgVolume *= .8F
+                fgVolume *= .85F
                 altBgVolume *= .7F
 
                 SSILDSoundRoutine(playTier, bgRawId, bgVolume, altBgVolume, fgVolume, eventLabel, bgLabel, STANDARD_THEME)
             }
 
             "sa" -> {
-                fgVolume *= .75F
-                altBgVolume *= .6F
+                fgVolume *= .8F
+                altBgVolume *= .65F
 
                 SSILDSoundRoutine(playTier, bgRawId, bgVolume, altBgVolume, fgVolume, eventLabel, bgLabel, STANDARD_THEME)
             }
@@ -204,8 +204,8 @@ class SoundPoolManager {
 
             //default is "w", a manual WILD sound routine
             else -> {
-                fgVolume *= 1.25F
-                altBgVolume *= 1.1F
+                fgVolume *= .9F
+                altBgVolume *= .75F
                 WILDSoundRoutine(playTier, bgRawId, bgVolume, altBgVolume, fgVolume, eventLabel, bgLabel, randomTheme)
             }
         }
@@ -320,7 +320,7 @@ class SoundPoolManager {
                         val startDelay = when(soundRoutine) {
                             is MILDSoundRoutine -> 660_000L
 
-                            is SSILDSoundRoutine -> 540_000L
+                            is SSILDSoundRoutine -> 600_000L
 
                             else -> 60_000L
                         }
@@ -435,8 +435,9 @@ class SoundPoolManager {
                     playBackgroundSound(soundRoutine.bgRawId, soundRoutine.bgVolume, textView, soundRoutine.bgVolume)
                 }
                 //skip playing alt background sounds for SSILD
-                val fadeUpStartDelay = if(soundRoutine.playTier == 1) 0L else 540_000L
-                playBackgroundSound(soundRoutine.bgRawId, startVolume, textView, 1F, 20, 30_000, fadeUpStartDelay)
+                val fadeUpStartDelay = if(soundRoutine.playTier == 1) 360_000L else 540_000L
+                val fadeUpDelay = if(soundRoutine.playTier == 1) 20_000L else 50_000L
+                playBackgroundSound(soundRoutine.bgRawId, startVolume, textView, 1F, 20, fadeUpDelay, fadeUpStartDelay)
             }
 
             is PromptSoundRoutine  -> {

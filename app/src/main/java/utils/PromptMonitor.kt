@@ -3,6 +3,7 @@ package utils
 import android.util.Log
 import presentation.MainActivity.Companion.EVENT_LABEL_REM
 import sound.PromptSoundRoutine
+import java.time.DayOfWeek
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -34,7 +35,7 @@ class PromptMonitor {
         const val MIN_PROMPT_COOL_DOWN_PERIOD = 5L //periods between allowed prompt chains
         const val MAX_PROMPT_COOL_DOWN_PERIOD = 15L //periods between allowed prompt chains
         const val MIN_PROMPT_COUNT = 2
-        const val MAX_PROMPT_COUNT = 5
+        const val MAX_PROMPT_COUNT = 8
         const val INTERRUPT_COOL_DOWN_PERIOD = 10L //period that prompts are quited after movement
         const val ACTIVITY_COOL_DOWN_PERIOD = 10L
         const val SLEEP_COOL_DOWN_PERIOD = 50L
@@ -165,7 +166,7 @@ class PromptMonitor {
     }
 
     fun isInActivityPeriod(lastTimestamp: String?, coolDownPeriod: Long = ACTIVITY_COOL_DOWN_PERIOD) : Boolean {
-        return lastActivityEventDateTime != null && LocalDateTime.parse(lastTimestamp) <= lastActivityEventDateTime!!.plusMinutes(
+        return lastActivityEventDateTime != null && LocalDateTime.parse(lastTimestamp) <= lastActivityEventDateTime!!.plusSeconds(
             coolDownPeriod)
     }
 
@@ -296,9 +297,15 @@ class PromptMonitor {
         val current = LocalDateTime.now()
         val hour = current.hour
         val minute = current.minute
-        var alarmTimes = arrayListOf(Pair(8,15), Pair(8,25))
+
+        val day = current.dayOfWeek
+        val isWorkday = day == DayOfWeek.MONDAY || day == DayOfWeek.WEDNESDAY || day == DayOfWeek.THURSDAY
+
+        var alarmTimes = if(isWorkday) arrayListOf(Pair(6,50), Pair(6,55), Pair(7,5), Pair(7,10))
+            else arrayListOf(Pair(8,15), Pair(8,25))
 
         //Log.d("MainActivity","${viewModel.lastTimestamp.value} hour=$hour minute=$minute alarmHour=$alarmHour")
+
         for(alarmTime in alarmTimes) {
             val (first, second) = alarmTime
             if(first == hour && second == minute && (lastAlarmEvent == null || lastAlarmEvent!! != alarmTime)) {

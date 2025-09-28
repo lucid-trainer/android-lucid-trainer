@@ -23,7 +23,7 @@ class SSILDPromptSoundRoutine (
         val bgSounds : MutableList<String> = emptyList<String>().toMutableList()
 
         var altBgFile =
-            fileManager.getFilesFromDirectory(promptDir).filter { it.startsWith("alt_background_") }
+            fileManager.getFilesFromDirectory(promptDir).filter { it.startsWith("alt_background") }
                 .shuffled().last()
 
         bgSounds.add("$promptDir/$altBgFile")
@@ -49,7 +49,12 @@ class SSILDPromptSoundRoutine (
 
         routine.add(Sound(0, 7, "$promptDir/silence.ogg", 0F,"ON"))
 
-        routine.add(Sound(0, 0, "$promptDir/foreground.ogg"))
+        val promptFile =
+            fileManager.getFilesFromDirectory(ssildDir).filter { it.startsWith("ssild_prompt") }
+                .shuffled().last()
+
+        routine.add(Sound(0, 0, "$ssildDir/$promptFile", 1.2F))
+
 
         return routine
     }

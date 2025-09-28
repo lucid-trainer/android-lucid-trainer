@@ -10,14 +10,14 @@ import retrofit2.http.POST
 
 interface ApiService {
     @Headers(
-        "apiKey: [MongoDB Atlas API key or Other service key]",
+        "apiKey: INOIOznQaNVkee3IzFJrMtosokmUF3rDXCA8m0hSsNSUzefm0axpGJ67OuEWWDZC",
         "Content-Type: application/json"
     )
     @POST("action/find")
     suspend fun getDocuments(@Body params: APIRequest): APIResponse
 
     @Headers(
-        "apiKey: [MongoDB Atlas API key or Other service key]",
+        "apiKey: INOIOznQaNVkee3IzFJrMtosokmUF3rDXCA8m0hSsNSUzefm0axpGJ67OuEWWDZC",
         "Content-Type: application/json"
     )
     @POST("action/insertOne")

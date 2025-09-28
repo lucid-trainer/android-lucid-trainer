@@ -143,7 +143,7 @@ class SoundVolumeManager() {
 
             for (i in 1..fadeUpCnt) {
                 delay(timeMillis = fadeUpDelay)
-
+                Log.d("MainActivity", "fadeUpDelay = " + fadeUpDelay)
                 currBgVol += fadeUpAmount
                 Log.d("MainActivity", "for loop $i adding $fadeUpAmount to get currVol $currBgVol with target $finishVolume")
                 setBgVol(currBgVol)

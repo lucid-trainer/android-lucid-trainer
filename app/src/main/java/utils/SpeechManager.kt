@@ -76,7 +76,7 @@ class SpeechManager() {
     }
 
     fun speakTheTime() {
-        speakTheTimeWithMessage("", "", 0.4F, true)
+        speakTheTimeWithMessage("", "", 0.6F, true)
     }
 
     fun speakTheTimeWithMessage(eventMessage : String, promptMessage: String = "", volume: Float = 0.55F, isShortPrompt: Boolean = false) {
